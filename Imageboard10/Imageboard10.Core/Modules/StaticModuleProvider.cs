@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace Imageboard10.Core.Modules
@@ -9,7 +8,7 @@ namespace Imageboard10.Core.Modules
     /// </summary>
     /// <typeparam name="T">Тип модуля.</typeparam>
     /// <typeparam name="TIntf">Тип интерфейса</typeparam>
-    public sealed class StaticModuleProvider<T, TIntf> : IModuleProvider, IModuleLifetime
+    public sealed class StaticModuleProvider<T, TIntf> : ModuleBase<IModuleProvider>, IModuleProvider
         where T : IModule, TIntf
     {
         private readonly T _module;
@@ -29,36 +28,39 @@ namespace Imageboard10.Core.Modules
         }
 
         /// <summary>
-        /// Запросить представление модуля.
+        /// Действие по завершению работы.
         /// </summary>
-        /// <param name="viewType">Тип представления.</param>
-        /// <returns>Представление.</returns>
-        public object QueryView(Type viewType)
+        protected override async ValueTask<Nothing> OnDispose()
         {
-            if (viewType == typeof(IModule) || viewType == typeof(IModuleProvider) ||
-                viewType == typeof(IModuleLifetime))
+            var lt = _module.QueryView<IModuleLifetime>();
+            if (lt != null)
             {
-                return this;
+                await lt.DisposeModule();
             }
-            return null;
+            await base.OnDispose();
+            return Nothing.Value;
         }
 
         /// <summary>
-        /// Модуль готов к использованию.
+        /// Действие по инициализации.
         /// </summary>
-        public bool IsModuleReady => Interlocked.CompareExchange(ref _isInitialized, 0, 0) != 0 &&
-                                     Interlocked.CompareExchange(ref _isDisposed, 0, 0) == 0;
+        /// <param name="moduleProvider">Провайдер модулей.</param>
+        protected override async ValueTask<Nothing> OnInitialize(IModuleProvider moduleProvider)
+        {
+            await base.OnInitialize(moduleProvider);
+            var lt = _module.QueryView<IModuleLifetime>();
+            if (lt != null)
+            {
+                await lt.InitializeModule(moduleProvider);
+            }
+            return Nothing.Value;
+        }
 
-        private int _isInitialized;
-
-        private int _isDisposed;
-
-        private IModuleProvider _parent;
 
         /// <summary>
         /// Родительский провайдер модулей.
         /// </summary>
-        public IModuleProvider Parent => Interlocked.CompareExchange(ref _parent, null, null);
+        public IModuleProvider Parent => ModuleProvider;
 
         /// <summary>
         /// Запросить модуль асинхронно.
@@ -87,40 +89,6 @@ namespace Imageboard10.Core.Modules
                 }
             }
             return null;
-        }
-
-        /// <summary>
-        /// Инициализировать модуль.
-        /// </summary>
-        /// <param name="provider">Провайдер модулей.</param>
-        public async ValueTask<Nothing> InitializeModule(IModuleProvider provider)
-        {
-            if (Interlocked.Exchange(ref _isInitialized, 1) == 0)
-            {
-                Interlocked.Exchange(ref _parent, provider);
-                var lt = _module.QueryView<IModuleLifetime>();
-                if (lt != null)
-                {
-                    await lt.InitializeModule(provider);
-                }
-            }
-            return Nothing.Value;
-        }
-
-        /// <summary>
-        /// Завершить работу модуля.
-        /// </summary>
-        public async ValueTask<Nothing> DisposeModule()
-        {
-            if (Interlocked.Exchange(ref _isDisposed, 1) == 0)
-            {
-                var lt = _module.QueryView<IModuleLifetime>();
-                if (lt != null)
-                {
-                    await lt.DisposeModule();
-                }
-            }
-            return Nothing.Value;
         }
     }
 }

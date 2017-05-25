@@ -106,8 +106,10 @@
     <RestoreProjectStyle>PackageReference</RestoreProjectStyle>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="Modules\BaseModuleLogic.cs" />
     <Compile Include="Modules\IModuleLifetime.cs" />
     <Compile Include="Modules\IStaticModuleQueryFilter.cs" />
+    <Compile Include="Modules\ModuleBase.cs" />
     <Compile Include="Modules\StaticModuleProvider.cs" />
     <Compile Include="Modules\Wrappers\ModuleCollectionWrapperToDotnet.cs" />
     <Compile Include="Modules\Wrappers\ModuleCollectionWrapperToWinRT.cs" />
