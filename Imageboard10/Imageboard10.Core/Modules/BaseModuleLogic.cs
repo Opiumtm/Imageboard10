@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -8,12 +9,15 @@ namespace Imageboard10.Core.Modules
     /// Базовая логика времени жизни модуля.
     /// </summary>
     /// <typeparam name="TIntf">Интерфейс, реализуемый модулем.</typeparam>
-    public sealed class BaseModuleLogic<TIntf> : IModule, IModuleLifetime
+    public sealed class BaseModuleLogic<TIntf> : IModule, IModuleLifetime, ModuleInterface.IModuleLifetimeEvents
         where TIntf: class 
     {
         private readonly object _host;
         private readonly Func<IModuleProvider, ValueTask<Nothing>> _initFunc;
         private readonly Func<ValueTask<Nothing>> _disposeFunc;
+        private readonly bool _attachToParentDispose;
+        private int _isDisposeAttached;
+        private IModuleProvider _parent;
 
         /// <summary>
         /// Конструктор.
@@ -21,11 +25,13 @@ namespace Imageboard10.Core.Modules
         /// <param name="host">Модуль.</param>
         /// <param name="initFunc">Функция инициализации.</param>
         /// <param name="disposeFunc">Функция завершения работы.</param>
-        public BaseModuleLogic(object host, Func<IModuleProvider, ValueTask<Nothing>> initFunc, Func<ValueTask<Nothing>> disposeFunc)
+        /// <param name="attachToParentDispose">Присоединить к родительскому событию по завершению работы.</param>
+        public BaseModuleLogic(object host, Func<IModuleProvider, ValueTask<Nothing>> initFunc, Func<ValueTask<Nothing>> disposeFunc, bool attachToParentDispose = false)
         {
             _host = host ?? throw new ArgumentNullException(nameof(host));
             _initFunc = initFunc;
             _disposeFunc = disposeFunc;
+            _attachToParentDispose = attachToParentDispose;
         }
 
         /// <summary>
@@ -35,7 +41,7 @@ namespace Imageboard10.Core.Modules
         /// <returns>Представление.</returns>
         public object QueryView(Type viewType)
         {
-            if (viewType == typeof(IModuleLifetime))
+            if (viewType == typeof(IModuleLifetime) || viewType == typeof(ModuleInterface.IModuleLifetimeEvents))
             {
                 return this;
             }
@@ -67,12 +73,37 @@ namespace Imageboard10.Core.Modules
         {
             if (Interlocked.Exchange(ref _isInitialized, 1) == 0)
             {
+                Interlocked.Exchange(ref _parent, provider);
                 if (_initFunc != null)
                 {
                     await _initFunc(provider);
                 }
+                if (_attachToParentDispose)
+                {
+                    var lt = provider?.QueryView<ModuleInterface.IModuleLifetimeEvents>();
+                    if (lt != null)
+                    {
+                        Interlocked.Exchange(ref _isDisposeAttached, 1);
+                        lt.Disposed += ParentOnDisposed;
+                    }
+                }
             }
             return Nothing.Value;
+        }
+
+        private async void ParentOnDisposed(object o)
+        {
+            try
+            {
+                await DisposeModule();
+            }
+            catch
+            {
+                if (Debugger.IsAttached)
+                {
+                    Debugger.Break();
+                }
+            }
         }
 
         /// <summary>
@@ -86,8 +117,23 @@ namespace Imageboard10.Core.Modules
                 {
                     await _disposeFunc();
                 }
+                Disposed?.Invoke(null);
+                if (Interlocked.Exchange(ref _isDisposeAttached, 0) != 0)
+                {
+                    var provider = Interlocked.CompareExchange(ref _parent, null, null);
+                    var lt = provider?.QueryView<ModuleInterface.IModuleLifetimeEvents>();
+                    if (lt != null)
+                    {
+                        lt.Disposed -= ParentOnDisposed;
+                    }
+                }
             }
             return Nothing.Value;
         }
+
+        /// <summary>
+        /// Работа модуля завершена.
+        /// </summary>
+        public event ModuleInterface.ModuleLifetimeEventHandler Disposed;
     }
 }

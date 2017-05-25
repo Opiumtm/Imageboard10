@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -16,6 +17,8 @@ namespace Imageboard10.Core.Modules
         private readonly IModuleProvider _parent;
 
         private int _isSealed;
+
+        private int _isParentDisposeEvent;
 
         /// <summary>
         /// Конструктор.
@@ -39,6 +42,40 @@ namespace Imageboard10.Core.Modules
                 throw new InvalidOperationException("Нельзя регистрировать провайдер модуля после завершения этапа регистрации");
             }
             _internalProvider.Add(moduleType, provider);
+        }
+
+        /// <summary>
+        /// Присоединить к родительскому событию по завершению работы.
+        /// </summary>
+        /// <returns>true, если присоединение успешно.</returns>
+        public bool AttachToParentDispose()
+        {
+            if (Interlocked.CompareExchange(ref _isParentDisposeEvent, 0, 0) == 0)
+            {
+                var lt = _parent.QueryView<ModuleInterface.IModuleLifetimeEvents>();
+                if (lt != null)
+                {
+                    Interlocked.Exchange(ref _isParentDisposeEvent, 1);
+                    lt.Disposed += OnParentDisposed;
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        private async void OnParentDisposed(object o)
+        {
+            try
+            {
+                await Dispose();
+            }
+            catch
+            {
+                if (Debugger.IsAttached)
+                {
+                    Debugger.Break();
+                }
+            }
         }
 
         /// <summary>
@@ -82,10 +119,18 @@ namespace Imageboard10.Core.Modules
         public async ValueTask<Nothing> Dispose()
         {
             await _internalProvider.DisposeModule();
+            if (Interlocked.Exchange(ref _isParentDisposeEvent, 0) != 0)
+            {
+                var lt = _parent?.QueryView<ModuleInterface.IModuleLifetimeEvents>();
+                if (lt != null)
+                {
+                    lt.Disposed -= OnParentDisposed;
+                }
+            }
             return Nothing.Value;
         }
 
-        private sealed class Provider : IModuleProvider, IModuleLifetime
+        private sealed class Provider : IModuleProvider, IModuleLifetime, ModuleInterface.IModuleLifetimeEvents
         {
             private readonly Dictionary<Type, List<IModuleProvider>> _providers = new Dictionary<Type, List<IModuleProvider>>();
 
@@ -190,9 +235,12 @@ namespace Imageboard10.Core.Modules
                             await p.DisposeModule();
                         }
                     }
+                    Disposed?.Invoke(null);
                 }
                 return Nothing.Value;
             }
+
+            public event ModuleInterface.ModuleLifetimeEventHandler Disposed;
         }
     }
 }
