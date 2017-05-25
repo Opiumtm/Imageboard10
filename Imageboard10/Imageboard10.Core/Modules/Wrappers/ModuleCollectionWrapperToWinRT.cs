@@ -1,27 +1,21 @@
 ﻿using System;
 
-namespace Imageboard10.Core.Modules
+namespace Imageboard10.Core.Modules.Wrappers
 {
     /// <summary>
-    /// Обратная обёртка для коллекции модулей.
+    /// Обёртка для провайдера модулей.
     /// </summary>
-    /// <typeparam name="T">Тип коллекции.</typeparam>
-    internal sealed class ModuleCollectionBackwardWrapper<T> : IModuleCollection
-        where T : ModuleInterface.IModuleCollection
+    /// <typeparam name="T">Тип исходного объекта.</typeparam>
+    // ReSharper disable once InconsistentNaming
+    public class ModuleCollectionWrapperToWinRT<T> : WrapperBase<T>, ModuleInterface.IModuleCollection
+        where T : IModuleCollection
     {
-        private readonly T _wrapped;
-
         /// <summary>
         /// Конструктор.
         /// </summary>
         /// <param name="wrapped">Исходный объект.</param>
-        public ModuleCollectionBackwardWrapper(T wrapped)
+        public ModuleCollectionWrapperToWinRT(T wrapped) : base(wrapped)
         {
-            if (wrapped == null)
-            {
-                throw new ArgumentNullException(nameof(wrapped));
-            }
-            _wrapped = wrapped;
         }
 
         /// <summary>
@@ -29,28 +23,28 @@ namespace Imageboard10.Core.Modules
         /// </summary>
         /// <param name="moduleType">Тип модуля. Может быть NULL.</param>
         /// <param name="provider">Провайдер.</param>
-        public void RegisterProvider(Type moduleType, IModuleProvider provider)
+        public void RegisterProvider(Type moduleType, ModuleInterface.IModuleProvider provider)
         {
-            _wrapped.RegisterProvider(moduleType, provider.AsWinRT());
+            Wrapped.RegisterProvider(moduleType, provider.AsDotnetProvider());
         }
 
         /// <summary>
         /// Можно регистрировать провайдеры.
         /// </summary>
-        public bool CanRegisterProviders => _wrapped.CanRegisterProviders;
+        public bool CanRegisterProviders => Wrapped.CanRegisterProviders;
 
         /// <summary>
         /// Можно получать провайдеры модулей.
         /// </summary>
-        public bool CanGetModuleProvider => _wrapped.CanGetModuleProvider;
+        public bool CanGetModuleProvider => Wrapped.CanGetModuleProvider;
 
         /// <summary>
         /// Получить сводный провайдер модулей.
         /// </summary>
         /// <returns>Провайдер модулей.</returns>
-        public IModuleProvider GetModuleProvider()
+        public ModuleInterface.IModuleProvider GetModuleProvider()
         {
-            return _wrapped.GetModuleProvider().AsDotnet();
+            return Wrapped.GetModuleProvider().AsWinRTProvider();
         }
     }
 }

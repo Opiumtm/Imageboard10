@@ -106,19 +106,25 @@
     <RestoreProjectStyle>PackageReference</RestoreProjectStyle>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="Modules\ModuleBackwardWrapper.cs" />
-    <Compile Include="Modules\ModuleWrapper.cs" />
+    <Compile Include="Modules\IModuleLifetime.cs" />
+    <Compile Include="Modules\IStaticModuleQueryFilter.cs" />
+    <Compile Include="Modules\StaticModuleProvider.cs" />
+    <Compile Include="Modules\Wrappers\ModuleCollectionWrapperToDotnet.cs" />
+    <Compile Include="Modules\Wrappers\ModuleCollectionWrapperToWinRT.cs" />
+    <Compile Include="Modules\Wrappers\ModuleLifetimeWrapperToDotnet.cs" />
+    <Compile Include="Modules\Wrappers\ModuleLifetimeWrapperToWinRt.cs" />
+    <Compile Include="Modules\Wrappers\ModuleProviderWrapperToDotnet.cs" />
+    <Compile Include="Modules\Wrappers\ModuleProviderWrapperToWinRT.cs" />
+    <Compile Include="Modules\Wrappers\ModuleWrapperToDontnet.cs" />
+    <Compile Include="Modules\Wrappers\ModuleWrapperToWinRT.cs" />
+    <Compile Include="Modules\Wrappers\WrapperBase.cs" />
     <Compile Include="Nothing.cs" />
     <Compile Include="Modules\IModule.cs" />
     <Compile Include="Modules\IModuleCollection.cs" />
     <Compile Include="Modules\IModuleProvider.cs" />
     <Compile Include="Modules\IPropertySetConvertable.cs" />
     <Compile Include="Modules\ModuleCollection.cs" />
-    <Compile Include="Modules\ModuleCollectionBackwardWrapper.cs" />
-    <Compile Include="Modules\ModuleCollectionWrapper.cs" />
     <Compile Include="Modules\ModuleHelper.cs" />
-    <Compile Include="Modules\ModuleProviderBackwardWrapper.cs" />
-    <Compile Include="Modules\ModuleProviderWrapper.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <EmbeddedResource Include="Properties\Imageboard10.Core.rd.xml" />
   </ItemGroup>

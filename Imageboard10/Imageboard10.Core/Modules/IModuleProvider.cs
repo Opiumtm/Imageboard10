@@ -6,8 +6,13 @@ namespace Imageboard10.Core.Modules
     /// <summary>
     /// Провайдер модулей.
     /// </summary>
-    public interface IModuleProvider
+    public interface IModuleProvider : IModule
     {
+        /// <summary>
+        /// Родительский провайдер модулей.
+        /// </summary>
+        IModuleProvider Parent { get; }
+
         /// <summary>
         /// Запросить модуль асинхронно.
         /// </summary>

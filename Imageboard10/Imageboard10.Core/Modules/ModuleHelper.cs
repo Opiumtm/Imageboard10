@@ -1,4 +1,5 @@
 ﻿using System.Threading.Tasks;
+using Imageboard10.Core.Modules.Wrappers;
 
 namespace Imageboard10.Core.Modules
 {
@@ -14,14 +15,14 @@ namespace Imageboard10.Core.Modules
         /// <param name="provider">Провайдер.</param>
         /// <returns>Совместимый с WinRT провайдер.</returns>
         // ReSharper disable once InconsistentNaming
-        public static ModuleInterface.IModuleProvider AsWinRT<T>(this T provider)
+        public static ModuleInterface.IModuleProvider AsWinRTProvider<T>(this T provider)
             where T : IModuleProvider
         {
             if (provider == null)
             {
                 return null;
             }
-            return new ModuleProviderWrapper<T>(provider);
+            return new ModuleProviderWrapperToWinRT<T>(provider);
         }
 
         /// <summary>
@@ -30,14 +31,14 @@ namespace Imageboard10.Core.Modules
         /// <typeparam name="T">Тип провайдера.</typeparam>
         /// <param name="provider">Провайдер.</param>
         /// <returns>Совместимый с .NET-библиотекой провайдер.</returns>
-        public static IModuleProvider AsDotnet<T>(this T provider)
+        public static IModuleProvider AsDotnetProvider<T>(this T provider)
             where T : ModuleInterface.IModuleProvider
         {
             if (provider == null)
             {
                 return null;
             }
-            return new ModuleProviderBackwardWrapper<T>(provider);
+            return new ModuleProviderWrapperToDotnet<T>(provider);
         }
 
         /// <summary>
@@ -54,7 +55,7 @@ namespace Imageboard10.Core.Modules
             {
                 return null;
             }
-            return new ModuleCollectionWrapper<T>(collection);
+            return new ModuleCollectionWrapperToWinRT<T>(collection);
         }
 
         /// <summary>
@@ -70,7 +71,7 @@ namespace Imageboard10.Core.Modules
             {
                 return null;
             }
-            return new ModuleCollectionBackwardWrapper<T>(collection);
+            return new ModuleCollectionWrapperToDotnet<T>(collection);
         }
 
         /// <summary>
@@ -87,7 +88,7 @@ namespace Imageboard10.Core.Modules
             {
                 return null;
             }
-            return new ModuleBackwardWrapper<T>(module);
+            return new ModuleWrapperToWinRT<T>(module);
         }
 
         /// <summary>
@@ -103,7 +104,40 @@ namespace Imageboard10.Core.Modules
             {
                 return null;
             }
-            return new ModuleWrapper<T>(module);
+            return new ModuleWrapperToDontnet<T>(module);
+        }
+
+        /// <summary>
+        /// Получить интерфейс времени жизни модуля в виде WinRT.
+        /// </summary>
+        /// <typeparam name="T">Тип объекта.</typeparam>
+        /// <param name="lifetime">Исходный объект.</param>
+        /// <returns>Совместимый с WinRT объект.</returns>
+        // ReSharper disable once InconsistentNaming
+        public static ModuleInterface.IModuleLifetime AsWinRTModuleLifetime<T>(this T lifetime)
+            where T : IModuleLifetime
+        {
+            if (lifetime == null)
+            {
+                return null;
+            }
+            return new ModuleLifetimeWrapperToWinRt<T>(lifetime);
+        }
+
+        /// <summary>
+        /// Получить интерфейс времени жизни модуля в виде .NET.
+        /// </summary>
+        /// <typeparam name="T">Тип объекта.</typeparam>
+        /// <param name="lifetime">Исходный объект.</param>
+        /// <returns>Совместимый с .NET-библиотекой объект.</returns>
+        public static IModuleLifetime AsDotnetModuleLifetime<T>(this T lifetime)
+            where T : ModuleInterface.IModuleLifetime
+        {
+            if (lifetime == null)
+            {
+                return null;
+            }
+            return new ModuleLifetimeWrapperToDotnet<T>(lifetime);
         }
 
         /// <summary>
@@ -175,6 +209,20 @@ namespace Imageboard10.Core.Modules
         {
             var obj = await provider.QueryModuleAsync(typeof(T), query);
             return obj as T ?? obj?.QueryView<T>();
+        }
+
+        /// <summary>
+        /// Зарегистрировать статический модуль.
+        /// </summary>
+        /// <typeparam name="T">Тип модуля.</typeparam>
+        /// <typeparam name="TIntf">Тип интерфейса, который реализует модуль.</typeparam>
+        /// <param name="collection">Коллекция.</param>
+        /// <param name="module">Модуль.</param>
+        /// <param name="filter">Фильтр модуля.</param>
+        public static void RegisterModule<T, TIntf>(this IModuleCollection collection, T module, IStaticModuleQueryFilter filter = null)
+            where T : IModule, TIntf
+        {
+            collection.RegisterProvider(typeof(TIntf), new StaticModuleProvider<T, TIntf>(module, filter));
         }
     }
 }

@@ -9,18 +9,6 @@ namespace Imageboard10.ModuleInterface
     public interface IModule
     {
         /// <summary>
-        /// Инициализировать модуль.
-        /// </summary>
-        /// <param name="provider">Провайдер модулей.</param>
-        IAsyncAction InitializeModule(IModuleProvider provider);
-
-        /// <summary>
-        /// Завершить работу модуля.
-        /// </summary>
-        /// <returns></returns>
-        IAsyncAction DisposeModule();
-
-        /// <summary>
         /// Запросить представление модуля.
         /// </summary>
         /// <param name="viewType">Тип представления.</param>

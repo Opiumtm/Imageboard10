@@ -1,9 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Imageboard10.ModuleInterface;
 
 namespace Imageboard10.Core.Modules
 {
@@ -14,7 +13,18 @@ namespace Imageboard10.Core.Modules
     {
         private readonly Provider _internalProvider = new Provider();
 
+        private readonly IModuleProvider _parent;
+
         private int _isSealed;
+
+        /// <summary>
+        /// Конструктор.
+        /// </summary>
+        /// <param name="parent">Родительский провайдер.</param>
+        public ModuleCollection(IModuleProvider parent = null)
+        {
+            _parent = parent;
+        }
 
         /// <summary>
         /// Зарегистрировать провайдер модулей.
@@ -39,7 +49,7 @@ namespace Imageboard10.Core.Modules
         /// <summary>
         /// Можно получать провайдеры модулей.
         /// </summary>
-        public bool CanGetModuleProvider => Interlocked.CompareExchange(ref _isSealed, 0, 0) != 0;
+        public bool CanGetModuleProvider => Interlocked.CompareExchange(ref _isSealed, 0, 0) != 0 && Interlocked.CompareExchange(ref _internalProvider._isDisposed, 0, 0) == 0;
 
         /// <summary>
         /// Получить сводный провайдер модулей.
@@ -49,7 +59,7 @@ namespace Imageboard10.Core.Modules
         {
             if (!CanGetModuleProvider)
             {
-                throw new InvalidOperationException("Нельзя получить провайдер модуля до завершения этапа регистрации");
+                throw new InvalidOperationException("Нельзя получить провайдер модуля в данном состоянии объекта");
             }
             return _internalProvider;
         }
@@ -57,14 +67,31 @@ namespace Imageboard10.Core.Modules
         /// <summary>
         /// Завершить регистрацию.
         /// </summary>
-        public void Seal()
+        public async ValueTask<Nothing> Seal()
         {
-            Interlocked.Exchange(ref _isSealed, 1);
+            if (Interlocked.Exchange(ref _isSealed, 1) == 0)
+            {
+                await _internalProvider.InitializeModule(_parent);
+            }
+            return Nothing.Value;
         }
 
-        private sealed class Provider : IModuleProvider
+        /// <summary>
+        /// Завершить работу.
+        /// </summary>
+        public async ValueTask<Nothing> Dispose()
+        {
+            await _internalProvider.DisposeModule();
+            return Nothing.Value;
+        }
+
+        private sealed class Provider : IModuleProvider, IModuleLifetime
         {
             private readonly Dictionary<Type, List<IModuleProvider>> _providers = new Dictionary<Type, List<IModuleProvider>>();
+
+            private IModuleProvider _parent;
+
+            public IModuleProvider Parent => Interlocked.CompareExchange(ref _parent, null, null);
 
             public async ValueTask<IModule> QueryModuleAsync<T>(Type moduleType, T query)
             {
@@ -113,6 +140,52 @@ namespace Imageboard10.Core.Modules
                     }
                     _providers[t].Add(provider);
                 }
+            }
+
+            public object QueryView(Type viewType)
+            {
+                if (viewType == typeof(IModule) || viewType == typeof(IModuleProvider) || viewType == typeof(IModuleLifetime))
+                {
+                    return this;
+                }
+                return null;
+            }
+
+            // ReSharper disable once InconsistentNaming
+            public int _isDisposed;
+            private int _isInitialized;
+
+            public bool IsModuleReady => Interlocked.CompareExchange(ref _isDisposed, 0, 0) == 0 && Interlocked.CompareExchange(ref _isInitialized, 0, 0) != 0;
+
+            public async ValueTask<Nothing> InitializeModule(IModuleProvider provider)
+            {
+                if (Interlocked.Exchange(ref _isInitialized, 1) == 0)
+                {
+                    Interlocked.Exchange(ref _parent, provider);
+                    foreach (var pt in _providers.Values)
+                    {
+                        foreach (var p in pt.Select(p => p.QueryView<IModuleLifetime>()).Where(p => p != null))
+                        {
+                            await p.InitializeModule(this);
+                        }
+                    }
+                }
+                return Nothing.Value;
+            }
+
+            public async ValueTask<Nothing> DisposeModule()
+            {
+                if (Interlocked.Exchange(ref _isDisposed, 1) == 0)
+                {
+                    foreach (var pt in _providers.Values)
+                    {
+                        foreach (var p in pt.Select(p => p.QueryView<IModuleLifetime>()).Where(p => p != null))
+                        {
+                            await p.DisposeModule();
+                        }
+                    }
+                }
+                return Nothing.Value;
             }
         }
     }

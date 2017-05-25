@@ -3,29 +3,31 @@ using System.Threading.Tasks;
 using Windows.Foundation;
 using Windows.Foundation.Collections;
 
-namespace Imageboard10.Core.Modules
+namespace Imageboard10.Core.Modules.Wrappers
 {
     /// <summary>
     /// Обёртка для провайдера модулей.
     /// </summary>
-    /// <typeparam name="T">Тип модуля.</typeparam>
-    internal sealed class ModuleProviderWrapper<T> : ModuleInterface.IModuleProvider
+    /// <typeparam name="T">Тип исходного объекта.</typeparam>
+    // ReSharper disable once InconsistentNaming
+    public class ModuleProviderWrapperToWinRT<T> : ModuleWrapperToWinRT<T>, ModuleInterface.IModuleProvider
         where T : IModuleProvider
     {
-        private readonly T _wrapped;
-
         /// <summary>
         /// Конструктор.
         /// </summary>
         /// <param name="wrapped">Исходный объект.</param>
-        public ModuleProviderWrapper(T wrapped)
+        public ModuleProviderWrapperToWinRT(T wrapped) : base(wrapped)
         {
-            if (wrapped == null)
-            {
-                throw new ArgumentNullException(nameof(wrapped));
-            }
-            _wrapped = wrapped;
+            _wrappedParent = new Lazy<ModuleInterface.IModuleProvider>(() => Wrapped.Parent.AsWinRTProvider());
         }
+
+        private readonly Lazy<ModuleInterface.IModuleProvider> _wrappedParent;
+
+        /// <summary>
+        /// Родительский провайдер модулей.
+        /// </summary>
+        public ModuleInterface.IModuleProvider Parent => _wrappedParent.Value;
 
         /// <summary>
         /// Запросить модуль асинхронно.
@@ -34,12 +36,12 @@ namespace Imageboard10.Core.Modules
         /// <param name="query">Запрос. Может быть null.</param>
         public IAsyncOperation<ModuleInterface.IModule> QueryModuleAsync(Type moduleType, PropertySet query)
         {
-            async Task<ModuleInterface.IModule> DoQueryModuleAsync()
+            async Task<ModuleInterface.IModule> Do()
             {
-                return (await _wrapped.QueryModuleAsync(moduleType, query)).AsWinRTModule();
+                return (await Wrapped.QueryModuleAsync(moduleType, query)).AsWinRTModule();
             }
 
-            return DoQueryModuleAsync().AsAsyncOperation();
+            return Do().AsAsyncOperation();
         }
 
         /// <summary>
@@ -49,7 +51,7 @@ namespace Imageboard10.Core.Modules
         /// <param name="query">Запрос. Может быть null.</param>
         public ModuleInterface.IModule QueryModule(Type moduleType, PropertySet query)
         {
-            return _wrapped.QueryModule(moduleType, query).AsWinRTModule();
+            return Wrapped.QueryModule(moduleType, query).AsWinRTModule();
         }
     }
 }

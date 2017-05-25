@@ -109,6 +109,7 @@
   <ItemGroup>
     <Compile Include="IModule.cs" />
     <Compile Include="IModuleCollection.cs" />
+    <Compile Include="IModuleLifetime.cs" />
     <Compile Include="IModuleProvider.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
