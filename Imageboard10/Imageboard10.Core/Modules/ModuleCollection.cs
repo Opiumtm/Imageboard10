@@ -108,6 +108,11 @@ namespace Imageboard10.Core.Modules
                         }
                     }
                 }
+                var p = Parent;
+                if (p != null)
+                {
+                    return await p.QueryModuleAsync(moduleType, query);
+                }
                 return null;
             }
 
@@ -126,7 +131,8 @@ namespace Imageboard10.Core.Modules
                         }
                     }
                 }
-                return null;
+                var p = Parent;
+                return p?.QueryModule(moduleType, query);
             }
 
             public void Add(Type moduleType, IModuleProvider provider)
