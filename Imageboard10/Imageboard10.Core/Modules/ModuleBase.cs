@@ -16,8 +16,16 @@ namespace Imageboard10.Core.Modules
         /// <summary>
         /// Конструктор.
         /// </summary>
+        protected ModuleBase()
+        {
+            _moduleLifetime = new BaseModuleLogic<TIntf>(this, OnInitialize, OnDispose, false);
+        }
+
+        /// <summary>
+        /// Конструктор.
+        /// </summary>
         /// <param name="attachToParentDispose">Присоединить к родительскому событию по завершению работы.</param>
-        protected ModuleBase(bool attachToParentDispose = false)
+        protected ModuleBase(bool attachToParentDispose)
         {
             _moduleLifetime = new BaseModuleLogic<TIntf>(this, OnInitialize, OnDispose, attachToParentDispose);
         }
