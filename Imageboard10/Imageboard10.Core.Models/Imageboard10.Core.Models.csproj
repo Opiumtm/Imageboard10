@@ -110,10 +110,28 @@
     <Compile Include="Links\BoardLinkComparer.cs" />
     <Compile Include="Links\BoardLinkEqualityComparer.cs" />
     <Compile Include="Links\BoardLinkKind.cs" />
+    <Compile Include="Links\IBoardLink.cs" />
+    <Compile Include="Links\IEngineLink.cs" />
     <Compile Include="Links\ILinkSerializationService.cs" />
     <Compile Include="Links\ILinkSerializer.cs" />
+    <Compile Include="Links\IUriLink.cs" />
+    <Compile Include="Links\IThreadLink.cs" />
     <Compile Include="Links\LinkCompareValues.cs" />
+    <Compile Include="Links\LinkDisplayStringContext.cs" />
+    <Compile Include="Links\LinkModelsRegistration.cs" />
     <Compile Include="Links\LinkSerializationService.cs" />
+    <Compile Include="Links\LinkTypes\BoardLink.cs" />
+    <Compile Include="Links\LinkTypes\BoardMediaLink.cs" />
+    <Compile Include="Links\LinkTypes\BoardPageLink.cs" />
+    <Compile Include="Links\LinkTypes\EngineLinkBase.cs" />
+    <Compile Include="Links\LinkTypes\EngineMediaLink.cs" />
+    <Compile Include="Links\LinkTypes\EngineUriLink.cs" />
+    <Compile Include="Links\LinkTypes\MediaLink.cs" />
+    <Compile Include="Links\LinkTypes\PostLink.cs" />
+    <Compile Include="Links\LinkTypes\RootLink.cs" />
+    <Compile Include="Links\LinkTypes\ThreadLink.cs" />
+    <Compile Include="Links\LinkTypes\ThreadPartLink.cs" />
+    <Compile Include="Links\LinkTypes\UriLink.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <EmbeddedResource Include="Properties\Imageboard10.Core.Models.rd.xml" />
   </ItemGroup>
@@ -135,6 +153,7 @@
       <Name>Imageboard10.ModuleInterface</Name>
     </ProjectReference>
   </ItemGroup>
+  <ItemGroup />
   <PropertyGroup Condition=" '$(VisualStudioVersion)' == '' or '$(VisualStudioVersion)' &lt; '14.0' ">
     <VisualStudioVersion>14.0</VisualStudioVersion>
   </PropertyGroup>

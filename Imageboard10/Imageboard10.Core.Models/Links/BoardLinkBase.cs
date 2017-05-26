@@ -6,11 +6,6 @@
     public abstract class BoardLinkBase : IDeepCloneable<BoardLinkBase>
     {
         /// <summary>
-        /// Движок.
-        /// </summary>
-        public string Engine { get; set; }
-
-        /// <summary>
         /// Тип ссылки.
         /// </summary>
         public abstract BoardLinkKind LinkKind { get; }
@@ -32,5 +27,18 @@
         /// </summary>
         /// <returns>Значения для сравнения.</returns>
         public abstract LinkCompareValues GetCompareValues();
+
+        /// <summary>
+        /// Получить строку для отображения.
+        /// </summary>
+        /// <param name="context">Контекст изображения.</param>
+        /// <returns>Строка для отображения.</returns>
+        public abstract string GetDisplayString(LinkDisplayStringContext context);
+
+        /// <summary>
+        /// Получить идентификатор, "дружественный" файловой системе.
+        /// </summary>
+        /// <returns>Идентификатор.</returns>
+        public virtual string GetFilesystemFriendlyId() => GetLinkHash();
     }
 }

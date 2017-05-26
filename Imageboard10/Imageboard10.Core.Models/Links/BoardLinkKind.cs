@@ -49,6 +49,11 @@ namespace Imageboard10.Core.Models.Links
         Catalog = 0x0080,
 
         /// <summary>
+        /// Внешняя ссылка.
+        /// </summary>
+        External = 0x0100,
+
+        /// <summary>
         /// Прочее.
         /// </summary>
         Other = 0x8000
