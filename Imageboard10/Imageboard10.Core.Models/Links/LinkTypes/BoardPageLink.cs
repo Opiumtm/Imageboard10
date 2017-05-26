@@ -1,4 +1,6 @@
-﻿namespace Imageboard10.Core.Models.Links.LinkTypes
+﻿using Imageboard10.Core.ModelInterface.Links;
+
+namespace Imageboard10.Core.Models.Links.LinkTypes
 {
     /// <summary>
     /// Ссылка на страницу доски.

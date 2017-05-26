@@ -3,30 +3,35 @@
 namespace Imageboard10.Core.Models.Links.LinkTypes
 {
     /// <summary>
-    /// Ссылка на медиа.
+    /// Ссылка на ютуб.
     /// </summary>
-    public class UriLink : BoardLinkBase, IUriLink
+    public class YoutubeLink : BoardLinkBase, IYoutubeLink
     {
-        /// <summary>
-        /// URI.
-        /// </summary>
-        public string Uri { get; set; }
-
         /// <summary>
         /// Тип ссылки.
         /// </summary>
-        public override BoardLinkKind LinkKind => BoardLinkKind.External | BoardLinkKind.Other;
+        public override BoardLinkKind LinkKind => BoardLinkKind.Youtube | BoardLinkKind.External;
 
-        public override BoardLinkBase DeepClone() => new UriLink()
+        /// <summary>
+        /// Клонировать.
+        /// </summary>
+        /// <returns>Клон.</returns>
+        public override BoardLinkBase DeepClone() => new YoutubeLink()
         {
-            Uri = Uri
+            YoutubeId = YoutubeId
         };
 
         /// <summary>
         /// Получить хэш ссылки для сравнения.
         /// </summary>
         /// <returns>Хэш ссылки.</returns>
-        public override string GetLinkHash() => $"uri-{Uri?.ToLowerInvariant()}";
+        public override string GetLinkHash() => $"youtube-{YoutubeId}";
+
+        /// <summary>
+        /// Получить идентификатор, "дружественный" файловой системе.
+        /// </summary>
+        /// <returns>Идентификатор.</returns>
+        public override string GetFilesystemFriendlyId() => $"";
 
         /// <summary>
         /// Получить значения для сравнения.
@@ -39,7 +44,7 @@ namespace Imageboard10.Core.Models.Links.LinkTypes
             Page = 0,
             Post = 0,
             Thread = 0,
-            Other = Uri ?? ""
+            Other = YoutubeId ?? ""
         };
 
         /// <summary>
@@ -47,7 +52,18 @@ namespace Imageboard10.Core.Models.Links.LinkTypes
         /// </summary>
         /// <param name="context">Контекст изображения.</param>
         /// <returns>Строка для отображения.</returns>
-        public override string GetDisplayString(LinkDisplayStringContext context) => Uri ?? "";
+        public override string GetDisplayString(LinkDisplayStringContext context) => $"youtube://{YoutubeId}";
+
+        /// <summary>
+        /// Идентификатор ютуба.
+        /// </summary>
+        public string YoutubeId { get; set; }
+
+        /// <summary>
+        /// Получить URI предпросмотра.
+        /// </summary>
+        /// <returns>URI картинки предпросмотра.</returns>
+        public string GetThumbnailUri() => $"http://i.ytimg.com/vi/{YoutubeId}/0.jpg";
 
         /// <summary>
         /// Абсолютная ссылка.
@@ -58,12 +74,6 @@ namespace Imageboard10.Core.Models.Links.LinkTypes
         /// Получить абсолютную ссылку.
         /// </summary>
         /// <returns>Абсолютная ссылка.</returns>
-        public string GetAbsoluteUrl() => Uri;
-
-        /// <summary>
-        /// Получить идентификатор, "дружественный" файловой системе.
-        /// </summary>
-        /// <returns>Идентификатор.</returns>
-        public override string GetFilesystemFriendlyId() => $"uri-{Utility.StringHashCache.GetHashId((Uri ?? "").ToLowerInvariant())}";
+        public string GetAbsoluteUrl() => $"http://www.youtube.com/watch?v={YoutubeId}";
     }
 }

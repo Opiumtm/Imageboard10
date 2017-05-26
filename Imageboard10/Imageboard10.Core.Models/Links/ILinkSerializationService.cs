@@ -1,4 +1,6 @@
-﻿namespace Imageboard10.Core.Models.Links
+﻿using Imageboard10.Core.ModelInterface.Links;
+
+namespace Imageboard10.Core.Models.Links
 {
     /// <summary>
     /// Сервис сериализации ссылок.
@@ -10,13 +12,13 @@
         /// </summary>
         /// <param name="link">Ссылка.</param>
         /// <returns>Ссылка в виде строки.</returns>
-        string Serialize(BoardLinkBase link);
+        string Serialize(ILink link);
 
         /// <summary>
         /// Десериализовать ссылку.
         /// </summary>
         /// <param name="linkStr">Ссылка в виде строки.</param>
         /// <returns>Ссыока.</returns>
-        BoardLinkBase Deserialize(string linkStr);
+        ILink Deserialize(string linkStr);
     }
 }

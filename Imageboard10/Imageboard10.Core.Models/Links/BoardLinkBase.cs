@@ -1,9 +1,11 @@
-﻿namespace Imageboard10.Core.Models.Links
+﻿using Imageboard10.Core.ModelInterface.Links;
+
+namespace Imageboard10.Core.Models.Links
 {
     /// <summary>
     /// Базовый класс для ссылки на борде.
     /// </summary>
-    public abstract class BoardLinkBase : IDeepCloneable<BoardLinkBase>
+    public abstract class BoardLinkBase : IDeepCloneable<BoardLinkBase>, ILink
     {
         /// <summary>
         /// Тип ссылки.

@@ -1,4 +1,5 @@
 ﻿using System;
+using Imageboard10.Core.ModelInterface.Links;
 using Imageboard10.Core.Modules;
 using Newtonsoft.Json;
 
@@ -14,7 +15,7 @@ namespace Imageboard10.Core.Models.Links
         /// </summary>
         /// <param name="link">Ссылка.</param>
         /// <returns>Ссылка в виде строки.</returns>
-        public string Serialize(BoardLinkBase link)
+        public string Serialize(ILink link)
         {
             if (link == null) throw new ArgumentNullException(nameof(link));
             var serializer = ModuleProvider?.QueryModule<ILinkSerializer, Type>(link.GetType());
@@ -34,7 +35,7 @@ namespace Imageboard10.Core.Models.Links
         /// </summary>
         /// <param name="linkStr">Ссылка в виде строки.</param>
         /// <returns>Ссыока.</returns>
-        public BoardLinkBase Deserialize(string linkStr)
+        public ILink Deserialize(string linkStr)
         {
             if (linkStr == null) throw new ArgumentNullException(nameof(linkStr));
             var jo = JsonConvert.DeserializeObject<Jo>(linkStr);

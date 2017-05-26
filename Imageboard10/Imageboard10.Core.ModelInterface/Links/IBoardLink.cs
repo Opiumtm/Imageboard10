@@ -1,23 +1,21 @@
-﻿using Imageboard10.Core.Models.Links.LinkTypes;
-
-namespace Imageboard10.Core.Models.Links
+﻿namespace Imageboard10.Core.ModelInterface.Links
 {
     /// <summary>
     /// Ссылка на борду.
     /// </summary>
-    public interface IBoardLink
+    public interface IBoardLink : ILink
     {
         /// <summary>
         /// Получить ссылку на борду.
         /// </summary>
         /// <returns>Ссылка на борду.</returns>
-        BoardLinkBase GetBoardLink();
+        ILink GetBoardLink();
 
         /// <summary>
         /// Получить ссылку на страницу доски.
         /// </summary>
         /// <param name="page">Страница.</param>
         /// <returns></returns>
-        BoardLinkBase GetBoardPageLink(int page);
+        ILink GetBoardPageLink(int page);
     }
 }

@@ -1,4 +1,5 @@
 ﻿using System;
+using Imageboard10.Core.ModelInterface.Links;
 
 namespace Imageboard10.Core.Models.Links.LinkTypes
 {
@@ -47,7 +48,7 @@ namespace Imageboard10.Core.Models.Links.LinkTypes
         /// </summary>
         /// <param name="link">Ссылка.</param>
         /// <returns>Результат проверки.</returns>
-        public bool IsPostFromThisThread(BoardLinkBase link)
+        public bool IsPostFromThisThread(ILink link)
         {
             if (link is PostLink l)
             {
@@ -84,7 +85,7 @@ namespace Imageboard10.Core.Models.Links.LinkTypes
         /// Получить ссылку на тред.
         /// </summary>
         /// <returns>Ссылка на тред.</returns>
-        public BoardLinkBase GetThreadLink() => GetType() == typeof(ThreadLink)
+        public ILink GetThreadLink() => GetType() == typeof(ThreadLink)
             ? this
             : new ThreadLink()
             {
@@ -98,7 +99,7 @@ namespace Imageboard10.Core.Models.Links.LinkTypes
         /// </summary>
         /// <param name="fromPost">Начиная с номера поста.</param>
         /// <returns>Ссылка на часть треда.</returns>
-        public BoardLinkBase GetThreadPart(int fromPost) => new ThreadPartLink()
+        public ILink GetThreadPart(int fromPost) => new ThreadPartLink()
         {
             Engine = Engine,
             Board = Board,
@@ -111,7 +112,7 @@ namespace Imageboard10.Core.Models.Links.LinkTypes
         /// </summary>
         /// <param name="postNumber">Номер поста.</param>
         /// <returns>Ссылка на пост в треде.</returns>
-        public BoardLinkBase GetPostLink(int postNumber) => new PostLink()
+        public ILink GetPostLink(int postNumber) => new PostLink()
         {
             Engine = Engine,
             Board = Board,

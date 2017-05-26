@@ -1,4 +1,6 @@
-﻿namespace Imageboard10.Core.Models.Links.LinkTypes
+﻿using Imageboard10.Core.ModelInterface.Links;
+
+namespace Imageboard10.Core.Models.Links.LinkTypes
 {
     /// <summary>
     /// Ссылка, привязанная к движку имиджборды.
@@ -14,6 +16,6 @@
         /// Получить корневую ссылку.
         /// </summary>
         /// <returns>Корневая ссылка.</returns>
-        public virtual BoardLinkBase GetRootLink() => new RootLink() { Engine = Engine };
+        public virtual ILink GetRootLink() => new RootLink() { Engine = Engine };
     }
 }

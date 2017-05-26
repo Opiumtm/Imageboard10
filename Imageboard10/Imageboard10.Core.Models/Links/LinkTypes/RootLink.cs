@@ -1,4 +1,6 @@
-﻿namespace Imageboard10.Core.Models.Links.LinkTypes
+﻿using Imageboard10.Core.ModelInterface.Links;
+
+namespace Imageboard10.Core.Models.Links.LinkTypes
 {
     /// <summary>
     /// Корневая ссылка.
@@ -47,6 +49,6 @@
         /// Получить корневую ссылку.
         /// </summary>
         /// <returns>Корневая ссылка.</returns>
-        public override BoardLinkBase GetRootLink() => this;
+        public override ILink GetRootLink() => this;
     }
 }

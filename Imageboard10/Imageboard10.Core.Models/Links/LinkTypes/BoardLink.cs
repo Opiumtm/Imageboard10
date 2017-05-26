@@ -1,4 +1,6 @@
-﻿namespace Imageboard10.Core.Models.Links.LinkTypes
+﻿using Imageboard10.Core.ModelInterface.Links;
+
+namespace Imageboard10.Core.Models.Links.LinkTypes
 {
     /// <summary>
     /// Ссылка на доску.
@@ -65,13 +67,13 @@
         /// Получить ссылку на борду.
         /// </summary>
         /// <returns>Ссылка на борду.</returns>
-        public BoardLinkBase GetBoardLink() => GetType() == typeof(BoardLink) ? this : new BoardLink() { Engine = Engine, Board = Board };
+        public ILink GetBoardLink() => GetType() == typeof(BoardLink) ? this : new BoardLink() { Engine = Engine, Board = Board };
 
         /// <summary>
         /// Получить ссылку на страницу доски.
         /// </summary>
         /// <param name="page">Страница.</param>
         /// <returns></returns>
-        public BoardLinkBase GetBoardPageLink(int page) => new BoardPageLink() { Engine = Engine, Board = Board, Page = page };
+        public ILink GetBoardPageLink(int page) => new BoardPageLink() { Engine = Engine, Board = Board, Page = page };
     }
 }

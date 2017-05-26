@@ -1,9 +1,9 @@
-﻿namespace Imageboard10.Core.Models.Links
+﻿namespace Imageboard10.Core.ModelInterface.Links
 {
     /// <summary>
     /// Ссылка, имеющая URL.
     /// </summary>
-    public interface IUriLink
+    public interface IUriLink : ILink
     {
         /// <summary>
         /// Абсолютная ссылка.

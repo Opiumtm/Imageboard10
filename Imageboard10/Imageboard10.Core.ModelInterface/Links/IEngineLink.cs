@@ -1,9 +1,9 @@
-﻿namespace Imageboard10.Core.Models.Links
+﻿namespace Imageboard10.Core.ModelInterface.Links
 {
     /// <summary>
     /// Ссылка с движком.
     /// </summary>
-    public interface IEngineLink
+    public interface IEngineLink : ILink
     {
         /// <summary>
         /// Движок.
@@ -14,6 +14,6 @@
         /// Получить корневую ссылку.
         /// </summary>
         /// <returns>Корневая ссылка.</returns>
-        BoardLinkBase GetRootLink();
+        ILink GetRootLink();
     }
 }
