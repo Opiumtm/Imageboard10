@@ -147,6 +147,10 @@
     <WCFMetadata Include="Connected Services\" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\Imageboard10.Core.ModelInterface\Imageboard10.Core.ModelInterface.csproj">
+      <Project>{78fbf320-ebbd-40a9-8f16-b45bfff73af1}</Project>
+      <Name>Imageboard10.Core.ModelInterface</Name>
+    </ProjectReference>
     <ProjectReference Include="..\Imageboard10.Core.Models\Imageboard10.Core.Models.csproj">
       <Project>{66280a62-2409-4222-97a5-54da49f9142f}</Project>
       <Name>Imageboard10.Core.Models</Name>

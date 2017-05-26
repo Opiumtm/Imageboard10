@@ -73,7 +73,31 @@ namespace Imageboard10.Core.Models.Links.LinkTypes
         /// Получить ссылку на страницу доски.
         /// </summary>
         /// <param name="page">Страница.</param>
-        /// <returns></returns>
+        /// <returns>Ссылка на страницу.</returns>
         public ILink GetBoardPageLink(int page) => new BoardPageLink() { Engine = Engine, Board = Board, Page = page };
+
+        /// <summary>
+        /// Создать ссылку на каталог.
+        /// </summary>
+        /// <param name="sortMode">Режим сортировки.</param>
+        /// <returns>Ссылка на каталог.</returns>
+        public ILink GetCatalogLink(BoardCatalogSort sortMode) => new CatalogLink()
+        {
+            Engine = Engine,
+            Board = Board,
+            SortMode = sortMode
+        };
+
+        /// <summary>
+        /// Получить ссылку на тэг тредов.
+        /// </summary>
+        /// <param name="tag">Тэг.</param>
+        /// <returns>Ссылка на тэг тредов.</returns>
+        public ILink GetTagLink(string tag) => new ThreadTagLink()
+        {
+            Engine = Engine,
+            Board = Board,
+            Tag = tag
+        };
     }
 }

@@ -116,6 +116,7 @@
     <Compile Include="Links\LinkTypes\BoardLink.cs" />
     <Compile Include="Links\LinkTypes\BoardMediaLink.cs" />
     <Compile Include="Links\LinkTypes\BoardPageLink.cs" />
+    <Compile Include="Links\LinkTypes\CatalogLink.cs" />
     <Compile Include="Links\LinkTypes\EngineLinkBase.cs" />
     <Compile Include="Links\LinkTypes\EngineMediaLink.cs" />
     <Compile Include="Links\LinkTypes\EngineUriLink.cs" />
@@ -124,6 +125,7 @@
     <Compile Include="Links\LinkTypes\RootLink.cs" />
     <Compile Include="Links\LinkTypes\ThreadLink.cs" />
     <Compile Include="Links\LinkTypes\ThreadPartLink.cs" />
+    <Compile Include="Links\LinkTypes\ThreadTagLink.cs" />
     <Compile Include="Links\LinkTypes\UriLink.cs" />
     <Compile Include="Links\LinkTypes\YoutubeLink.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

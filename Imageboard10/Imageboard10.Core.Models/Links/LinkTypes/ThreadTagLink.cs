@@ -3,26 +3,37 @@
 namespace Imageboard10.Core.Models.Links.LinkTypes
 {
     /// <summary>
-    /// Ссылка на пост.
+    /// Ссылка на тэг тредов на доске.
     /// </summary>
-    public class PostLink : ThreadLink, IPostLink
+    public class ThreadTagLink : BoardLink, IThreadTagLink
     {
         /// <summary>
-        /// Номер поста.
+        /// Тэг.
         /// </summary>
-        public int PostNum { get; set; }
+        public string Tag { get; set; }
 
         /// <summary>
         /// Клонировать.
         /// </summary>
         /// <returns>Клон.</returns>
-        public override BoardLinkBase DeepClone() => new PostLink()
+        public override BoardLinkBase DeepClone() => new ThreadTagLink()
         {
             Engine = Engine,
             Board = Board,
-            OpPostNum = OpPostNum,
-            PostNum = PostNum
+            Tag = Tag
         };
+
+        /// <summary>
+        /// Получить хэш ссылки для сравнения.
+        /// </summary>
+        /// <returns>Хэш ссылки.</returns>
+        public override string GetLinkHash() => $"tag-{Board}-{Engine}-{Tag?.ToLowerInvariant()}";
+
+        /// <summary>
+        /// Получить идентификатор, "дружественный" файловой системе.
+        /// </summary>
+        /// <returns>Идентификатор.</returns>
+        public override string GetFilesystemFriendlyId() => $"tag-{Board}-{Engine}-{Utility.StringHashCache.GetHashId((Tag ?? "").ToLowerInvariant())}";
 
         /// <summary>
         /// Получить значения для сравнения.
@@ -33,27 +44,15 @@ namespace Imageboard10.Core.Models.Links.LinkTypes
             Engine = Engine,
             Board = Board,
             Page = 0,
-            Post = PostNum,
-            Thread = OpPostNum,
-            Other = ""
+            Post = 0,
+            Thread = 0,
+            Other = Tag ?? ""
         };
-
-        /// <summary>
-        /// Получить хэш ссылки для сравнения.
-        /// </summary>
-        /// <returns>Хэш ссылки.</returns>
-        public override string GetLinkHash() => $"post-{Engine}-{Board}-{OpPostNum}-{PostNum}";
-
-        /// <summary>
-        /// Получить строку с номером поста.
-        /// </summary>
-        /// <returns>Строка с номером поста.</returns>
-        public string GetPostNumberString() => PostNum.ToString();
 
         /// <summary>
         /// Тип ссылки.
         /// </summary>
-        public override BoardLinkKind LinkKind => BoardLinkKind.Post;
+        public override BoardLinkKind LinkKind => BoardLinkKind.ThreadTag;
 
         /// <summary>
         /// Получить строку для отображения.
@@ -65,13 +64,9 @@ namespace Imageboard10.Core.Models.Links.LinkTypes
             switch (context)
             {
                 case LinkDisplayStringContext.None:
-                    return $"{Engine}://{Board}/{OpPostNum}#{PostNum}";
-                case LinkDisplayStringContext.Engine:
-                    return $"/{Board}/{OpPostNum}#{PostNum}";
-                case LinkDisplayStringContext.Board:
-                    return $"{OpPostNum}#{PostNum}";
+                    return $"{Engine}://{Board}#{Tag}";
                 default:
-                    return $"{PostNum}";
+                    return $"/{Board}#{Tag}";
             }
         }
     }

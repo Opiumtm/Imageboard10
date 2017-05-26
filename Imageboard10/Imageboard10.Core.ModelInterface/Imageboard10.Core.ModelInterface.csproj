@@ -107,12 +107,16 @@
     <RestoreProjectStyle>PackageReference</RestoreProjectStyle>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="Links\BoardCatalogSort.cs" />
     <Compile Include="Links\BoardLinkKind.cs" />
     <Compile Include="Links\IBoardLink.cs" />
+    <Compile Include="Links\ICatalogLink.cs" />
     <Compile Include="Links\IEngineLink.cs" />
     <Compile Include="Links\ILink.cs" />
     <Compile Include="Links\ILinkSerializer.cs" />
+    <Compile Include="Links\IPostLink.cs" />
     <Compile Include="Links\IThreadLink.cs" />
+    <Compile Include="Links\IThreadTagLink.cs" />
     <Compile Include="Links\IUriLink.cs" />
     <Compile Include="Links\IYoutubeLink.cs" />
     <Compile Include="Links\LinkCompareValues.cs" />
@@ -121,7 +125,7 @@
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.NETCore.UniversalWindowsPlatform">
-      <Version>5.2.3</Version>
+      <Version>5.3.3</Version>
     </PackageReference>
   </ItemGroup>
   <ItemGroup />

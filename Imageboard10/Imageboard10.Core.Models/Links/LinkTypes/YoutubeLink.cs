@@ -31,7 +31,7 @@ namespace Imageboard10.Core.Models.Links.LinkTypes
         /// Получить идентификатор, "дружественный" файловой системе.
         /// </summary>
         /// <returns>Идентификатор.</returns>
-        public override string GetFilesystemFriendlyId() => $"";
+        public override string GetFilesystemFriendlyId() => $"youtube-{Utility.StringHashCache.GetHashId(YoutubeId ?? "")}";
 
         /// <summary>
         /// Получить значения для сравнения.

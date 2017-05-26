@@ -3,7 +3,7 @@
     /// <summary>
     /// Ссылка на тред.
     /// </summary>
-    public interface IThreadLink : ILink
+    public interface IThreadLink : IBoardLink
     {
         /// <summary>
         /// Пост находится в данном треде.

@@ -32,7 +32,7 @@ namespace Imageboard10.Core.Models.Links.LinkTypes
         /// Получить хэш ссылки для сравнения.
         /// </summary>
         /// <returns>Хэш ссылки.</returns>
-        public override string GetLinkHash() => $"boardmedia-{Engine}-{(Uri ?? "").ToLowerInvariant()}";
+        public override string GetLinkHash() => $"boardmedia-{Engine}-{Uri?.ToLowerInvariant()}";
 
         /// <summary>
         /// Получить значения для сравнения.
