@@ -135,5 +135,14 @@ namespace Imageboard10.Core.Modules
         /// Работа модуля завершена.
         /// </summary>
         public event ModuleInterface.ModuleLifetimeEventHandler Disposed;
+
+        /// <summary>
+        /// Получить родительский провайдер.
+        /// </summary>
+        /// <returns>Родительский провайдер.</returns>
+        public IModuleProvider GetParent()
+        {
+            return Interlocked.CompareExchange(ref _parent, null, null);
+        }
     }
 }
