@@ -52,7 +52,7 @@ namespace Imageboard10.Core.Models.Links
             }
             if (link is IDeepCloneable<BoardLinkBase> dc)
             {
-                return dc.DeepClone();
+                return dc.DeepClone(modules);
             }
             var serializer = modules.QueryModule<ILinkSerializationService>() ?? throw new ModuleNotFoundException();
             return serializer.Deserialize(serializer.Serialize(link));

@@ -1,5 +1,6 @@
 ﻿using System;
 using Imageboard10.Core.ModelInterface.Links;
+using Imageboard10.Core.Modules;
 
 namespace Imageboard10.Core.Models.Links
 {
@@ -49,5 +50,12 @@ namespace Imageboard10.Core.Models.Links
         /// </summary>
         /// <returns>Идентификатор.</returns>
         public virtual string GetFilesystemFriendlyId() => GetLinkHash();
+
+        /// <summary>
+        /// Клонировать.
+        /// </summary>
+        /// <param name="modules">Модули.</param>
+        /// <returns>Клон.</returns>
+        public virtual BoardLinkBase DeepClone(IModuleProvider modules) => DeepClone();
     }
 }

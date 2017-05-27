@@ -18,7 +18,7 @@ namespace Imageboard10.Core.Modules
         /// </summary>
         protected ModuleBase()
         {
-            _moduleLifetime = new BaseModuleLogic<TIntf>(this, OnInitialize, OnDispose, false);
+            _moduleLifetime = new BaseModuleLogic<TIntf>(this, OnInitialize, OnDispose, OnAllInitialized);
         }
 
         /// <summary>
@@ -27,7 +27,24 @@ namespace Imageboard10.Core.Modules
         /// <param name="attachToParentDispose">Присоединить к родительскому событию по завершению работы.</param>
         protected ModuleBase(bool attachToParentDispose)
         {
-            _moduleLifetime = new BaseModuleLogic<TIntf>(this, OnInitialize, OnDispose, attachToParentDispose);
+            _moduleLifetime = new BaseModuleLogic<TIntf>(this, OnInitialize, OnDispose, OnAllInitialized, attachToParentDispose);
+        }
+
+        /// <summary>
+        /// Конструктор.
+        /// </summary>
+        /// <param name="suspendedAware">Поддерживает приостановку работы.</param>
+        /// <param name="attachToParentDispose">Присоединить к родительскому событию по завершению работы.</param>
+        protected ModuleBase(bool suspendedAware, bool attachToParentDispose)
+        {
+            if (suspendedAware)
+            {
+                _moduleLifetime = new BaseModuleLogic<TIntf>(this, OnInitialize, OnDispose, OnAllInitialized, OnSuspended, OnResumed, OnAllResumed, attachToParentDispose);
+            }
+            else
+            {
+                _moduleLifetime = new BaseModuleLogic<TIntf>(this, OnInitialize, OnDispose, OnAllInitialized, attachToParentDispose);
+            }
         }
 
         /// <summary>
@@ -45,6 +62,38 @@ namespace Imageboard10.Core.Modules
         protected virtual ValueTask<Nothing> OnInitialize(IModuleProvider moduleProvider)
         {
             Interlocked.Exchange(ref _moduleProvider, moduleProvider);
+            return new ValueTask<Nothing>(Nothing.Value);
+        }
+
+        /// <summary>
+        /// Все модули инициализированы.
+        /// </summary>
+        protected virtual ValueTask<Nothing> OnAllInitialized()
+        {
+            return new ValueTask<Nothing>(Nothing.Value);
+        }
+
+        /// <summary>
+        /// Действие по приостановке работы.
+        /// </summary>
+        protected virtual ValueTask<Nothing> OnSuspended()
+        {
+            return new ValueTask<Nothing>(Nothing.Value);
+        }
+
+        /// <summary>
+        /// Действие по вовозбновлению работы.
+        /// </summary>
+        protected virtual ValueTask<Nothing> OnResumed()
+        {
+            return new ValueTask<Nothing>(Nothing.Value);
+        }
+
+        /// <summary>
+        /// Действие по вовозбновлению работы всех модулей родителя.
+        /// </summary>
+        protected virtual ValueTask<Nothing> OnAllResumed()
+        {
             return new ValueTask<Nothing>(Nothing.Value);
         }
 

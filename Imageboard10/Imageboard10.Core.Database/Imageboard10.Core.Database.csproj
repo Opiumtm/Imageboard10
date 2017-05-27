@@ -4,11 +4,11 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{78FBF320-EBBD-40A9-8F16-B45BFFF73AF1}</ProjectGuid>
-    <OutputType>winmdobj</OutputType>
+    <ProjectGuid>{1AF1FA9E-1BDB-41CB-9CCC-08A5BC5033E7}</ProjectGuid>
+    <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>Imageboard10.Core.ModelInterface</RootNamespace>
-    <AssemblyName>Imageboard10.Core.ModelInterface</AssemblyName>
+    <RootNamespace>Imageboard10.Core.Database</RootNamespace>
+    <AssemblyName>Imageboard10.Core.Database</AssemblyName>
     <DefaultLanguage>en-US</DefaultLanguage>
     <TargetPlatformIdentifier>UAP</TargetPlatformIdentifier>
     <TargetPlatformVersion Condition=" '$(TargetPlatformVersion)' == '' ">10.0.15063.0</TargetPlatformVersion>
@@ -16,7 +16,6 @@
     <MinimumVisualStudioVersion>14</MinimumVisualStudioVersion>
     <FileAlignment>512</FileAlignment>
     <ProjectTypeGuids>{A5A43C5B-DE2A-4C0C-9213-0A381AF9435A};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
-    <AllowCrossPlatformRetargeting>false</AllowCrossPlatformRetargeting>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -107,58 +106,36 @@
     <RestoreProjectStyle>PackageReference</RestoreProjectStyle>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="Boards\IBoardIcon.cs" />
-    <Compile Include="Boards\IBoardReference.cs" />
-    <Compile Include="Boards\IBoardReferenceStore.cs" />
-    <Compile Include="Links\BoardCatalogSort.cs" />
-    <Compile Include="Links\BoardLinkKind.cs" />
-    <Compile Include="Links\IBoardLink.cs" />
-    <Compile Include="Links\ICatalogLink.cs" />
-    <Compile Include="Links\IEngineLink.cs" />
-    <Compile Include="Links\ILink.cs" />
-    <Compile Include="Links\ILinkSerializationService.cs" />
-    <Compile Include="Links\ILinkSerializer.cs" />
-    <Compile Include="Links\IPostLink.cs" />
-    <Compile Include="Links\IThreadLink.cs" />
-    <Compile Include="Links\IThreadTagLink.cs" />
-    <Compile Include="Links\IUriLink.cs" />
-    <Compile Include="Links\IYoutubeLink.cs" />
-    <Compile Include="Links\LinkCompareValues.cs" />
-    <Compile Include="Links\LinkDisplayStringContext.cs" />
-    <Compile Include="Posting\IPostingCapability.cs" />
-    <Compile Include="Posting\IPostingCapabilityIcon.cs" />
-    <Compile Include="Posting\IPostingCaptchaCapability.cs" />
-    <Compile Include="Posting\IPostingCommentCapability.cs" />
-    <Compile Include="Posting\IPostingIconCapability.cs" />
-    <Compile Include="Posting\IPostingMediaFileCapability.cs" />
-    <Compile Include="Posting\PostingFieldSemanticRole.cs" />
-    <Compile Include="Posts\IBoardLinkPostNode.cs" />
-    <Compile Include="Posts\IBoardPost.cs" />
-    <Compile Include="Posts\IBoardPostCountryFlag.cs" />
-    <Compile Include="Posts\IBoardPostIcon.cs" />
-    <Compile Include="Posts\IBoardPostTags.cs" />
-    <Compile Include="Posts\ICompositePostNode.cs" />
-    <Compile Include="Posts\ILineBreakPostNode.cs" />
-    <Compile Include="Posts\IPostAttribute.cs" />
-    <Compile Include="Posts\IPostBasicAttribute.cs" />
-    <Compile Include="Posts\IPostDocument.cs" />
-    <Compile Include="Posts\IPosterInfo.cs" />
-    <Compile Include="Posts\IPostLinkAttribute.cs" />
-    <Compile Include="Posts\IPostMedia.cs" />
-    <Compile Include="Posts\IPostMediaWithSize.cs" />
-    <Compile Include="Posts\IPostMediaWithThumbnail.cs" />
-    <Compile Include="Posts\IPostNode.cs" />
-    <Compile Include="Posts\ITextPostNode.cs" />
-    <Compile Include="Posts\PostBasicAttributes.cs" />
-    <Compile Include="Posts\PostMediaTypes.cs" />
+    <Compile Include="EsentInstanceProvider.cs" />
+    <Compile Include="IEsentInstance.cs" />
+    <Compile Include="IEsentInstanceProvider.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <EmbeddedResource Include="Properties\Imageboard10.Core.Database.rd.xml" />
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="ManagedEsent">
+      <Version>1.9.4</Version>
+    </PackageReference>
     <PackageReference Include="Microsoft.NETCore.UniversalWindowsPlatform">
       <Version>5.3.3</Version>
     </PackageReference>
+    <PackageReference Include="System.Threading.Tasks.Extensions">
+      <Version>4.3.0</Version>
+    </PackageReference>
+    <PackageReference Include="System.ValueTuple">
+      <Version>4.3.1</Version>
+    </PackageReference>
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <ProjectReference Include="..\Imageboard10.Core\Imageboard10.Core.csproj">
+      <Project>{b9a32628-d7b6-4bda-afe6-47e4ac5af95a}</Project>
+      <Name>Imageboard10.Core</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Imageboard10.ModuleInterface\Imageboard10.ModuleInterface.csproj">
+      <Project>{62d7a5d8-0866-4199-8763-ef81096f4a71}</Project>
+      <Name>Imageboard10.ModuleInterface</Name>
+    </ProjectReference>
+  </ItemGroup>
   <PropertyGroup Condition=" '$(VisualStudioVersion)' == '' or '$(VisualStudioVersion)' &lt; '14.0' ">
     <VisualStudioVersion>14.0</VisualStudioVersion>
   </PropertyGroup>

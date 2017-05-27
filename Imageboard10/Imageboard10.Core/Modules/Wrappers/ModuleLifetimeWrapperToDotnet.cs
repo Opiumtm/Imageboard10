@@ -36,5 +36,46 @@ namespace Imageboard10.Core.Modules.Wrappers
             await Wrapped.DisposeModule();
             return Nothing.Value;
         }
+
+        /// <summary>
+        /// Приостановить работу модуля.
+        /// </summary>
+        public async ValueTask<Nothing> SuspendModule()
+        {
+            await Wrapped.SuspendModule();
+            return Nothing.Value;
+        }
+
+        /// <summary>
+        /// Возобновить работу модуля.
+        /// </summary>
+        public async ValueTask<Nothing> ResumeModule()
+        {
+            await Wrapped.ResumeModule();
+            return Nothing.Value;
+        }
+
+        /// <summary>
+        /// Все модули возобновлены.
+        /// </summary>
+        public async ValueTask<Nothing> AllModulesResumed()
+        {
+            await Wrapped.AllModulesResumed();
+            return Nothing.Value;
+        }
+
+        /// <summary>
+        /// Все модули инициализированы.
+        /// </summary>
+        public async ValueTask<Nothing> AllModulesInitialized()
+        {
+            await Wrapped.AllModulesInitialized();
+            return Nothing.Value;
+        }
+
+        /// <summary>
+        /// Поддерживает приостановку и восстановление.
+        /// </summary>
+        public bool IsSuspendAware => Wrapped.IsSuspendAware;
     }
 }

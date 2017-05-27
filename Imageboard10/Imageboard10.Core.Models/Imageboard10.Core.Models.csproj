@@ -109,6 +109,8 @@
     <Compile Include="Links\BoardLinkBase.cs" />
     <Compile Include="Links\BoardLinkComparer.cs" />
     <Compile Include="Links\BoardLinkEqualityComparer.cs" />
+    <Compile Include="Links\Boards\BoardIcon.cs" />
+    <Compile Include="Links\Boards\BoardReference.cs" />
     <Compile Include="Links\LinkCompareValuesComparer.cs" />
     <Compile Include="Links\LinkHelper.cs" />
     <Compile Include="Links\LinkModelsRegistration.cs" />
@@ -154,6 +156,12 @@
     </PackageReference>
     <PackageReference Include="Newtonsoft.Json">
       <Version>10.0.2</Version>
+    </PackageReference>
+    <PackageReference Include="System.Threading.Tasks.Extensions">
+      <Version>4.3.0</Version>
+    </PackageReference>
+    <PackageReference Include="System.ValueTuple">
+      <Version>4.3.1</Version>
     </PackageReference>
   </ItemGroup>
   <ItemGroup>

@@ -46,5 +46,62 @@ namespace Imageboard10.Core.Modules.Wrappers
 
             return Do().AsAsyncAction();
         }
+
+        /// <summary>
+        /// Приостановить работу модуля.
+        /// </summary>
+        public IAsyncAction SuspendModule()
+        {
+            async Task Do()
+            {
+                await Wrapped.SuspendModule();
+            }
+
+            return Do().AsAsyncAction();
+        }
+
+        /// <summary>
+        /// Возобновить работу модуля.
+        /// </summary>
+        public IAsyncAction ResumeModule()
+        {
+            async Task Do()
+            {
+                await Wrapped.ResumeModule();
+            }
+
+            return Do().AsAsyncAction();
+        }
+
+        /// <summary>
+        /// Все модули возобновлены.
+        /// </summary>
+        public IAsyncAction AllModulesResumed()
+        {
+            async Task Do()
+            {
+                await Wrapped.AllModulesResumed();
+            }
+
+            return Do().AsAsyncAction();
+        }
+
+        /// <summary>
+        /// Все модули инициализированы.
+        /// </summary>
+        public IAsyncAction AllModulesInitialized()
+        {
+            async Task Do()
+            {
+                await Wrapped.AllModulesInitialized();
+            }
+
+            return Do().AsAsyncAction();
+        }
+
+        /// <summary>
+        /// Поддерживает приостановку и восстановление.
+        /// </summary>
+        public bool IsSuspendAware => Wrapped.IsSuspendAware;
     }
 }

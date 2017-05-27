@@ -10,7 +10,6 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace Imageboard10UnitTests
 {
     [TestClass]
-    [TestCategory("Links")]
     public class LinkSerializationTests
     {
         private ModuleCollection _collection;
@@ -45,7 +44,7 @@ namespace Imageboard10UnitTests
             Assert.IsInstanceOfType(link2, typeof(T), "Тип десериализованной ссылки не совпадает с типом исходной ссылки");
             var link2t = (T) link2;
             Assert.IsTrue(BoardLinkEqualityComparer.Instance.Equals(link, link2t), "Десериализованная ссылка не равна исходной по значениям");
-            var link3 = link.DeepClone();
+            var link3 = link.DeepClone(_modules);
             Assert.IsNotNull(link3, "Полная копия = null");
             Assert.IsInstanceOfType(link3, typeof(T), "Тип полной копии не совпадает с типом исходной ссылки");
             var link3t = (T) link3;
@@ -53,6 +52,7 @@ namespace Imageboard10UnitTests
         }
 
         [TestMethod]
+        [TestCategory("Links")]
         public void SerializeBoardLink()
         {
             TestSerialize<BoardLink>(l =>
@@ -63,6 +63,7 @@ namespace Imageboard10UnitTests
         }
 
         [TestMethod]
+        [TestCategory("Links")]
         public void SerializeBoardMediaLink()
         {
             TestSerialize<BoardMediaLink>(l =>
@@ -74,6 +75,7 @@ namespace Imageboard10UnitTests
         }
 
         [TestMethod]
+        [TestCategory("Links")]
         public void SerializeBoardPageLink()
         {
             TestSerialize<BoardPageLink>(l =>
@@ -85,6 +87,7 @@ namespace Imageboard10UnitTests
         }
 
         [TestMethod]
+        [TestCategory("Links")]
         public void SerializeCatalogLink()
         {
             TestSerialize<CatalogLink>(l =>
@@ -102,6 +105,7 @@ namespace Imageboard10UnitTests
         }
 
         [TestMethod]
+        [TestCategory("Links")]
         public void SerializeEngineMediaLink()
         {
             TestSerialize<EngineMediaLink>(l =>
@@ -112,6 +116,7 @@ namespace Imageboard10UnitTests
         }
 
         [TestMethod]
+        [TestCategory("Links")]
         public void SerializeEngineUriLink()
         {
             TestSerialize<EngineUriLink>(l =>
@@ -122,6 +127,7 @@ namespace Imageboard10UnitTests
         }
 
         [TestMethod]
+        [TestCategory("Links")]
         public void SerializeMediaLink()
         {
             TestSerialize<MediaLink>(l =>
@@ -131,6 +137,7 @@ namespace Imageboard10UnitTests
         }
 
         [TestMethod]
+        [TestCategory("Links")]
         public void SerializePostLink()
         {
             TestSerialize<PostLink>(l =>
@@ -143,6 +150,7 @@ namespace Imageboard10UnitTests
         }
 
         [TestMethod]
+        [TestCategory("Links")]
         public void SerializeRootLink()
         {
             TestSerialize<RootLink>(l =>
@@ -152,6 +160,7 @@ namespace Imageboard10UnitTests
         }
 
         [TestMethod]
+        [TestCategory("Links")]
         public void SerializeThreadLink()
         {
             TestSerialize<ThreadLink>(l =>
@@ -163,6 +172,7 @@ namespace Imageboard10UnitTests
         }
 
         [TestMethod]
+        [TestCategory("Links")]
         public void SerializeThreadPartLink()
         {
             TestSerialize<ThreadPartLink>(l =>
@@ -175,6 +185,7 @@ namespace Imageboard10UnitTests
         }
 
         [TestMethod]
+        [TestCategory("Links")]
         public void SerializeThreadTagLink()
         {
             TestSerialize<ThreadTagLink>(l =>
@@ -186,6 +197,7 @@ namespace Imageboard10UnitTests
         }
 
         [TestMethod]
+        [TestCategory("Links")]
         public void SerializeUriLink()
         {
             TestSerialize<UriLink>(l =>
@@ -195,6 +207,7 @@ namespace Imageboard10UnitTests
         }
 
         [TestMethod]
+        [TestCategory("Links")]
         public void SerializeYoutubeLink()
         {
             TestSerialize<YoutubeLink>(l =>

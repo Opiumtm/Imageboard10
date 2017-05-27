@@ -21,10 +21,21 @@ namespace Imageboard10.Core.Modules
         /// <param name="module">Модуль.</param>
         /// <param name="filter">Фильтр запроса на модуль.</param>
         public StaticModuleProvider(T module, IStaticModuleQueryFilter filter = null)
+            :base(GetSuspendAware(module), false)
         {
             if (module == null) throw new ArgumentNullException(nameof(module));
             _module = module;
             _filter = filter;
+        }
+
+        private static bool GetSuspendAware(IModule module)
+        {
+            var lt = module?.QueryView<IModuleLifetime>();
+            if (lt != null)
+            {
+                return lt.IsSuspendAware;
+            }
+            return false;
         }
 
         /// <summary>
@@ -56,6 +67,61 @@ namespace Imageboard10.Core.Modules
             return Nothing.Value;
         }
 
+        /// <summary>
+        /// Все модули инициализированы.
+        /// </summary>
+        protected override async ValueTask<Nothing> OnAllInitialized()
+        {
+            await base.OnAllInitialized();
+            var lt = _module.QueryView<IModuleLifetime>();
+            if (lt != null)
+            {
+                await lt.AllModulesInitialized();
+            }
+            return Nothing.Value;
+        }
+
+        /// <summary>
+        /// Действие по приостановке работы.
+        /// </summary>
+        protected override async ValueTask<Nothing> OnSuspended()
+        {
+            await base.OnSuspended();
+            var lt = _module.QueryView<IModuleLifetime>();
+            if (lt != null)
+            {
+                await lt.SuspendModule();
+            }
+            return Nothing.Value;
+        }
+
+        /// <summary>
+        /// Действие по вовозбновлению работы.
+        /// </summary>
+        protected override async ValueTask<Nothing> OnResumed()
+        {
+            await base.OnResumed();
+            var lt = _module.QueryView<IModuleLifetime>();
+            if (lt != null)
+            {
+                await lt.ResumeModule();
+            }
+            return Nothing.Value;
+        }
+
+        /// <summary>
+        /// Действие по вовозбновлению работы всех модулей родителя.
+        /// </summary>
+        protected override async ValueTask<Nothing> OnAllResumed()
+        {
+            await base.OnAllResumed();
+            var lt = _module.QueryView<IModuleLifetime>();
+            if (lt != null)
+            {
+                await lt.AllModulesResumed();
+            }
+            return Nothing.Value;
+        }
 
         /// <summary>
         /// Родительский провайдер модулей.

@@ -4,11 +4,11 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{78FBF320-EBBD-40A9-8F16-B45BFFF73AF1}</ProjectGuid>
+    <ProjectGuid>{59F08002-21BA-4913-A6CD-697C982BE20E}</ProjectGuid>
     <OutputType>winmdobj</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>Imageboard10.Core.ModelInterface</RootNamespace>
-    <AssemblyName>Imageboard10.Core.ModelInterface</AssemblyName>
+    <RootNamespace>Imageboard10.Core.NetworkInterface</RootNamespace>
+    <AssemblyName>Imageboard10.Core.NetworkInterface</AssemblyName>
     <DefaultLanguage>en-US</DefaultLanguage>
     <TargetPlatformIdentifier>UAP</TargetPlatformIdentifier>
     <TargetPlatformVersion Condition=" '$(TargetPlatformVersion)' == '' ">10.0.15063.0</TargetPlatformVersion>
@@ -107,50 +107,12 @@
     <RestoreProjectStyle>PackageReference</RestoreProjectStyle>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="Boards\IBoardIcon.cs" />
-    <Compile Include="Boards\IBoardReference.cs" />
-    <Compile Include="Boards\IBoardReferenceStore.cs" />
-    <Compile Include="Links\BoardCatalogSort.cs" />
-    <Compile Include="Links\BoardLinkKind.cs" />
-    <Compile Include="Links\IBoardLink.cs" />
-    <Compile Include="Links\ICatalogLink.cs" />
-    <Compile Include="Links\IEngineLink.cs" />
-    <Compile Include="Links\ILink.cs" />
-    <Compile Include="Links\ILinkSerializationService.cs" />
-    <Compile Include="Links\ILinkSerializer.cs" />
-    <Compile Include="Links\IPostLink.cs" />
-    <Compile Include="Links\IThreadLink.cs" />
-    <Compile Include="Links\IThreadTagLink.cs" />
-    <Compile Include="Links\IUriLink.cs" />
-    <Compile Include="Links\IYoutubeLink.cs" />
-    <Compile Include="Links\LinkCompareValues.cs" />
-    <Compile Include="Links\LinkDisplayStringContext.cs" />
-    <Compile Include="Posting\IPostingCapability.cs" />
-    <Compile Include="Posting\IPostingCapabilityIcon.cs" />
-    <Compile Include="Posting\IPostingCaptchaCapability.cs" />
-    <Compile Include="Posting\IPostingCommentCapability.cs" />
-    <Compile Include="Posting\IPostingIconCapability.cs" />
-    <Compile Include="Posting\IPostingMediaFileCapability.cs" />
-    <Compile Include="Posting\PostingFieldSemanticRole.cs" />
-    <Compile Include="Posts\IBoardLinkPostNode.cs" />
-    <Compile Include="Posts\IBoardPost.cs" />
-    <Compile Include="Posts\IBoardPostCountryFlag.cs" />
-    <Compile Include="Posts\IBoardPostIcon.cs" />
-    <Compile Include="Posts\IBoardPostTags.cs" />
-    <Compile Include="Posts\ICompositePostNode.cs" />
-    <Compile Include="Posts\ILineBreakPostNode.cs" />
-    <Compile Include="Posts\IPostAttribute.cs" />
-    <Compile Include="Posts\IPostBasicAttribute.cs" />
-    <Compile Include="Posts\IPostDocument.cs" />
-    <Compile Include="Posts\IPosterInfo.cs" />
-    <Compile Include="Posts\IPostLinkAttribute.cs" />
-    <Compile Include="Posts\IPostMedia.cs" />
-    <Compile Include="Posts\IPostMediaWithSize.cs" />
-    <Compile Include="Posts\IPostMediaWithThumbnail.cs" />
-    <Compile Include="Posts\IPostNode.cs" />
-    <Compile Include="Posts\ITextPostNode.cs" />
-    <Compile Include="Posts\PostBasicAttributes.cs" />
-    <Compile Include="Posts\PostMediaTypes.cs" />
+    <Compile Include="IBoardsListNetworkOperation.cs" />
+    <Compile Include="IBoardsListResult.cs" />
+    <Compile Include="INetworkEngineDescription.cs" />
+    <Compile Include="INetworkEngineRegistration.cs" />
+    <Compile Include="NetworkEngineCapabilities.cs" />
+    <Compile Include="NetworkProgress.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
@@ -158,7 +120,12 @@
       <Version>5.3.3</Version>
     </PackageReference>
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <ProjectReference Include="..\Imageboard10.Core.ModelInterface\Imageboard10.Core.ModelInterface.csproj">
+      <Project>{78fbf320-ebbd-40a9-8f16-b45bfff73af1}</Project>
+      <Name>Imageboard10.Core.ModelInterface</Name>
+    </ProjectReference>
+  </ItemGroup>
   <PropertyGroup Condition=" '$(VisualStudioVersion)' == '' or '$(VisualStudioVersion)' &lt; '14.0' ">
     <VisualStudioVersion>14.0</VisualStudioVersion>
   </PropertyGroup>

@@ -23,7 +23,8 @@ namespace Imageboard10.Core.Modules
         /// <summary>
         /// Конструктор.
         /// </summary>
-        /// <param name="parent">Родительский провайдер.</param>
+        /// <param name="parent">Родительский провайдер (должен быть инициализирован).</param>
+        /// <param name="attachEvents">Слушать события родителя.</param>
         public ModuleCollection(IModuleProvider parent = null)
         {
             _parent = parent;
@@ -44,30 +45,41 @@ namespace Imageboard10.Core.Modules
             _internalProvider.Add(moduleType, provider);
         }
 
-        /// <summary>
-        /// Присоединить к родительскому событию по завершению работы.
-        /// </summary>
-        /// <returns>true, если присоединение успешно.</returns>
-        public bool AttachToParentDispose()
-        {
-            if (Interlocked.CompareExchange(ref _isParentDisposeEvent, 0, 0) == 0)
-            {
-                var lt = _parent.QueryView<ModuleInterface.IModuleLifetimeEvents>();
-                if (lt != null)
-                {
-                    Interlocked.Exchange(ref _isParentDisposeEvent, 1);
-                    lt.Disposed += OnParentDisposed;
-                    return true;
-                }
-            }
-            return false;
-        }
-
         private async void OnParentDisposed(object o)
         {
             try
             {
                 await Dispose();
+            }
+            catch
+            {
+                if (Debugger.IsAttached)
+                {
+                    Debugger.Break();
+                }
+            }
+        }
+
+        private async void OnParentSuspended(object o)
+        {
+            try
+            {
+                await Suspend();
+            }
+            catch
+            {
+                if (Debugger.IsAttached)
+                {
+                    Debugger.Break();
+                }
+            }
+        }
+
+        private async void OnParentResumed(object o)
+        {
+            try
+            {
+                await Resume();
             }
             catch
             {
@@ -109,8 +121,54 @@ namespace Imageboard10.Core.Modules
             if (Interlocked.Exchange(ref _isSealed, 1) == 0)
             {
                 await _internalProvider.InitializeModule(_parent);
+                if (_parent != null)
+                {
+                    if (Interlocked.CompareExchange(ref _isParentDisposeEvent, 0, 0) == 0)
+                    {
+                        var lt = _parent.QueryView<ModuleInterface.IModuleLifetimeEvents>();
+                        if (lt != null)
+                        {
+                            Interlocked.Exchange(ref _isParentDisposeEvent, 1);
+                            lt.Disposed += OnParentDisposed;
+                            lt.Suspended += OnParentSuspended;
+                            lt.Resumed += OnParentResumed;
+                            lt.AllInitialized += ParentOnAllInitialized;
+                            lt.AllResumed += ParentOnAllResumed;
+                        }
+                    }
+                }
             }
             return Nothing.Value;
+        }
+
+        private async void ParentOnAllResumed(object o)
+        {
+            try
+            {
+                await _internalProvider.AllModulesResumed();
+            }
+            catch
+            {
+                if (Debugger.IsAttached)
+                {
+                    Debugger.Break();
+                }
+            }
+        }
+
+        private async void ParentOnAllInitialized(object o)
+        {
+            try
+            {
+                await _internalProvider.AllModulesInitialized();
+            }
+            catch
+            {
+                if (Debugger.IsAttached)
+                {
+                    Debugger.Break();
+                }
+            }
         }
 
         /// <summary>
@@ -125,8 +183,30 @@ namespace Imageboard10.Core.Modules
                 if (lt != null)
                 {
                     lt.Disposed -= OnParentDisposed;
+                    lt.Suspended -= OnParentSuspended;
+                    lt.Resumed -= OnParentResumed;
+                    lt.AllInitialized -= ParentOnAllInitialized;
+                    lt.AllResumed -= ParentOnAllResumed;
                 }
             }
+            return Nothing.Value;
+        }
+
+        /// <summary>
+        /// Приостановить работу.
+        /// </summary>
+        public async ValueTask<Nothing> Suspend()
+        {
+            await _internalProvider.SuspendModule();
+            return Nothing.Value;
+        }
+
+        /// <summary>
+        /// Возобновить работу.
+        /// </summary>
+        public async ValueTask<Nothing> Resume()
+        {
+            await _internalProvider.ResumeModule();
             return Nothing.Value;
         }
 
@@ -195,7 +275,7 @@ namespace Imageboard10.Core.Modules
 
             public object QueryView(Type viewType)
             {
-                if (viewType == typeof(IModule) || viewType == typeof(IModuleProvider) || viewType == typeof(IModuleLifetime))
+                if (viewType == typeof(IModule) || viewType == typeof(IModuleProvider) || viewType == typeof(IModuleLifetime) || viewType == typeof(ModuleInterface.IModuleLifetimeEvents))
                 {
                     return this;
                 }
@@ -205,8 +285,9 @@ namespace Imageboard10.Core.Modules
             // ReSharper disable once InconsistentNaming
             public int _isDisposed;
             private int _isInitialized;
+            private int _isSuspended;
 
-            public bool IsModuleReady => Interlocked.CompareExchange(ref _isDisposed, 0, 0) == 0 && Interlocked.CompareExchange(ref _isInitialized, 0, 0) != 0;
+            public bool IsModuleReady => Interlocked.CompareExchange(ref _isDisposed, 0, 0) == 0 && Interlocked.CompareExchange(ref _isInitialized, 0, 0) != 0 && Interlocked.CompareExchange(ref _isSuspended, 0, 0) == 0;
 
             public async ValueTask<Nothing> InitializeModule(IModuleProvider provider)
             {
@@ -220,6 +301,7 @@ namespace Imageboard10.Core.Modules
                             await p.InitializeModule(this);
                         }
                     }
+                    await AllModulesInitialized();
                 }
                 return Nothing.Value;
             }
@@ -240,7 +322,110 @@ namespace Imageboard10.Core.Modules
                 return Nothing.Value;
             }
 
+            /// <summary>
+            /// Приостановить работу модуля.
+            /// </summary>
+            public async ValueTask<Nothing> SuspendModule()
+            {
+                if (Interlocked.Exchange(ref _isSuspended, 1) == 0)
+                {
+                    foreach (var pt in _providers.Values)
+                    {
+                        foreach (var p in pt.Select(p => p.QueryView<IModuleLifetime>()).Where(p => p != null && p.IsSuspendAware))
+                        {
+                            await p.SuspendModule();
+                        }
+                    }
+                    Suspended?.Invoke(null);
+                }
+                return Nothing.Value;
+            }
+
+            /// <summary>
+            /// Возобновить работу модуля.
+            /// </summary>
+            public async ValueTask<Nothing> ResumeModule()
+            {
+                if (Interlocked.Exchange(ref _isSuspended, 0) != 0)
+                {
+                    foreach (var pt in _providers.Values)
+                    {
+                        foreach (var p in pt.Select(p => p.QueryView<IModuleLifetime>()).Where(p => p != null && p.IsSuspendAware))
+                        {
+                            await p.ResumeModule();
+                        }
+                    }
+                    Resumed?.Invoke(null);
+                    var parent = Interlocked.CompareExchange(ref _parent, null, null);
+                    if (parent == null)
+                    {
+                        await AllModulesResumed();
+                    }
+                }
+                return Nothing.Value;
+            }
+
+            /// <summary>
+            /// Все модули возобновлены.
+            /// </summary>
+            public async ValueTask<Nothing> AllModulesResumed()
+            {
+                foreach (var pt in _providers.Values)
+                {
+                    foreach (var p in pt.Select(p => p.QueryView<IModuleLifetime>()).Where(p => p != null))
+                    {
+                        await p.AllModulesResumed();
+                    }
+                }
+                AllResumed?.Invoke(null);
+                return Nothing.Value;
+            }
+
+            /// <summary>
+            /// Все модули инициализированы.
+            /// </summary>
+            public async ValueTask<Nothing> AllModulesInitialized()
+            {
+                foreach (var pt in _providers.Values)
+                {
+                    foreach (var p in pt.Select(p => p.QueryView<IModuleLifetime>()).Where(p => p != null))
+                    {
+                        await p.AllModulesInitialized();
+                    }
+                }
+                AllInitialized?.Invoke(null);
+                return Nothing.Value;
+            }
+
+            /// <summary>
+            /// Поддерживает приостановку и восстановление.
+            /// </summary>
+            public bool IsSuspendAware => true;
+
+            /// <summary>
+            /// Работа модуля завершена.
+            /// </summary>
             public event ModuleInterface.ModuleLifetimeEventHandler Disposed;
+
+            /// <summary>
+            /// Работа приостановлена.
+            /// </summary>
+            public event ModuleInterface.ModuleLifetimeEventHandler Suspended;
+
+            /// <summary>
+            /// Работа возобновлена.
+            /// </summary>
+            public event ModuleInterface.ModuleLifetimeEventHandler Resumed;
+
+            /// <summary>
+            /// Работа возобновлена для всех модулей.
+            /// </summary>
+            public event ModuleInterface.ModuleLifetimeEventHandler AllResumed;
+
+            /// <summary>
+            /// Все модули инициализированы.
+            /// </summary>
+            public event ModuleInterface.ModuleLifetimeEventHandler AllInitialized;
         }
     }
 }

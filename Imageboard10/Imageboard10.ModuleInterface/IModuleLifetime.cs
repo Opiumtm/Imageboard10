@@ -16,7 +16,31 @@ namespace Imageboard10.ModuleInterface
         /// <summary>
         /// Завершить работу модуля.
         /// </summary>
-        /// <returns></returns>
         IAsyncAction DisposeModule();
+
+        /// <summary>
+        /// Приостановить работу модуля.
+        /// </summary>
+        IAsyncAction SuspendModule();
+
+        /// <summary>
+        /// Возобновить работу модуля.
+        /// </summary>
+        IAsyncAction ResumeModule();
+
+        /// <summary>
+        /// Все модули возобновлены.
+        /// </summary>
+        IAsyncAction AllModulesResumed();
+
+        /// <summary>
+        /// Все модули инициализированы.
+        /// </summary>
+        IAsyncAction AllModulesInitialized();
+
+        /// <summary>
+        /// Поддерживает приостановку и восстановление.
+        /// </summary>
+        bool IsSuspendAware { get; }
     }
 }

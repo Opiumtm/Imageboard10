@@ -1,67 +1,79 @@
 ﻿using System.Collections.Generic;
+using Imageboard10.Core.ModelInterface.Boards;
 using Imageboard10.Core.ModelInterface.Links;
 using Imageboard10.Core.ModelInterface.Posting;
+using Imageboard10.Core.Modules;
 
-namespace Imageboard10.Core.ModelInterface.Boards
+namespace Imageboard10.Core.Models.Links.Boards
 {
     /// <summary>
     /// Ссылка на доску.
     /// </summary>
-    public interface IBoardReference
+    public class BoardReference : IBoardReference, IDeepCloneable<BoardReference>
     {
         /// <summary>
         /// Ссылка на доску.
         /// </summary>
-        ILink BoardLink { get; }
+        public ILink BoardLink { get; set; }
 
         /// <summary>
         /// Категория.
         /// </summary>
-        string Category { get; }
+        public string Category { get; set; }
 
         /// <summary>
         /// Короткое имя.
         /// </summary>
-        string ShortName { get; }
+        public string ShortName { get; set; }
 
         /// <summary>
         /// Отображаемое имя.
         /// </summary>
-        string DisplayName { get; }
+        public string DisplayName { get; set; }
 
         /// <summary>
         /// Доска "только для взрослых".
         /// </summary>
-        bool IsAdult { get; }
+        public bool IsAdult { get; set; }
 
         /// <summary>
         /// Поля для постинга.
         /// </summary>
-        IList<IPostingCapability> PostingCapabilities { get; }
+        public IList<IPostingCapability> PostingCapabilities { get; set; }
 
         /// <summary>
         /// Иконки.
         /// </summary>
-        IList<IBoardIcon> Icons { get; }
+        public IList<IBoardIcon> Icons { get; set; }
 
         /// <summary>
         /// Бамплимит.
         /// </summary>
-        int? BumpLimit { get; }
+        public int? BumpLimit { get; set; }
 
         /// <summary>
         /// Имя постера по умолчанию.
         /// </summary>
-        string DefaultName { get; }
+        public string DefaultName { get; set; }
 
         /// <summary>
         /// Количество страниц.
         /// </summary>
-        int? Pages { get; }
+        public int? Pages { get; set; }
 
         /// <summary>
         /// Разрешены лайки.
         /// </summary>
-        bool LikesEnabled { get; }
+        public bool LikesEnabled { get; set; }
+
+        /// <summary>
+        /// Клонировать.
+        /// </summary>
+        /// <param name="modules">Модули.</param>
+        /// <returns>Клон.</returns>
+        public BoardReference DeepClone(IModuleProvider modules)
+        {
+            throw new System.NotImplementedException();
+        }
     }
 }
