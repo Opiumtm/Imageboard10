@@ -107,6 +107,9 @@
     <RestoreProjectStyle>PackageReference</RestoreProjectStyle>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="Boards\IBoardCategory.cs" />
+    <Compile Include="Boards\IBoardIcon.cs" />
+    <Compile Include="Boards\IBoardReference.cs" />
     <Compile Include="Links\BoardCatalogSort.cs" />
     <Compile Include="Links\BoardLinkKind.cs" />
     <Compile Include="Links\IBoardLink.cs" />
@@ -122,6 +125,32 @@
     <Compile Include="Links\IYoutubeLink.cs" />
     <Compile Include="Links\LinkCompareValues.cs" />
     <Compile Include="Links\LinkDisplayStringContext.cs" />
+    <Compile Include="Posting\IPostingCapability.cs" />
+    <Compile Include="Posting\IPostingCapabilityIcon.cs" />
+    <Compile Include="Posting\IPostingCaptchaCapability.cs" />
+    <Compile Include="Posting\IPostingCommentCapability.cs" />
+    <Compile Include="Posting\IPostingIconCapability.cs" />
+    <Compile Include="Posting\IPostingMediaFileCapability.cs" />
+    <Compile Include="Posting\PostingFieldSemanticRole.cs" />
+    <Compile Include="Posts\IBoardLinkPostNode.cs" />
+    <Compile Include="Posts\IBoardPost.cs" />
+    <Compile Include="Posts\IBoardPostCountryFlag.cs" />
+    <Compile Include="Posts\IBoardPostIcon.cs" />
+    <Compile Include="Posts\IBoardPostTags.cs" />
+    <Compile Include="Posts\ICompositePostNode.cs" />
+    <Compile Include="Posts\ILineBreakPostNode.cs" />
+    <Compile Include="Posts\IPostAttribute.cs" />
+    <Compile Include="Posts\IPostBasicAttribute.cs" />
+    <Compile Include="Posts\IPostDocument.cs" />
+    <Compile Include="Posts\IPosterInfo.cs" />
+    <Compile Include="Posts\IPostLinkAttribute.cs" />
+    <Compile Include="Posts\IPostMedia.cs" />
+    <Compile Include="Posts\IPostMediaWithSize.cs" />
+    <Compile Include="Posts\IPostMediaWithThumbnail.cs" />
+    <Compile Include="Posts\IPostNode.cs" />
+    <Compile Include="Posts\ITextPostNode.cs" />
+    <Compile Include="Posts\PostBasicAttributes.cs" />
+    <Compile Include="Posts\PostMediaTypes.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
