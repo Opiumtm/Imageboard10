@@ -36,5 +36,26 @@ namespace Imageboard10.Core.Models.Links
             return (modules.QueryModule<ILinkSerializationService>() ?? throw new ModuleNotFoundException())
                 .Deserialize(linkStr);
         }
+
+        /// <summary>
+        /// Клонировать ссылку.
+        /// </summary>
+        /// <param name="link">Ссылка.</param>
+        /// <param name="modules">Модули.</param>
+        /// <returns>Клонированная ссылка.</returns>
+        public static ILink CloneLink(this ILink link, IModuleProvider modules)
+        {
+            if (modules == null) throw new ArgumentNullException(nameof(modules));
+            if (link == null)
+            {
+                return null;
+            }
+            if (link is IDeepCloneable<BoardLinkBase> dc)
+            {
+                return dc.DeepClone();
+            }
+            var serializer = modules.QueryModule<ILinkSerializationService>() ?? throw new ModuleNotFoundException();
+            return serializer.Deserialize(serializer.Serialize(link));
+        }
     }
 }
