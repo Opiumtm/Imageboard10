@@ -1,4 +1,6 @@
-﻿namespace Imageboard10.Core.ModelInterface.Links
+﻿using System;
+
+namespace Imageboard10.Core.ModelInterface.Links
 {
     /// <summary>
     /// Ссылка.
@@ -34,5 +36,11 @@
         /// </summary>
         /// <returns>Хэш ссылки.</returns>
         string GetLinkHash();
+
+        /// <summary>
+        /// Получить тип для сериализатора.
+        /// </summary>
+        /// <returns>Тип для сериализатора.</returns>
+        Type GetTypeForSerializer();
     }
 }

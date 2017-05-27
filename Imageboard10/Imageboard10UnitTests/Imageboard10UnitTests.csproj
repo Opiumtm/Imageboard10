@@ -95,6 +95,7 @@
     <SDKReference Include="TestPlatform.Universal, Version=$(UnitTestPlatformVersion)" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="LinkSerializationTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="UnitTestApp.xaml.cs">
       <DependentUpon>UnitTestApp.xaml</DependentUpon>
@@ -132,6 +133,27 @@
     <PackageReference Include="MSTest.TestFramework">
       <Version>1.1.17</Version>
     </PackageReference>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Imageboard10.Core.ModelInterface\Imageboard10.Core.ModelInterface.csproj">
+      <Project>{78fbf320-ebbd-40a9-8f16-b45bfff73af1}</Project>
+      <Name>Imageboard10.Core.ModelInterface</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Imageboard10.Core.Models\Imageboard10.Core.Models.csproj">
+      <Project>{66280a62-2409-4222-97a5-54da49f9142f}</Project>
+      <Name>Imageboard10.Core.Models</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Imageboard10.Core\Imageboard10.Core.csproj">
+      <Project>{b9a32628-d7b6-4bda-afe6-47e4ac5af95a}</Project>
+      <Name>Imageboard10.Core</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Imageboard10.ModuleInterface\Imageboard10.ModuleInterface.csproj">
+      <Project>{62d7a5d8-0866-4199-8763-ef81096f4a71}</Project>
+      <Name>Imageboard10.ModuleInterface</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Service Include="{82A7F48D-3B50-4B1E-B82E-3ADA8210C358}" />
   </ItemGroup>
   <PropertyGroup Condition=" '$(VisualStudioVersion)' == '' or '$(VisualStudioVersion)' &lt; '14.0' ">
     <VisualStudioVersion>14.0</VisualStudioVersion>

@@ -109,8 +109,8 @@
     <Compile Include="Links\BoardLinkBase.cs" />
     <Compile Include="Links\BoardLinkComparer.cs" />
     <Compile Include="Links\BoardLinkEqualityComparer.cs" />
-    <Compile Include="Links\ILinkSerializationService.cs" />
     <Compile Include="Links\LinkCompareValuesComparer.cs" />
+    <Compile Include="Links\LinkHelper.cs" />
     <Compile Include="Links\LinkModelsRegistration.cs" />
     <Compile Include="Links\LinkSerializationService.cs" />
     <Compile Include="Links\LinkTypes\BoardLink.cs" />
@@ -128,6 +128,23 @@
     <Compile Include="Links\LinkTypes\ThreadTagLink.cs" />
     <Compile Include="Links\LinkTypes\UriLink.cs" />
     <Compile Include="Links\LinkTypes\YoutubeLink.cs" />
+    <Compile Include="Links\Serialization\BoardLinkSerializer.cs" />
+    <Compile Include="Links\Serialization\BoardMediLinkSerializer.cs" />
+    <Compile Include="Links\Serialization\BoardPageLinkSerializer.cs" />
+    <Compile Include="Links\Serialization\CatalogLinkSerializer.cs" />
+    <Compile Include="Links\Serialization\EngineMediaLinkSerializer.cs" />
+    <Compile Include="Links\Serialization\EngineUriLinkSerializer.cs" />
+    <Compile Include="Links\Serialization\LinkSerializerBase.cs" />
+    <Compile Include="Links\Serialization\LinkSerializersProviderBase.cs" />
+    <Compile Include="Links\Serialization\MediaLinkSerializer.cs" />
+    <Compile Include="Links\Serialization\PostLinkSerializer.cs" />
+    <Compile Include="Links\Serialization\RootLinkSerializer.cs" />
+    <Compile Include="Links\Serialization\StandardLinkSerializers.cs" />
+    <Compile Include="Links\Serialization\ThreadLinkSerializer.cs" />
+    <Compile Include="Links\Serialization\ThreadPartLinkSerializer.cs" />
+    <Compile Include="Links\Serialization\ThreadTagLinkSerializer.cs" />
+    <Compile Include="Links\Serialization\UriLinkSerializer.cs" />
+    <Compile Include="Links\Serialization\YoutubeLinkSerializer.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <EmbeddedResource Include="Properties\Imageboard10.Core.Models.rd.xml" />
   </ItemGroup>

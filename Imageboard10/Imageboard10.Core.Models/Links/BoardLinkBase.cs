@@ -1,4 +1,5 @@
-﻿using Imageboard10.Core.ModelInterface.Links;
+﻿using System;
+using Imageboard10.Core.ModelInterface.Links;
 
 namespace Imageboard10.Core.Models.Links
 {
@@ -23,6 +24,12 @@ namespace Imageboard10.Core.Models.Links
         /// </summary>
         /// <returns>Хэш ссылки.</returns>
         public abstract string GetLinkHash();
+
+        /// <summary>
+        /// Получить тип для сериализатора.
+        /// </summary>
+        /// <returns>Тип для сериализатора.</returns>
+        public Type GetTypeForSerializer() => this.GetType();
 
         /// <summary>
         /// Получить значения для сравнения.

@@ -1,4 +1,6 @@
-﻿using Imageboard10.Core.Modules;
+﻿using Imageboard10.Core.ModelInterface.Links;
+using Imageboard10.Core.Models.Links.Serialization;
+using Imageboard10.Core.Modules;
 
 namespace Imageboard10.Core.Models.Links
 {
@@ -14,6 +16,7 @@ namespace Imageboard10.Core.Models.Links
         public static void RegisterModules(IModuleCollection collection)
         {
             collection.RegisterModule<LinkSerializationService, ILinkSerializationService>(new LinkSerializationService());
+            collection.RegisterProvider(typeof(ILinkSerializer), new StandardLinkSerializers());
         }
     }
 }

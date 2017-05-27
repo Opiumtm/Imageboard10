@@ -18,7 +18,7 @@ namespace Imageboard10.Core.Models.Links
         public string Serialize(ILink link)
         {
             if (link == null) throw new ArgumentNullException(nameof(link));
-            var serializer = ModuleProvider?.QueryModule<ILinkSerializer, Type>(link.GetType());
+            var serializer = ModuleProvider?.QueryModule<ILinkSerializer, Type>(link.GetTypeForSerializer());
             if (serializer == null)
             {
                 throw new InvalidOperationException($"Не найдена логика сериализации для ссылки типа {link.GetType().FullName}");

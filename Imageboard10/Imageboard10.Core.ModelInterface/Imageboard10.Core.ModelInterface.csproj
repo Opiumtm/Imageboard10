@@ -113,6 +113,7 @@
     <Compile Include="Links\ICatalogLink.cs" />
     <Compile Include="Links\IEngineLink.cs" />
     <Compile Include="Links\ILink.cs" />
+    <Compile Include="Links\ILinkSerializationService.cs" />
     <Compile Include="Links\ILinkSerializer.cs" />
     <Compile Include="Links\IPostLink.cs" />
     <Compile Include="Links\IThreadLink.cs" />
