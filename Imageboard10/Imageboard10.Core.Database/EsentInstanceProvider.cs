@@ -82,6 +82,7 @@ namespace Imageboard10.Core.Database
             await base.OnResumed();
             await CreateCachedInstance();
             Interlocked.Exchange(ref _isSuspended, 0);
+            Interlocked.Exchange(ref _isSuspendRequested, 0);
             return Nothing.Value;
         }
 
@@ -100,6 +101,7 @@ namespace Imageboard10.Core.Database
         /// </summary>
         protected override async ValueTask<Nothing> OnSuspended()
         {
+            Interlocked.Exchange(ref _isSuspendRequested, 1);
             await base.OnSuspended();
             await WaitDisposed();
             Interlocked.Exchange(ref _isSuspended, 1);
@@ -311,8 +313,8 @@ namespace Imageboard10.Core.Database
                 Instance = instance;
                 _databasePath = databasePath;
                 _waiters = waiters;
-                Session = session;
-                Database = dbid;
+                _session = session;
+                _database = dbid;
                 IsReadOnly = isReadOnly;
                 _dispatcher = dispatcher;
                 if (isReadOnly)
@@ -376,15 +378,19 @@ namespace Imageboard10.Core.Database
 
             public bool IsReadOnly { get; }
 
+            private readonly Session _session;
+
             /// <summary>
             /// Сессия.
             /// </summary>
-            public Session Session { get; }
+            public Session Session => _dispatcher?.CheckAccess(() => _session) ?? _session;
+
+            private readonly JET_DBID _database;
 
             /// <summary>
             /// База данных.
             /// </summary>
-            public JET_DBID Database { get; }
+            public JET_DBID Database => _dispatcher?.CheckAccess(() => _database) ?? _database;
 
             private readonly SingleThreadDispatcher _dispatcher;
 
@@ -518,6 +524,13 @@ namespace Imageboard10.Core.Database
         /// Работа приостановлена.
         /// </summary>
         bool IEsentInstanceProviderForTests.IsSuspended => Interlocked.CompareExchange(ref _isSuspended, 0, 0) != 0;
+
+        private int _isSuspendRequested;
+
+        /// <summary>
+        /// Остановка запрошена.
+        /// </summary>
+        bool IEsentInstanceProviderForTests.IsSuspendRequested => Interlocked.CompareExchange(ref _isSuspendRequested, 0, 0) != 0;
 
         /// <summary>
         /// Зарегистрировать использование.

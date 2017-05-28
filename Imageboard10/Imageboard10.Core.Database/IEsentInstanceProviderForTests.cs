@@ -35,5 +35,10 @@ namespace Imageboard10.Core.Database
         /// Работа приостановлена.
         /// </summary>
         bool IsSuspended { get; }
+
+        /// <summary>
+        /// Остановка запрошена.
+        /// </summary>
+        bool IsSuspendRequested { get; }
     }
 }

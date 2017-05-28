@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using Imageboard10.Core;
 using Imageboard10.Core.Database;
 using Imageboard10.Core.Modules;
 using Microsoft.Isam.Esent.Interop;
@@ -257,6 +258,97 @@ namespace Imageboard10UnitTests
                     expectedInstanceCount++;
                     Assert.AreEqual(expectedInstanceCount, testData.InstancesCreated, $"Должно быть создано {expectedInstanceCount} инстансов вместо {testData.InstancesCreated}");
                     await SimpleSyncTest(provider, step);
+                }
+            });
+        }
+
+        [TestMethod]
+        [TestCategory("ESENT")]
+        public async Task TestEsentSuspensionOverlapped()
+        {
+            await RunEsentTest(async (provider, testData, collection) =>
+            {
+                int expectedInstanceCount = 1;
+                List<Task> toAwait = new List<Task>();
+                for (var i = 1; i < 5; i++)
+                {
+                    await collection.Suspend();
+                    Assert.IsTrue(testData.IsSuspended, "Провайдер ESENT не был приостановлен");
+                    Assert.AreEqual(expectedInstanceCount, testData.InstancesCreated, $"Должно быть создано {expectedInstanceCount} инстансов вместо {testData.InstancesCreated}");
+                    await Assert.ThrowsExceptionAsync<InvalidOperationException>(async () =>
+                    {
+                        var session = await provider.CreateReadOnlySession();
+                        session.Dispose();
+                    }, "Не было брошено исключение при попытке получить сессию в приостановленном провайдере");
+                    await Task.WhenAll(toAwait.ToArray());
+                    toAwait.Clear();
+                    await collection.Resume();
+                    Assert.IsFalse(testData.IsSuspended, "Провайдер ESENT не был возобновлён");
+                    expectedInstanceCount++;
+                    Assert.AreEqual(expectedInstanceCount, testData.InstancesCreated, $"Должно быть создано {expectedInstanceCount} инстансов вместо {testData.InstancesCreated}");
+                    var startTasks = new List<Task>();
+                    for (var j = 1; j < 3; j++)
+                    {
+                        var step = $"table_{i}_{j}";
+                        var tcs = new TaskCompletionSource<Nothing>();
+                        startTasks.Add(tcs.Task);
+
+                        async Task TestTask()
+                        {
+                            var mainSession = provider.MainSession;
+                            using (mainSession.UseSession())
+                            {
+                                await Task.Delay(TimeSpan.FromSeconds(0.2));
+                                tcs.SetResult(Nothing.Value);
+                                JET_TABLEID tableid1 = default(JET_TABLEID);
+                                string pk = null;
+                                JET_COLUMNID id = default(JET_COLUMNID), val = default(JET_COLUMNID);
+                                await mainSession.RunInTransaction(() =>
+                                {
+                                    var tt = CreateSimpleTable(mainSession, step);
+                                    pk = tt.pk;
+                                    id = tt.id;
+                                    val = tt.val;
+                                    return true;
+                                });
+                                await mainSession.Run(() => { Api.OpenTable(mainSession.Session, mainSession.Database, step, OpenTableGrbit.DenyWrite, out tableid1); });
+                                try
+                                {
+                                    await mainSession.RunInTransaction(() =>
+                                    {
+                                        for (var x = 0; x < 1000; x++)
+                                        {
+                                            Api.JetPrepareUpdate(mainSession.Session, tableid1, JET_prep.Insert);
+                                            var vv = "VAL_" + x.ToString();
+                                            Api.SetColumns(mainSession.Session, tableid1, new StringColumnValue()
+                                            {
+                                                Columnid = val,
+                                                Value = vv,
+                                            });
+                                            Api.JetUpdate(mainSession.Session, tableid1);
+                                        }
+                                        return true;
+                                    });
+                                    await mainSession.RunInTransaction(() =>
+                                    {
+                                        Api.JetSetTableSequential(mainSession.Session, tableid1, SetTableSequentialGrbit.None);
+                                        int count;
+                                        Api.TryMoveFirst(mainSession.Session, tableid1);
+                                        Api.JetIndexRecordCount(mainSession.Session, tableid1, out count, int.MaxValue);
+                                        Assert.AreEqual(1000, count, "Количество записей в таблице не равно 1000");
+                                        return false;
+                                    });
+                                }
+                                finally
+                                {
+                                    await mainSession.Run(() => { Api.JetCloseTable(mainSession.Session, tableid1); });
+                                }
+                                Assert.IsTrue(!testData.IsSuspended && testData.IsSuspendRequested, "Провайдер должен ожидать завершения, но не должен быть завершён");
+                            }
+                        }
+                        toAwait.Add(RunAsyncOnThread(TestTask));
+                    }
+                    await Task.WhenAll(startTasks.ToArray());
                 }
             });
         }

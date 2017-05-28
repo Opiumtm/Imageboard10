@@ -55,6 +55,31 @@ namespace Imageboard10.Core.Tasks
             throw new ObjectDisposedException("SingleThreadDispatcher");
         }
 
+        /// <summary>
+        /// Идентификатор диспетчеризующего таска.
+        /// </summary>
+        public int DispatcherTaskId => _queueTask.Id;
+
+        /// <summary>
+        /// Проверить, что доступ осуществляется из диспетчеризующего треда.
+        /// </summary>
+        public void CheckAccess()
+        {
+            if (_queueTask.Id != Task.CurrentId)
+            {
+                throw new InvalidOperationException("Доступ не из диспетчеризующего таска");
+            }
+        }
+
+        /// <summary>
+        /// Проверить, что доступ осуществляется из диспетчеризующего треда.
+        /// </summary>
+        public T CheckAccess<T>(Func<T> func)
+        {
+            CheckAccess();
+            return func != null ? func.Invoke() : default(T);
+        }
+
         private void TaskAction()
         {
             try
