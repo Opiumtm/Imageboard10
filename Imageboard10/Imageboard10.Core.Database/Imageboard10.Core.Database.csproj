@@ -107,8 +107,11 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="EsentInstanceProvider.cs" />
-    <Compile Include="IEsentInstance.cs" />
+    <Compile Include="EsentModulesRegistration.cs" />
+    <Compile Include="IDisposeWaiters.cs" />
     <Compile Include="IEsentInstanceProvider.cs" />
+    <Compile Include="IEsentInstanceProviderForTests.cs" />
+    <Compile Include="IEsentSession.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <EmbeddedResource Include="Properties\Imageboard10.Core.Database.rd.xml" />
   </ItemGroup>

@@ -294,12 +294,17 @@ namespace Imageboard10.Core.Modules
                 if (Interlocked.Exchange(ref _isInitialized, 1) == 0)
                 {
                     Interlocked.Exchange(ref _parent, provider);
+                    List<ValueTask<Nothing>> tasks = new List<ValueTask<Nothing>>();
                     foreach (var pt in _providers.Values)
                     {
                         foreach (var p in pt.Select(p => p.QueryView<IModuleLifetime>()).Where(p => p != null))
                         {
-                            await p.InitializeModule(this);
+                            tasks.Add(p.InitializeModule(this));
                         }
+                    }
+                    foreach (var task in tasks)
+                    {
+                        await task;
                     }
                     await AllModulesInitialized();
                 }
@@ -310,12 +315,17 @@ namespace Imageboard10.Core.Modules
             {
                 if (Interlocked.Exchange(ref _isDisposed, 1) == 0)
                 {
+                    List<ValueTask<Nothing>> tasks = new List<ValueTask<Nothing>>();
                     foreach (var pt in _providers.Values)
                     {
                         foreach (var p in pt.Select(p => p.QueryView<IModuleLifetime>()).Where(p => p != null))
                         {
-                            await p.DisposeModule();
+                            tasks.Add(p.DisposeModule());
                         }
+                    }
+                    foreach (var task in tasks)
+                    {
+                        await task;
                     }
                     Disposed?.Invoke(null);
                 }
@@ -329,12 +339,17 @@ namespace Imageboard10.Core.Modules
             {
                 if (Interlocked.Exchange(ref _isSuspended, 1) == 0)
                 {
+                    List<ValueTask<Nothing>> tasks = new List<ValueTask<Nothing>>();
                     foreach (var pt in _providers.Values)
                     {
                         foreach (var p in pt.Select(p => p.QueryView<IModuleLifetime>()).Where(p => p != null && p.IsSuspendAware))
                         {
-                            await p.SuspendModule();
+                            tasks.Add(p.SuspendModule());
                         }
+                    }
+                    foreach (var task in tasks)
+                    {
+                        await task;
                     }
                     Suspended?.Invoke(null);
                 }
@@ -348,12 +363,17 @@ namespace Imageboard10.Core.Modules
             {
                 if (Interlocked.Exchange(ref _isSuspended, 0) != 0)
                 {
+                    List<ValueTask<Nothing>> tasks = new List<ValueTask<Nothing>>();
                     foreach (var pt in _providers.Values)
                     {
                         foreach (var p in pt.Select(p => p.QueryView<IModuleLifetime>()).Where(p => p != null && p.IsSuspendAware))
                         {
-                            await p.ResumeModule();
+                            tasks.Add(p.ResumeModule());
                         }
+                    }
+                    foreach (var task in tasks)
+                    {
+                        await task;
                     }
                     Resumed?.Invoke(null);
                     var parent = Interlocked.CompareExchange(ref _parent, null, null);
@@ -370,12 +390,17 @@ namespace Imageboard10.Core.Modules
             /// </summary>
             public async ValueTask<Nothing> AllModulesResumed()
             {
+                List<ValueTask<Nothing>> tasks = new List<ValueTask<Nothing>>();
                 foreach (var pt in _providers.Values)
                 {
                     foreach (var p in pt.Select(p => p.QueryView<IModuleLifetime>()).Where(p => p != null))
                     {
-                        await p.AllModulesResumed();
+                        tasks.Add(p.AllModulesResumed());
                     }
+                }
+                foreach (var task in tasks)
+                {
+                    await task;
                 }
                 AllResumed?.Invoke(null);
                 return Nothing.Value;
@@ -386,12 +411,17 @@ namespace Imageboard10.Core.Modules
             /// </summary>
             public async ValueTask<Nothing> AllModulesInitialized()
             {
+                List<ValueTask<Nothing>> tasks = new List<ValueTask<Nothing>>();
                 foreach (var pt in _providers.Values)
                 {
                     foreach (var p in pt.Select(p => p.QueryView<IModuleLifetime>()).Where(p => p != null))
                     {
-                        await p.AllModulesInitialized();
+                        tasks.Add(p.AllModulesInitialized());
                     }
+                }
+                foreach (var task in tasks)
+                {
+                    await task;
                 }
                 AllInitialized?.Invoke(null);
                 return Nothing.Value;

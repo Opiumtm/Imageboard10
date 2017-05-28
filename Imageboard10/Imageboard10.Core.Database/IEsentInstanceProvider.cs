@@ -8,9 +8,19 @@ namespace Imageboard10.Core.Database
     public interface IEsentInstanceProvider
     {
         /// <summary>
-        /// Получить экземпляр.
+        /// Основная сессия. Не вызывать Dispose(), т.к. временем жизни основной сессии управляет провайдер.
+        /// </summary>
+        IEsentSession MainSession { get; }
+
+        /// <summary>
+        /// Получить сессию только для чтения.
         /// </summary>
         /// <returns>Экземпляр.</returns>
-        Task<IEsentInstance> GetInstance();
+        Task<IEsentSession> CreateReadOnlySession();
+
+        /// <summary>
+        /// Путь к базе данных.
+        /// </summary>
+        string DatabasePath { get; }
     }
 }

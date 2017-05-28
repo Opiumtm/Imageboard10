@@ -131,6 +131,7 @@
     <Compile Include="Modules\ModuleCollection.cs" />
     <Compile Include="Modules\ModuleHelper.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Tasks\SingleThreadDispatcher.cs" />
     <Compile Include="Utility\StringHashCache.cs" />
     <Compile Include="Utility\UniqueIdHelper.cs" />
     <EmbeddedResource Include="Properties\Imageboard10.Core.rd.xml" />
