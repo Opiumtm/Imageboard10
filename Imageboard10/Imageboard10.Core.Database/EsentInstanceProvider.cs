@@ -81,6 +81,7 @@ namespace Imageboard10.Core.Database
         {
             await base.OnResumed();
             await CreateCachedInstance();
+            Interlocked.Exchange(ref _isSuspended, 0);
             return Nothing.Value;
         }
 
@@ -101,6 +102,7 @@ namespace Imageboard10.Core.Database
         {
             await base.OnSuspended();
             await WaitDisposed();
+            Interlocked.Exchange(ref _isSuspended, 1);
             return Nothing.Value;
         }
 
@@ -509,6 +511,13 @@ namespace Imageboard10.Core.Database
         /// Инстансов создано.
         /// </summary>
         int IEsentInstanceProviderForTests.InstancesCreated => Interlocked.CompareExchange(ref _instancesCreated, 0, 0);
+
+        private int _isSuspended;
+
+        /// <summary>
+        /// Работа приостановлена.
+        /// </summary>
+        bool IEsentInstanceProviderForTests.IsSuspended => Interlocked.CompareExchange(ref _isSuspended, 0, 0) != 0;
 
         /// <summary>
         /// Зарегистрировать использование.

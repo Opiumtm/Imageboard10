@@ -229,6 +229,40 @@ namespace Imageboard10UnitTests
 
         [TestMethod]
         [TestCategory("ESENT")]
+        public async Task TestEsentSuspension()
+        {
+            await RunEsentTest(async (provider, testData, collection) =>
+            {
+                var steps = new[]
+                {
+                    "test_table_1",
+                    "test_table_2",
+                    "test_table_3",
+                    "test_table_4",
+                    "test_table_5",
+                };
+                int expectedInstanceCount = 1;
+                foreach (var step in steps)
+                {
+                    await collection.Suspend();
+                    Assert.IsTrue(testData.IsSuspended, "Провайдер ESENT не был приостановлен");
+                    Assert.AreEqual(expectedInstanceCount, testData.InstancesCreated, $"Должно быть создано {expectedInstanceCount} инстансов вместо {testData.InstancesCreated}");
+                    await Assert.ThrowsExceptionAsync<InvalidOperationException>(async () =>
+                    {
+                        var session = await provider.CreateReadOnlySession();
+                        session.Dispose();
+                    }, "Не было брошено исключение при попытке получить сессию в приостановленном провайдере");
+                    await collection.Resume();
+                    Assert.IsFalse(testData.IsSuspended, "Провайдер ESENT не был возобновлён");
+                    expectedInstanceCount++;
+                    Assert.AreEqual(expectedInstanceCount, testData.InstancesCreated, $"Должно быть создано {expectedInstanceCount} инстансов вместо {testData.InstancesCreated}");
+                    await SimpleSyncTest(provider, step);
+                }
+            });
+        }
+
+        [TestMethod]
+        [TestCategory("ESENT")]
         public async Task TestEsentAccessAsync()
         {
             await RunEsentTest(async (provider, testData) =>
@@ -356,6 +390,31 @@ namespace Imageboard10UnitTests
                     Assert.IsNotNull(provider, "Провайдер ESENT не найден");
                     Assert.IsNotNull(testData, "Тестовый интерфейс ESENT не найден");
                     await test(provider, testData);
+                }
+                finally
+                {
+                    await collection.Dispose();
+                }
+            }
+            finally
+            {
+                _testSemaphore.Release();
+            }
+        }
+        private async Task RunEsentTest(Func<IEsentInstanceProvider, IEsentInstanceProviderForTests, ModuleCollection, Task> test)
+        {
+            await _testSemaphore.WaitAsync();
+            try
+            {
+                var collection = await InitializeEsent();
+                try
+                {
+                    var module = collection.GetModuleProvider().QueryModule<object>(typeof(IEsentInstanceProvider), null);
+                    var provider = module?.QueryView<IEsentInstanceProvider>();
+                    var testData = module?.QueryView<IEsentInstanceProviderForTests>();
+                    Assert.IsNotNull(provider, "Провайдер ESENT не найден");
+                    Assert.IsNotNull(testData, "Тестовый интерфейс ESENT не найден");
+                    await test(provider, testData, collection);
                 }
                 finally
                 {

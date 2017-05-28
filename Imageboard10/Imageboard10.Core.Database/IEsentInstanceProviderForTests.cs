@@ -30,5 +30,10 @@ namespace Imageboard10.Core.Database
         /// Инстансов создано.
         /// </summary>
         int InstancesCreated { get; }
+
+        /// <summary>
+        /// Работа приостановлена.
+        /// </summary>
+        bool IsSuspended { get; }
     }
 }
