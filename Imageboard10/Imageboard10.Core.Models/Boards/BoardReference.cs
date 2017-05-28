@@ -4,7 +4,7 @@ using Imageboard10.Core.ModelInterface.Links;
 using Imageboard10.Core.ModelInterface.Posting;
 using Imageboard10.Core.Modules;
 
-namespace Imageboard10.Core.Models.Links.Boards
+namespace Imageboard10.Core.Models.Boards
 {
     /// <summary>
     /// Ссылка на доску.

@@ -109,8 +109,8 @@
     <Compile Include="Links\BoardLinkBase.cs" />
     <Compile Include="Links\BoardLinkComparer.cs" />
     <Compile Include="Links\BoardLinkEqualityComparer.cs" />
-    <Compile Include="Links\Boards\BoardIcon.cs" />
-    <Compile Include="Links\Boards\BoardReference.cs" />
+    <Compile Include="Boards\BoardIcon.cs" />
+    <Compile Include="Boards\BoardReference.cs" />
     <Compile Include="Links\LinkCompareValuesComparer.cs" />
     <Compile Include="Links\LinkHelper.cs" />
     <Compile Include="Links\LinkModelsRegistration.cs" />

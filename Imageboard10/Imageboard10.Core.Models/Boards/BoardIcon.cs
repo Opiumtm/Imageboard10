@@ -1,8 +1,9 @@
 ﻿using Imageboard10.Core.ModelInterface.Boards;
 using Imageboard10.Core.ModelInterface.Links;
+using Imageboard10.Core.Models.Links;
 using Imageboard10.Core.Modules;
 
-namespace Imageboard10.Core.Models.Links.Boards
+namespace Imageboard10.Core.Models.Boards
 {
     /// <summary>
     /// Иконка борды.
