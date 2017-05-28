@@ -238,13 +238,21 @@ namespace Imageboard10.Core.Database
         }
 
         /// <summary>
+        /// Получить сессию только для чтения, вызовы к которой строго должны производиться из одного потока.
+        /// </summary>
+        /// <returns></returns>
+        public IEsentSession CreateThreadUnsafeReadOnlySession()
+        {
+            return EsentSession.CreateThreadUnsafeReadOnlySession(MainSession, this);
+        }
+
+        /// <summary>
         /// Путь к базе данных.
         /// </summary>
         public string DatabasePath { get; private set; }
 
         private sealed class EsentSession : IEsentSession
         {
-            private readonly Instance _instance;
             private readonly string _databasePath;
             private readonly IDisposeWaiters _waiters;
             private readonly IDisposable _defaultUsage;
@@ -262,6 +270,7 @@ namespace Imageboard10.Core.Database
                             Api.JetAttachDatabase(session, parentSession.DatabaseFile, AttachDatabaseGrbit.ReadOnly);
                             JET_DBID dbid;
                             Api.JetOpenDatabase(session, parentSession.DatabaseFile, string.Empty, out dbid, OpenDatabaseGrbit.ReadOnly);
+                            // ReSharper disable once AccessToDisposedClosure
                             return new EsentSession(parentSession.Instance, session, dbid, parentSession.DatabaseFile, waiters, dispatcher, true);
                         }
                         catch
@@ -278,9 +287,26 @@ namespace Imageboard10.Core.Database
                 }
             }
 
+            public static IEsentSession CreateThreadUnsafeReadOnlySession(IEsentSession parentSession, IDisposeWaiters waiters)
+            {
+                var session = new Session(parentSession.Instance);
+                try
+                {
+                    Api.JetAttachDatabase(session, parentSession.DatabaseFile, AttachDatabaseGrbit.ReadOnly);
+                    JET_DBID dbid;
+                    Api.JetOpenDatabase(session, parentSession.DatabaseFile, string.Empty, out dbid, OpenDatabaseGrbit.ReadOnly);
+                    return new EsentSession(parentSession.Instance, session, dbid, parentSession.DatabaseFile, waiters, null, true);
+                }
+                catch
+                {
+                    session.Dispose();
+                    throw;
+                }
+            }
+
             public EsentSession(Instance instance, Session session, JET_DBID dbid, string databasePath, IDisposeWaiters waiters, SingleThreadDispatcher dispatcher, bool isReadOnly)
             {
-                _instance = instance;
+                Instance = instance;
                 _databasePath = databasePath;
                 _waiters = waiters;
                 Session = session;
@@ -293,11 +319,11 @@ namespace Imageboard10.Core.Database
                 }
             }
 
-            public async Task DisposeInternal()
+            public ValueTask<Nothing> DisposeInternal()
             {
-                try
+                Nothing Do()
                 {
-                    await _dispatcher.QueueAction(() =>
+                    try
                     {
                         Api.JetCloseDatabase(Session, Database, CloseDatabaseGrbit.None);
                         if (!IsReadOnly)
@@ -305,14 +331,21 @@ namespace Imageboard10.Core.Database
                             Api.JetDetachDatabase(Session, _databasePath);
                             Instance.Dispose();
                         }
-                        return Nothing.Value;
-                    });
+                    }
+                    finally 
+                    {
+                        _dispatcher?.Dispose();
+                        _defaultUsage?.Dispose();
+                    }
+                    return Nothing.Value;
                 }
-                finally
+
+
+                if (_dispatcher == null)
                 {
-                    _defaultUsage?.Dispose();
-                    _dispatcher.Dispose();
+                    return new ValueTask<Nothing>(Do());
                 }
+                return new ValueTask<Nothing>(_dispatcher.QueueAction(Do));
             }
 
             public void Dispose()
@@ -335,7 +368,7 @@ namespace Imageboard10.Core.Database
                 Do();
             }
 
-            public Instance Instance => _instance;
+            public Instance Instance { get; }
 
             public string DatabaseFile => _databasePath;
 
@@ -353,13 +386,14 @@ namespace Imageboard10.Core.Database
 
             private readonly SingleThreadDispatcher _dispatcher;
 
-            public async Task RunInTransaction(Func<bool> logic)
-            {
+            public ValueTask<Nothing> RunInTransaction(Func<bool> logic)
+            {                
                 if (logic == null)
                 {
-                    return;
+                    return new ValueTask<Nothing>(Nothing.Value);
                 }
-                await _dispatcher.QueueAction(() =>
+
+                Nothing Do()
                 {
                     using (var transaction = new Transaction(Session))
                     {
@@ -369,24 +403,37 @@ namespace Imageboard10.Core.Database
                         }
                     }
                     return Nothing.Value;
-                });
+                }
+
+                if (_dispatcher == null)
+                {
+                    return new ValueTask<Nothing>(Do());
+                }
+                return new ValueTask<Nothing>(_dispatcher.QueueAction(Do));
             }
 
             /// <summary>
             /// Выполнить вне транзакции.
             /// </summary>
             /// <param name="logic">Логика.</param>
-            public async Task Run(Action logic)
+            public ValueTask<Nothing> Run(Action logic)
             {
                 if (logic == null)
                 {
-                    return;
+                    return new ValueTask<Nothing>(Nothing.Value);
                 }
-                await _dispatcher.QueueAction(() =>
+
+                Nothing Do()
                 {
                     logic();
                     return Nothing.Value;
-                });
+                }
+
+                if (_dispatcher == null)
+                {
+                    return new ValueTask<Nothing>(Do());
+                }
+                return new ValueTask<Nothing>(_dispatcher.QueueAction(Do));
             }
 
             public IDisposable UseSession()
@@ -416,7 +463,16 @@ namespace Imageboard10.Core.Database
                 {
                     if (Interlocked.Exchange(ref _isDisposed, 1) == 0)
                     {
-                        tcs.SetResult(true);
+                        Task.Factory.StartNew(() =>
+                        {
+                            try
+                            {
+                                tcs.SetResult(true);
+                            }
+                            catch
+                            {
+                            }
+                        });
                     }
                 }
             }

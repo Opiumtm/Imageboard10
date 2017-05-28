@@ -16,7 +16,7 @@ namespace Imageboard10.Core.Tasks
 
         private readonly ConcurrentQueue<ActionInfo> _queue = new ConcurrentQueue<ActionInfo>();
 
-        private Task _queueTask;
+        private readonly Task _queueTask;
 
         private int _isDisposed;
 
@@ -142,7 +142,6 @@ namespace Imageboard10.Core.Tasks
             if (Interlocked.Exchange(ref _isDisposed, 1) == 0)
             {
                 _disposedEvent.Set();
-                _queueTask = null;
             }
         }
 

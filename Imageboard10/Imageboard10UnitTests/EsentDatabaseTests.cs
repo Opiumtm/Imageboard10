@@ -142,6 +142,46 @@ namespace Imageboard10UnitTests
                             Assert.IsTrue(addedValues.Count == 0, "Не все строки были прочитаны из базы");
                         }
                     });
+                    // thread-unsafe readonly session
+                    using (var session = provider.CreateThreadUnsafeReadOnlySession())
+                    {
+                        JET_TABLEID tableid = default(JET_TABLEID);
+                        await session.Run(() =>
+                        {
+                            Api.OpenTable(session.Session, session.Database, tableName, OpenTableGrbit.ReadOnly,
+                                out tableid);
+                        });
+                        try
+                        {
+                            await session.RunInTransaction(() =>
+                            {
+                                Api.JetSetTableSequential(session.Session, tableid, SetTableSequentialGrbit.None);
+                                int count;
+                                Api.TryMoveFirst(session.Session, tableid);
+                                Api.JetIndexRecordCount(session.Session, tableid, out count, int.MaxValue);
+                                Assert.AreEqual(1000, count, "Количество записей в таблице не равно 1000");
+                                return false;
+                            });
+                            await session.RunInTransaction(() =>
+                            {
+                                Api.MoveBeforeFirst(session.Session, tableid);
+                                int counter = 0;
+                                while (Api.TryMoveNext(session.Session, tableid))
+                                {
+                                    counter++;
+                                }
+                                Assert.AreEqual(1000, counter, "Количество записей в таблице не равно 1000 при построчном переборе");
+                                return false;
+                            });
+                        }
+                        finally
+                        {
+                            await session.Run(() =>
+                            {
+                                Api.JetCloseTable(session.Session, tableid);
+                            });
+                        }
+                    }
                 }
                 finally
                 {

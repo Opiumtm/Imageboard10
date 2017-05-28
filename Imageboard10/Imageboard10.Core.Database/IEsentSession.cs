@@ -38,13 +38,13 @@ namespace Imageboard10.Core.Database
         /// Выполнить в транзакции.
         /// </summary>
         /// <param name="logic">Логика. Возвращает true, если транзакцию нужно завершить.</param>
-        Task RunInTransaction(Func<bool> logic);
+        ValueTask<Nothing> RunInTransaction(Func<bool> logic);
 
         /// <summary>
         /// Выполнить вне транзакции.
         /// </summary>
         /// <param name="logic">Логика.</param>
-        Task Run(Action logic);
+        ValueTask<Nothing> Run(Action logic);
 
         /// <summary>
         /// Использовать сессию. Гарантирует, что основная сессия не будет автоматически завершена, если используется хотя бы одна из активных сессий.
