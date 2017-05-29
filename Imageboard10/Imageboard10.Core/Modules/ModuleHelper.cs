@@ -174,7 +174,7 @@ namespace Imageboard10.Core.Modules
         /// <typeparam name="T">Тип интерфейса.</typeparam>
         /// <param name="provider">Провайдер.</param>
         /// <returns>Модуль.</returns>
-        public static async Task<T> QueryModuleAsync<T>(this IModuleProvider provider)
+        public static async ValueTask<T> QueryModuleAsync<T>(this IModuleProvider provider)
             where T : class
         {
             var obj = await provider.QueryModuleAsync<object>(typeof(T), null);
@@ -204,11 +204,24 @@ namespace Imageboard10.Core.Modules
         /// <param name="provider">Провайдер.</param>
         /// <param name="query">Запрос.</param>
         /// <returns>Модуль.</returns>
-        public static async Task<T> QueryModuleAsync<T, TQuery>(this IModuleProvider provider, TQuery query)
+        public static async ValueTask<T> QueryModuleAsync<T, TQuery>(this IModuleProvider provider, TQuery query)
             where T : class
         {
             var obj = await provider.QueryModuleAsync(typeof(T), query);
             return obj as T ?? obj?.QueryView<T>();
+        }
+
+        /// <summary>
+        /// Зарегистрировать статический модуль.
+        /// </summary>
+        /// <typeparam name="T">Тип модуля.</typeparam>
+        /// <typeparam name="TIntf">Тип интерфейса, который реализует модуль.</typeparam>
+        /// <param name="collection">Коллекция.</param>
+        /// <param name="filter">Фильтр модуля.</param>
+        public static void RegisterModule<T, TIntf>(this IModuleCollection collection, IStaticModuleQueryFilter filter = null)
+            where T : IModule, TIntf, new()
+        {
+            collection.RegisterProvider(typeof(TIntf), new StaticModuleProvider<T, TIntf>(new T(), filter));
         }
 
         /// <summary>
@@ -224,5 +237,6 @@ namespace Imageboard10.Core.Modules
         {
             collection.RegisterProvider(typeof(TIntf), new StaticModuleProvider<T, TIntf>(module, filter));
         }
+
     }
 }

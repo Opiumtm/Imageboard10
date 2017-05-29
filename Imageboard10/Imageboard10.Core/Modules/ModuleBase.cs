@@ -115,5 +115,16 @@ namespace Imageboard10.Core.Modules
         /// Провайдер модулей.
         /// </summary>
         protected IModuleProvider ModuleProvider => Interlocked.CompareExchange(ref _moduleProvider, null, null);
+
+        /// <summary>
+        /// Проверка на готовность модуля.
+        /// </summary>
+        protected void CheckModuleReady()
+        {
+            if (!_moduleLifetime.IsModuleReady)
+            {
+                throw new ModuleNotReadyException();
+            }
+        }
     }
 }

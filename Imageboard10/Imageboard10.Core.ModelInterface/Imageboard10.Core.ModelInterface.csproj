@@ -107,9 +107,11 @@
     <RestoreProjectStyle>PackageReference</RestoreProjectStyle>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="Boards\BoardReferenceStoreQuery.cs" />
     <Compile Include="Boards\IBoardIcon.cs" />
     <Compile Include="Boards\IBoardReference.cs" />
     <Compile Include="Boards\IBoardReferenceStore.cs" />
+    <Compile Include="Boards\IBoardShortInfo.cs" />
     <Compile Include="Links\BoardCatalogSort.cs" />
     <Compile Include="Links\BoardLinkKind.cs" />
     <Compile Include="Links\IBoardLink.cs" />

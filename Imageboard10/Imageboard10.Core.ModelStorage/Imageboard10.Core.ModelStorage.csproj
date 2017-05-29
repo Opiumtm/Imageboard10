@@ -4,11 +4,11 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{B9A32628-D7B6-4BDA-AFE6-47E4AC5AF95A}</ProjectGuid>
+    <ProjectGuid>{2B270150-995D-40E7-A201-EF542CF8B39D}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>Imageboard10.Core</RootNamespace>
-    <AssemblyName>Imageboard10.Core</AssemblyName>
+    <RootNamespace>Imageboard10.Core.ModelStorage</RootNamespace>
+    <AssemblyName>Imageboard10.Core.ModelStorage</AssemblyName>
     <DefaultLanguage>en-US</DefaultLanguage>
     <TargetPlatformIdentifier>UAP</TargetPlatformIdentifier>
     <TargetPlatformVersion Condition=" '$(TargetPlatformVersion)' == '' ">10.0.15063.0</TargetPlatformVersion>
@@ -106,38 +106,12 @@
     <RestoreProjectStyle>PackageReference</RestoreProjectStyle>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="CoreConstants.cs" />
-    <Compile Include="IDeepCloneable.cs" />
-    <Compile Include="Modules\BaseModuleLogic.cs" />
-    <Compile Include="Modules\IModuleLifetime.cs" />
-    <Compile Include="Modules\IStaticModuleQueryFilter.cs" />
-    <Compile Include="Modules\ModuleBase.cs" />
-    <Compile Include="Modules\ModuleNotFoundException.cs" />
-    <Compile Include="Modules\ModuleNotReadyException.cs" />
-    <Compile Include="Modules\StaticModuleProvider.cs" />
-    <Compile Include="Modules\Wrappers\ModuleCollectionWrapperToDotnet.cs" />
-    <Compile Include="Modules\Wrappers\ModuleCollectionWrapperToWinRT.cs" />
-    <Compile Include="Modules\Wrappers\ModuleLifetimeWrapperToDotnet.cs" />
-    <Compile Include="Modules\Wrappers\ModuleLifetimeWrapperToWinRt.cs" />
-    <Compile Include="Modules\Wrappers\ModuleProviderWrapperToDotnet.cs" />
-    <Compile Include="Modules\Wrappers\ModuleProviderWrapperToWinRT.cs" />
-    <Compile Include="Modules\Wrappers\ModuleWrapperToDontnet.cs" />
-    <Compile Include="Modules\Wrappers\ModuleWrapperToWinRT.cs" />
-    <Compile Include="Modules\Wrappers\WrapperBase.cs" />
-    <Compile Include="Nothing.cs" />
-    <Compile Include="Modules\IModule.cs" />
-    <Compile Include="Modules\IModuleCollection.cs" />
-    <Compile Include="Modules\IModuleProvider.cs" />
-    <Compile Include="Modules\IPropertySetConvertable.cs" />
-    <Compile Include="Modules\ModuleCollection.cs" />
-    <Compile Include="Modules\ModuleHelper.cs" />
+    <Compile Include="Boards\BoardReferenceStore.cs" />
+    <Compile Include="Boards\DataContracts\BoardExtendedInfo.cs" />
+    <Compile Include="Boards\DataContracts\BoardShortInfo.cs" />
+    <Compile Include="ModelStorageBase.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Tasks\SingleThreadDispatcher.cs" />
-    <Compile Include="Tasks\CoreTaskHelper.cs" />
-    <Compile Include="Utility\DataContractSerializerCache.cs" />
-    <Compile Include="Utility\StringHashCache.cs" />
-    <Compile Include="Utility\UniqueIdHelper.cs" />
-    <EmbeddedResource Include="Properties\Imageboard10.Core.rd.xml" />
+    <EmbeddedResource Include="Properties\Imageboard10.Core.ModelStorage.rd.xml" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.NETCore.UniversalWindowsPlatform">
@@ -151,6 +125,22 @@
     </PackageReference>
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\Imageboard10.Core.Database\Imageboard10.Core.Database.csproj">
+      <Project>{1af1fa9e-1bdb-41cb-9ccc-08a5bc5033e7}</Project>
+      <Name>Imageboard10.Core.Database</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Imageboard10.Core.ModelInterface\Imageboard10.Core.ModelInterface.csproj">
+      <Project>{78fbf320-ebbd-40a9-8f16-b45bfff73af1}</Project>
+      <Name>Imageboard10.Core.ModelInterface</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Imageboard10.Core.Models\Imageboard10.Core.Models.csproj">
+      <Project>{66280a62-2409-4222-97a5-54da49f9142f}</Project>
+      <Name>Imageboard10.Core.Models</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Imageboard10.Core\Imageboard10.Core.csproj">
+      <Project>{b9a32628-d7b6-4bda-afe6-47e4ac5af95a}</Project>
+      <Name>Imageboard10.Core</Name>
+    </ProjectReference>
     <ProjectReference Include="..\Imageboard10.ModuleInterface\Imageboard10.ModuleInterface.csproj">
       <Project>{62d7a5d8-0866-4199-8763-ef81096f4a71}</Project>
       <Name>Imageboard10.ModuleInterface</Name>

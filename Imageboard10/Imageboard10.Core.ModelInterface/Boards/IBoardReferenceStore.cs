@@ -12,9 +12,9 @@ namespace Imageboard10.Core.ModelInterface.Boards
         /// <summary>
         /// Получить количество досок.
         /// </summary>
-        /// <param name="category">Категория (null - по всем категориям).</param>
+        /// <param name="query">Запрос.</param>
         /// <returns>Количество досок.</returns>
-        IAsyncOperation<int> GetCount(string category);
+        IAsyncOperation<int> GetCount(BoardReferenceStoreQuery query);
 
         /// <summary>
         /// Получить количество категорий.
@@ -25,9 +25,9 @@ namespace Imageboard10.Core.ModelInterface.Boards
         /// <summary>
         /// Получить все ссылки на доски.
         /// </summary>
-        /// <param name="category">Категория (null - по всем категориям).</param>
+        /// <param name="query">Запрос.</param>
         /// <returns>Ссылки на доски.</returns>
-        IAsyncOperation<IList<ILink>> GetBoardLiks(string category);
+        IAsyncOperation<IList<ILink>> GetBoardLiks(BoardReferenceStoreQuery query);
 
         /// <summary>
         /// Получить все категории.
@@ -41,22 +41,22 @@ namespace Imageboard10.Core.ModelInterface.Boards
         /// <param name="link">Ссылка.</param>
         /// <returns>Ссылка на доску.</returns>
         IAsyncOperation<IBoardReference> LoadReference(ILink link);
-        
+
         /// <summary>
         /// Загрузить ссылки.
         /// </summary>
         /// <param name="start">Начало.</param>
         /// <param name="count">Количество.</param>
-        /// <param name="category">Категория.</param>
+        /// <param name="query">Запрос.</param>
         /// <returns>Ссылки.</returns>
-        IAsyncOperation<IList<IBoardReference>> LoadReferences(int start, int count, string category);
+        IAsyncOperation<IList<IBoardShortInfo>> LoadShortReferences(int start, int count, BoardReferenceStoreQuery query);
 
         /// <summary>
         /// Загрузить ссылки.
         /// </summary>
         /// <param name="links">Список ссылок.</param>
         /// <returns>Ссылки на доски.</returns>
-        IAsyncOperation<IList<IBoardReference>> LoadReferences(IList<ILink> links);
+        IAsyncOperation<IList<IBoardShortInfo>> LoadShortReferences(IList<ILink> links);
 
         /// <summary>
         /// Очистить всю информацию.

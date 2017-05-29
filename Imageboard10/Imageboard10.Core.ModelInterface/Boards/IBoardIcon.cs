@@ -8,6 +8,11 @@ namespace Imageboard10.Core.ModelInterface.Boards
     public interface IBoardIcon
     {
         /// <summary>
+        /// Идентификатор иконки.
+        /// </summary>
+        string Id { get; }
+
+        /// <summary>
         /// Имя.
         /// </summary>
         string Name { get; }

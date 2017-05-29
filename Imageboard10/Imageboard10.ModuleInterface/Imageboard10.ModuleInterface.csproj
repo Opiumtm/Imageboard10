@@ -107,6 +107,7 @@
     <RestoreProjectStyle>PackageReference</RestoreProjectStyle>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="IGlobalErrorHandler.cs" />
     <Compile Include="IModule.cs" />
     <Compile Include="IModuleCollection.cs" />
     <Compile Include="IModuleLifetime.cs" />

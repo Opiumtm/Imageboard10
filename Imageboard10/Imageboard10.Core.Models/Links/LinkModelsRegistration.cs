@@ -15,7 +15,7 @@ namespace Imageboard10.Core.Models.Links
         /// <param name="collection">Коллекция.</param>
         public static void RegisterModules(IModuleCollection collection)
         {
-            collection.RegisterModule<LinkSerializationService, ILinkSerializationService>(new LinkSerializationService());
+            collection.RegisterModule<LinkSerializationService, ILinkSerializationService>();
             collection.RegisterProvider(typeof(ILinkSerializer), new StandardLinkSerializers());
         }
     }

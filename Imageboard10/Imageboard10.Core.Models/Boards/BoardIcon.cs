@@ -11,6 +11,11 @@ namespace Imageboard10.Core.Models.Boards
     public class BoardIcon : IBoardIcon, IDeepCloneable<BoardIcon>
     {
         /// <summary>
+        /// Идентификатор иконки.
+        /// </summary>
+        public string Id { get; set; }
+
+        /// <summary>
         /// Имя.
         /// </summary>
         public string Name { get; set; }
@@ -29,6 +34,7 @@ namespace Imageboard10.Core.Models.Boards
         {
             return new BoardIcon()
             {
+                Id = Id,
                 Name = Name,
                 MediaLink = MediaLink.CloneLink(modules)
             };

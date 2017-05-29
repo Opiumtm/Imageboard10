@@ -100,13 +100,14 @@ namespace Imageboard10.Core.Modules
         }
 
         private int _isInitialized;
+        private int _isDoneInitialize;
         private int _isDisposed;
         private int _isSuspended;
 
         /// <summary>
         /// Модуль готов к использованию.
         /// </summary>
-        public bool IsModuleReady => Interlocked.CompareExchange(ref _isInitialized, 0, 0) != 0 &&
+        public bool IsModuleReady => Interlocked.CompareExchange(ref _isDoneInitialize, 0, 0) != 0 &&
                                      Interlocked.CompareExchange(ref _isDisposed, 0, 0) == 0 &&
                                      (Interlocked.CompareExchange(ref _isSuspended, 0, 0) == 0 || !_suspendedAware);
 
@@ -122,6 +123,7 @@ namespace Imageboard10.Core.Modules
                 if (_initFunc != null)
                 {
                     await _initFunc(provider);
+                    Interlocked.Exchange(ref _isDoneInitialize, 1);
                 }
                 if (_attachToParentDispose)
                 {

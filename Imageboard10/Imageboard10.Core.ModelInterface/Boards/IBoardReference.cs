@@ -7,33 +7,8 @@ namespace Imageboard10.Core.ModelInterface.Boards
     /// <summary>
     /// Ссылка на доску.
     /// </summary>
-    public interface IBoardReference
+    public interface IBoardReference : IBoardShortInfo
     {
-        /// <summary>
-        /// Ссылка на доску.
-        /// </summary>
-        ILink BoardLink { get; }
-
-        /// <summary>
-        /// Категория.
-        /// </summary>
-        string Category { get; }
-
-        /// <summary>
-        /// Короткое имя.
-        /// </summary>
-        string ShortName { get; }
-
-        /// <summary>
-        /// Отображаемое имя.
-        /// </summary>
-        string DisplayName { get; }
-
-        /// <summary>
-        /// Доска "только для взрослых".
-        /// </summary>
-        bool IsAdult { get; }
-
         /// <summary>
         /// Поля для постинга.
         /// </summary>
