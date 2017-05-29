@@ -114,6 +114,7 @@
       <SubType>Designer</SubType>
     </AppxManifest>
     <None Include="Imageboard10UnitTests_TemporaryKey.pfx" />
+    <Content Include="Resources\boards.json" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="Properties\UnitTestApp.rd.xml" />

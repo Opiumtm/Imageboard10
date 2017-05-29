@@ -458,5 +458,29 @@ namespace Imageboard10.Core.ModelStorage
                 }
             }
         }
+
+        /// <summary>
+        /// Удалить все записи в таблице.
+        /// </summary>
+        /// <param name="table">Таблица.</param>
+        protected void DeleteAllRows(EsentTable table)
+        {
+            Api.JetSetCurrentIndex(table.Session, table.Table, null);
+            Api.JetSetTableSequential(table.Session, table.Table, SetTableSequentialGrbit.None);
+            try
+            {
+                if (Api.TryMoveFirst(table.Session, table.Table))
+                {
+                    do
+                    {
+                        Api.JetDelete(table.Session, table.Table);
+                    } while (Api.TryMoveNext(table.Session, table.Table));
+                }
+            }
+            finally
+            {
+                Api.JetResetTableSequential(table.Session, table.Table, ResetTableSequentialGrbit.None);
+            }
+        }
     }
 }

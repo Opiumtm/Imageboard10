@@ -8,7 +8,6 @@ using Windows.Storage;
 using Imageboard10.Core.Modules;
 using Imageboard10.Core.Tasks;
 using Microsoft.Isam.Esent.Interop;
-using Microsoft.Isam.Esent.Interop.Windows10;
 
 namespace Imageboard10.Core.Database
 {
@@ -447,6 +446,24 @@ namespace Imageboard10.Core.Database
             public IDisposable UseSession()
             {
                 return new SessionDisposeWaiter(_waiters);
+            }
+
+            /// <summary>
+            /// Открыть таблицу.
+            /// </summary>
+            /// <param name="tableName">Имя таблицы.</param>
+            /// <param name="grbit">Биты.</param>
+            /// <returns>Таблица.</returns>
+            public EsentTable OpenTable(string tableName, OpenTableGrbit grbit)
+            {
+                if (tableName == null) throw new ArgumentNullException(nameof(tableName));
+                if (_dispatcher != null)
+                {
+                    _dispatcher.CheckAccess();
+                }
+                JET_TABLEID tableid;
+                Api.OpenTable(_session, _database, tableName, grbit, out tableid);
+                return new EsentTable(_session, tableid);
             }
 
             private class SessionDisposeWaiter : IDisposable

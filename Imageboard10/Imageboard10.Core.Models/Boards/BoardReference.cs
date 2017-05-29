@@ -9,7 +9,7 @@ namespace Imageboard10.Core.Models.Boards
     /// <summary>
     /// Ссылка на доску.
     /// </summary>
-    public class BoardReference : IBoardReference, IDeepCloneable<BoardReference>
+    public class BoardReference : IBoardReference
     {
         /// <summary>
         /// Ссылка на доску.
@@ -67,13 +67,18 @@ namespace Imageboard10.Core.Models.Boards
         public bool LikesEnabled { get; set; }
 
         /// <summary>
-        /// Клонировать.
+        /// Разрешены трипкоды.
         /// </summary>
-        /// <param name="modules">Модули.</param>
-        /// <returns>Клон.</returns>
-        public BoardReference DeepClone(IModuleProvider modules)
-        {
-            throw new System.NotImplementedException();
-        }
+        public bool TripCodesEnabled { get; set; }
+
+        /// <summary>
+        /// Разрешена сажа.
+        /// </summary>
+        public bool SageEnabled { get; set; }
+
+        /// <summary>
+        /// Разрешены тэги тредов.
+        /// </summary>
+        public bool ThreadTagsEnabled { get; set; }
     }
 }

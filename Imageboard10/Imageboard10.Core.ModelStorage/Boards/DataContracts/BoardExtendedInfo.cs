@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.InteropServices.ComTypes;
 using System.Runtime.Serialization;
 using Imageboard10.Core.ModelInterface.Boards;
 using Imageboard10.Core.ModelInterface.Links;
@@ -35,6 +34,24 @@ namespace Imageboard10.Core.ModelStorage.Boards.DataContracts
         public bool LikesEnabled { get; set; }
 
         /// <summary>
+        /// Разрешены трипкоды.
+        /// </summary>
+        [DataMember]
+        public bool TripCodesEnabled { get; set; }
+
+        /// <summary>
+        /// Разрешена сажа.
+        /// </summary>
+        [DataMember]
+        public bool SageEnabled { get; set; }
+
+        /// <summary>
+        /// Разрешены тэги тредов.
+        /// </summary>
+        [DataMember]
+        public bool ThreadTagsEnabled { get; set; }
+
+        /// <summary>
         /// Привести к контракту.
         /// </summary>
         /// <param name="reference">Ссылка на доску.</param>
@@ -50,6 +67,9 @@ namespace Imageboard10.Core.ModelStorage.Boards.DataContracts
             return new BoardExtendedInfo()
             {
                 LikesEnabled = reference.LikesEnabled,
+                SageEnabled = reference.SageEnabled,
+                ThreadTagsEnabled = reference.ThreadTagsEnabled,
+                TripCodesEnabled = reference.TripCodesEnabled,                
                 Icons = reference.Icons?.Select(i => new BoardIconContract()
                 {
                     Id = i?.Id,

@@ -108,6 +108,7 @@
   <ItemGroup>
     <Compile Include="EsentInstanceProvider.cs" />
     <Compile Include="EsentModulesRegistration.cs" />
+    <Compile Include="EsentTable.cs" />
     <Compile Include="IDisposeWaiters.cs" />
     <Compile Include="IEsentInstanceProvider.cs" />
     <Compile Include="IEsentInstanceProviderForTests.cs" />

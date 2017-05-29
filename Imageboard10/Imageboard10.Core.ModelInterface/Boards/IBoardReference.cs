@@ -38,5 +38,20 @@ namespace Imageboard10.Core.ModelInterface.Boards
         /// Разрешены лайки.
         /// </summary>
         bool LikesEnabled { get; }
+
+        /// <summary>
+        /// Разрешены трипкоды.
+        /// </summary>
+        bool TripCodesEnabled { get; }
+
+        /// <summary>
+        /// Разрешена сажа.
+        /// </summary>
+        bool SageEnabled { get; }
+
+        /// <summary>
+        /// Разрешены тэги тредов.
+        /// </summary>
+        bool ThreadTagsEnabled { get; }
     }
 }

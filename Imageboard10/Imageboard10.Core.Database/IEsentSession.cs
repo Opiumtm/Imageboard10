@@ -51,5 +51,13 @@ namespace Imageboard10.Core.Database
         /// </summary>
         /// <returns>Сигнализация о завершении использования.</returns>
         IDisposable UseSession();
+
+        /// <summary>
+        /// Открыть таблицу.
+        /// </summary>
+        /// <param name="tableName">Имя таблицы.</param>
+        /// <param name="grbit">Биты.</param>
+        /// <returns>Таблица.</returns>
+        EsentTable OpenTable(string tableName, OpenTableGrbit grbit);
     }
 }
