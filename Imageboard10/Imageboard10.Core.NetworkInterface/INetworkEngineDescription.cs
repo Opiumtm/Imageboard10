@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using Windows.UI;
+using Imageboard10.Core.ModelInterface.Boards;
 using Imageboard10.Core.ModelInterface.Links;
 
 namespace Imageboard10.Core.NetworkInterface
@@ -39,5 +40,20 @@ namespace Imageboard10.Core.NetworkInterface
         /// Корневая ссылка.
         /// </summary>
         ILink RootLink { get; }
+
+        /// <summary>
+        /// Получить описание доски по умолчанию.
+        /// </summary>
+        /// <param name="category">Категория.</param>
+        /// <param name="boardLink">Ссылка на доску.</param>
+        /// <returns>Описание по умолчанию.</returns>
+        IBoardReference GetDefaultBoardReference(string category, ILink boardLink);
+
+        /// <summary>
+        /// Создать ссылку на доску.
+        /// </summary>
+        /// <param name="id">Идентификатор доски.</param>
+        /// <returns>Ссылка на доску.</returns>
+        ILink CreateBoardLink(string id);
     }
 }

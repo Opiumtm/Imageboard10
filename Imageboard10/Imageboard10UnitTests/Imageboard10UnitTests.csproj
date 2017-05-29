@@ -97,8 +97,10 @@
   <ItemGroup>
     <Compile Include="EsentDatabaseTests.cs" />
     <Compile Include="LinkSerializationTests.cs" />
+    <Compile Include="MakabaDtoParseTests.cs" />
     <Compile Include="ModuleLifetimeTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="TestResources.cs" />
     <Compile Include="UnitTestApp.xaml.cs">
       <DependentUpon>UnitTestApp.xaml</DependentUpon>
     </Compile>
@@ -155,13 +157,33 @@
       <Project>{78fbf320-ebbd-40a9-8f16-b45bfff73af1}</Project>
       <Name>Imageboard10.Core.ModelInterface</Name>
     </ProjectReference>
+    <ProjectReference Include="..\Imageboard10.Core.ModelStorage\Imageboard10.Core.ModelStorage.csproj">
+      <Project>{2b270150-995d-40e7-a201-ef542cf8b39d}</Project>
+      <Name>Imageboard10.Core.ModelStorage</Name>
+    </ProjectReference>
     <ProjectReference Include="..\Imageboard10.Core.Models\Imageboard10.Core.Models.csproj">
       <Project>{66280a62-2409-4222-97a5-54da49f9142f}</Project>
       <Name>Imageboard10.Core.Models</Name>
     </ProjectReference>
+    <ProjectReference Include="..\Imageboard10.Core.NetworkInterface\Imageboard10.Core.NetworkInterface.csproj">
+      <Project>{59f08002-21ba-4913-a6cd-697c982be20e}</Project>
+      <Name>Imageboard10.Core.NetworkInterface</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Imageboard10.Core.Network\Imageboard10.Core.Network.csproj">
+      <Project>{357b09c0-3cf7-4b1b-a245-3df0b6337ef7}</Project>
+      <Name>Imageboard10.Core.Network</Name>
+    </ProjectReference>
     <ProjectReference Include="..\Imageboard10.Core\Imageboard10.Core.csproj">
       <Project>{b9a32628-d7b6-4bda-afe6-47e4ac5af95a}</Project>
       <Name>Imageboard10.Core</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Imageboard10.Makaba.Common\Imageboard10.Makaba.Common.csproj">
+      <Project>{89829e34-005c-462d-8969-041fba3aacf0}</Project>
+      <Name>Imageboard10.Makaba.Common</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Imageboard10.Makaba.Network\Imageboard10.Makaba.Network.csproj">
+      <Project>{7b5ff96b-051a-41bb-9a95-ff08ac1aa88c}</Project>
+      <Name>Imageboard10.Makaba.Network</Name>
     </ProjectReference>
     <ProjectReference Include="..\Imageboard10.ModuleInterface\Imageboard10.ModuleInterface.csproj">
       <Project>{62d7a5d8-0866-4199-8763-ef81096f4a71}</Project>

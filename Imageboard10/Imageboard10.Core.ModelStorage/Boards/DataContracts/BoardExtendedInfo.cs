@@ -150,7 +150,7 @@ namespace Imageboard10.Core.ModelStorage.Boards.DataContracts
     [KnownType(typeof(BoardPostingCommentCapability))]
     [KnownType(typeof(BoardPostingIconCapability))]
     [KnownType(typeof(BoardPostingMediaFileCapability))]
-    public abstract class BoardPostingCapability : IPostingCapability
+    public class BoardPostingCapability : IPostingCapability
     {
         /// <summary>
         /// Роль поля.

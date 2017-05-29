@@ -114,6 +114,9 @@
     <EmbeddedResource Include="Properties\Imageboard10.Core.ModelStorage.rd.xml" />
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="ManagedEsent">
+      <Version>1.9.4</Version>
+    </PackageReference>
     <PackageReference Include="Microsoft.NETCore.UniversalWindowsPlatform">
       <Version>5.3.3</Version>
     </PackageReference>

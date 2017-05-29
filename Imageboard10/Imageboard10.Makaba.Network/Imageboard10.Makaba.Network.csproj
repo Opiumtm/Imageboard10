@@ -4,11 +4,11 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{66280A62-2409-4222-97A5-54DA49F9142F}</ProjectGuid>
+    <ProjectGuid>{7B5FF96B-051A-41BB-9A95-FF08AC1AA88C}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>Imageboard10.Core.Models</RootNamespace>
-    <AssemblyName>Imageboard10.Core.Models</AssemblyName>
+    <RootNamespace>Imageboard10.Makaba.Network</RootNamespace>
+    <AssemblyName>Imageboard10.Makaba.Network</AssemblyName>
     <DefaultLanguage>en-US</DefaultLanguage>
     <TargetPlatformIdentifier>UAP</TargetPlatformIdentifier>
     <TargetPlatformVersion Condition=" '$(TargetPlatformVersion)' == '' ">10.0.15063.0</TargetPlatformVersion>
@@ -106,57 +106,18 @@
     <RestoreProjectStyle>PackageReference</RestoreProjectStyle>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="Boards\PostingCapability.cs" />
-    <Compile Include="Boards\PostingCapabilityIcon.cs" />
-    <Compile Include="Boards\PostingCaptchaCapability.cs" />
-    <Compile Include="Boards\PostingCommentCapability.cs" />
-    <Compile Include="Boards\PostingIconCapability.cs" />
-    <Compile Include="Boards\PostingMediaFileCapability.cs" />
-    <Compile Include="Links\BoardLinkBase.cs" />
-    <Compile Include="Links\BoardLinkComparer.cs" />
-    <Compile Include="Links\BoardLinkEqualityComparer.cs" />
-    <Compile Include="Boards\BoardIcon.cs" />
-    <Compile Include="Boards\BoardReference.cs" />
-    <Compile Include="Links\LinkCompareValuesComparer.cs" />
-    <Compile Include="Links\LinkHelper.cs" />
-    <Compile Include="Links\LinkModelsRegistration.cs" />
-    <Compile Include="Links\LinkSerializationService.cs" />
-    <Compile Include="Links\LinkTypes\BoardLink.cs" />
-    <Compile Include="Links\LinkTypes\BoardMediaLink.cs" />
-    <Compile Include="Links\LinkTypes\BoardPageLink.cs" />
-    <Compile Include="Links\LinkTypes\CatalogLink.cs" />
-    <Compile Include="Links\LinkTypes\EngineLinkBase.cs" />
-    <Compile Include="Links\LinkTypes\EngineMediaLink.cs" />
-    <Compile Include="Links\LinkTypes\EngineUriLink.cs" />
-    <Compile Include="Links\LinkTypes\MediaLink.cs" />
-    <Compile Include="Links\LinkTypes\PostLink.cs" />
-    <Compile Include="Links\LinkTypes\RootLink.cs" />
-    <Compile Include="Links\LinkTypes\ThreadLink.cs" />
-    <Compile Include="Links\LinkTypes\ThreadPartLink.cs" />
-    <Compile Include="Links\LinkTypes\ThreadTagLink.cs" />
-    <Compile Include="Links\LinkTypes\UriLink.cs" />
-    <Compile Include="Links\LinkTypes\YoutubeLink.cs" />
-    <Compile Include="Links\Serialization\BoardLinkSerializer.cs" />
-    <Compile Include="Links\Serialization\BoardMediLinkSerializer.cs" />
-    <Compile Include="Links\Serialization\BoardPageLinkSerializer.cs" />
-    <Compile Include="Links\Serialization\CatalogLinkSerializer.cs" />
-    <Compile Include="Links\Serialization\EngineMediaLinkSerializer.cs" />
-    <Compile Include="Links\Serialization\EngineUriLinkSerializer.cs" />
-    <Compile Include="Links\Serialization\LinkSerializerBase.cs" />
-    <Compile Include="Links\Serialization\LinkSerializersProviderBase.cs" />
-    <Compile Include="Links\Serialization\MediaLinkSerializer.cs" />
-    <Compile Include="Links\Serialization\PostLinkSerializer.cs" />
-    <Compile Include="Links\Serialization\RootLinkSerializer.cs" />
-    <Compile Include="Links\Serialization\StandardLinkSerializers.cs" />
-    <Compile Include="Links\Serialization\ThreadLinkSerializer.cs" />
-    <Compile Include="Links\Serialization\ThreadPartLinkSerializer.cs" />
-    <Compile Include="Links\Serialization\ThreadTagLinkSerializer.cs" />
-    <Compile Include="Links\Serialization\UriLinkSerializer.cs" />
-    <Compile Include="Links\Serialization\YoutubeLinkSerializer.cs" />
+    <Compile Include="JsonParsers\MakabaBoardReferenceDtoParsers.cs" />
+    <Compile Include="Json\BoardIcon2.cs" />
+    <Compile Include="Json\MobileBoardInfo.cs" />
+    <Compile Include="Json\MobileBoardInfoCollection.cs" />
+    <Compile Include="Json\MobileBoardInfoWithCategory.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <EmbeddedResource Include="Properties\Imageboard10.Core.Models.rd.xml" />
+    <EmbeddedResource Include="Properties\Imageboard10.Makaba.Network.rd.xml" />
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="ManagedEsent">
+      <Version>1.9.4</Version>
+    </PackageReference>
     <PackageReference Include="Microsoft.NETCore.UniversalWindowsPlatform">
       <Version>5.3.3</Version>
     </PackageReference>
@@ -175,9 +136,25 @@
       <Project>{78fbf320-ebbd-40a9-8f16-b45bfff73af1}</Project>
       <Name>Imageboard10.Core.ModelInterface</Name>
     </ProjectReference>
+    <ProjectReference Include="..\Imageboard10.Core.Models\Imageboard10.Core.Models.csproj">
+      <Project>{66280a62-2409-4222-97a5-54da49f9142f}</Project>
+      <Name>Imageboard10.Core.Models</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Imageboard10.Core.NetworkInterface\Imageboard10.Core.NetworkInterface.csproj">
+      <Project>{59f08002-21ba-4913-a6cd-697c982be20e}</Project>
+      <Name>Imageboard10.Core.NetworkInterface</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Imageboard10.Core.Network\Imageboard10.Core.Network.csproj">
+      <Project>{357b09c0-3cf7-4b1b-a245-3df0b6337ef7}</Project>
+      <Name>Imageboard10.Core.Network</Name>
+    </ProjectReference>
     <ProjectReference Include="..\Imageboard10.Core\Imageboard10.Core.csproj">
       <Project>{b9a32628-d7b6-4bda-afe6-47e4ac5af95a}</Project>
       <Name>Imageboard10.Core</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Imageboard10.Makaba.Common\Imageboard10.Makaba.Common.csproj">
+      <Project>{89829e34-005c-462d-8969-041fba3aacf0}</Project>
+      <Name>Imageboard10.Makaba.Common</Name>
     </ProjectReference>
     <ProjectReference Include="..\Imageboard10.ModuleInterface\Imageboard10.ModuleInterface.csproj">
       <Project>{62d7a5d8-0866-4199-8763-ef81096f4a71}</Project>

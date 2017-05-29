@@ -125,6 +125,10 @@
       <Project>{78fbf320-ebbd-40a9-8f16-b45bfff73af1}</Project>
       <Name>Imageboard10.Core.ModelInterface</Name>
     </ProjectReference>
+    <ProjectReference Include="..\Imageboard10.ModuleInterface\Imageboard10.ModuleInterface.csproj">
+      <Project>{62d7a5d8-0866-4199-8763-ef81096f4a71}</Project>
+      <Name>Imageboard10.ModuleInterface</Name>
+    </ProjectReference>
   </ItemGroup>
   <PropertyGroup Condition=" '$(VisualStudioVersion)' == '' or '$(VisualStudioVersion)' &lt; '14.0' ">
     <VisualStudioVersion>14.0</VisualStudioVersion>
