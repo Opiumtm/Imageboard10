@@ -259,7 +259,7 @@ namespace Imageboard10.Core.ModelStorage.Boards
         {
             CheckModuleReady();
             await WaitForTablesInitialize();
-            return await QueryReadonlyThreadUnsafeAsync(session =>
+            return await QueryReadonly(session =>
             {
                 var sid = session.Session;
                 using (var table = session.OpenTable(TableName, OpenTableGrbit.ReadOnly))
@@ -303,7 +303,7 @@ namespace Imageboard10.Core.ModelStorage.Boards
         {
             CheckModuleReady();
             await WaitForTablesInitialize();
-            return await QueryReadonlyThreadUnsafeAsync(session =>
+            return await QueryReadonly(session =>
             {
                 var sid = session.Session;
                 using (new Transaction(sid))
@@ -363,7 +363,7 @@ namespace Imageboard10.Core.ModelStorage.Boards
         {
             CheckModuleReady();
             await WaitForTablesInitialize();
-            return await QueryReadonlyThreadUnsafeAsync(session =>
+            return await QueryReadonly(session =>
             {
                 var sid = session.Session;
                 using (new Transaction(sid))
@@ -414,7 +414,7 @@ namespace Imageboard10.Core.ModelStorage.Boards
         {
             CheckModuleReady();
             await WaitForTablesInitialize();
-            return await QueryReadonlyThreadUnsafeAsync(session =>
+            return await QueryReadonly(session =>
             {
                 var sid = session.Session;
                 using (new Transaction(sid))
@@ -484,7 +484,7 @@ namespace Imageboard10.Core.ModelStorage.Boards
                 return result;
             }
             await WaitForTablesInitialize();
-            return await QueryReadonlyThreadUnsafeAsync(session =>
+            return await QueryReadonly(session =>
             {
                 var sid = session.Session;
                 using (new Transaction(sid))
@@ -685,7 +685,7 @@ namespace Imageboard10.Core.ModelStorage.Boards
                 return result;
             }
             await WaitForTablesInitialize();
-            return await QueryReadonlyThreadUnsafeAsync(session =>
+            return await QueryReadonly(session =>
             {
                 var sid = session.Session;
                 using (new Transaction(sid))
@@ -741,7 +741,7 @@ namespace Imageboard10.Core.ModelStorage.Boards
                 return result;
             }
             await WaitForTablesInitialize();
-            return await QueryReadonlyThreadUnsafeAsync(session =>
+            return await QueryReadonly(session =>
             {
                 var sid = session.Session;
                 using (new Transaction(sid))

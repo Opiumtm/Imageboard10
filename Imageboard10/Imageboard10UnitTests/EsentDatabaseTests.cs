@@ -113,7 +113,8 @@ namespace Imageboard10UnitTests
                     });
                     await RunAsyncOnThread(async () =>
                     {
-                        using (var session = await provider.CreateReadOnlySession())
+                        var session = provider.GetReadOnlySession();
+                        using (session.UseSession())
                         {
                             await session.RunInTransaction(() =>
                             {
@@ -144,44 +145,46 @@ namespace Imageboard10UnitTests
                             Assert.IsTrue(addedValues.Count == 0, "Не все строки были прочитаны из базы");
                         }
                     });
-                    // thread-unsafe readonly session
-                    using (var session = provider.CreateThreadUnsafeReadOnlySession())
                     {
-                        JET_TABLEID tableid = default(JET_TABLEID);
-                        await session.Run(() =>
+                        var session = provider.GetReadOnlySession();
+                        using (session.UseSession())
                         {
-                            Api.OpenTable(session.Session, session.Database, tableName, OpenTableGrbit.ReadOnly,
-                                out tableid);
-                        });
-                        try
-                        {
-                            await session.RunInTransaction(() =>
-                            {
-                                Api.JetSetTableSequential(session.Session, tableid, SetTableSequentialGrbit.None);
-                                int count;
-                                Api.TryMoveFirst(session.Session, tableid);
-                                Api.JetIndexRecordCount(session.Session, tableid, out count, int.MaxValue);
-                                Assert.AreEqual(1000, count, "Количество записей в таблице не равно 1000");
-                                return false;
-                            });
-                            await session.RunInTransaction(() =>
-                            {
-                                Api.MoveBeforeFirst(session.Session, tableid);
-                                int counter = 0;
-                                while (Api.TryMoveNext(session.Session, tableid))
-                                {
-                                    counter++;
-                                }
-                                Assert.AreEqual(1000, counter, "Количество записей в таблице не равно 1000 при построчном переборе");
-                                return false;
-                            });
-                        }
-                        finally
-                        {
+                            JET_TABLEID tableid = default(JET_TABLEID);
                             await session.Run(() =>
                             {
-                                Api.JetCloseTable(session.Session, tableid);
+                                Api.OpenTable(session.Session, session.Database, tableName, OpenTableGrbit.ReadOnly,
+                                    out tableid);
                             });
+                            try
+                            {
+                                await session.RunInTransaction(() =>
+                                {
+                                    Api.JetSetTableSequential(session.Session, tableid, SetTableSequentialGrbit.None);
+                                    int count;
+                                    Api.TryMoveFirst(session.Session, tableid);
+                                    Api.JetIndexRecordCount(session.Session, tableid, out count, int.MaxValue);
+                                    Assert.AreEqual(1000, count, "Количество записей в таблице не равно 1000");
+                                    return false;
+                                });
+                                await session.RunInTransaction(() =>
+                                {
+                                    Api.MoveBeforeFirst(session.Session, tableid);
+                                    int counter = 0;
+                                    while (Api.TryMoveNext(session.Session, tableid))
+                                    {
+                                        counter++;
+                                    }
+                                    Assert.AreEqual(1000, counter, "Количество записей в таблице не равно 1000 при построчном переборе");
+                                    return false;
+                                });
+                            }
+                            finally
+                            {
+                                await session.Run(() =>
+                                {
+                                    Api.JetCloseTable(session.Session, tableid);
+                                });
+                            }
                         }
                     }
                 }
@@ -246,8 +249,8 @@ namespace Imageboard10UnitTests
                     Assert.AreEqual(expectedInstanceCount, testData.InstancesCreated, $"Должно быть создано {expectedInstanceCount} инстансов вместо {testData.InstancesCreated}");
                     await Assert.ThrowsExceptionAsync<InvalidOperationException>(async () =>
                     {
-                        var session = await provider.CreateReadOnlySession();
-                        session.Dispose();
+                        var session = provider.GetReadOnlySession();
+                        session.UseSession().Dispose();
                     }, "Не было брошено исключение при попытке получить сессию в приостановленном провайдере");
                     await collection.Resume();
                     Assert.IsFalse(testData.IsSuspended, "Провайдер ESENT не был возобновлён");
@@ -271,10 +274,10 @@ namespace Imageboard10UnitTests
                     await collection.Suspend();
                     Assert.IsTrue(testData.IsSuspended, "Провайдер ESENT не был приостановлен");
                     Assert.AreEqual(expectedInstanceCount, testData.InstancesCreated, $"Должно быть создано {expectedInstanceCount} инстансов вместо {testData.InstancesCreated}");
-                    await Assert.ThrowsExceptionAsync<InvalidOperationException>(async () =>
+                    Assert.ThrowsException<InvalidOperationException>(() =>
                     {
-                        var session = await provider.CreateReadOnlySession();
-                        session.Dispose();
+                        var session = provider.GetReadOnlySession();
+                        session.UseSession().Dispose();
                     }, "Не было брошено исключение при попытке получить сессию в приостановленном провайдере");
                     await Task.WhenAll(toAwait.ToArray());
                     toAwait.Clear();

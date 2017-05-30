@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
+using Imageboard10.Core;
 using Imageboard10.Core.Database;
 using Imageboard10.Core.ModelInterface.Boards;
 using Imageboard10.Core.Models.Links;
@@ -11,6 +12,7 @@ using Imageboard10.Core.ModelStorage.Boards;
 using Imageboard10.Core.ModelStorage.UnitTests;
 using Imageboard10.Core.Modules;
 using Imageboard10.Core.Network;
+using Imageboard10.Core.Tasks;
 using Imageboard10.Makaba;
 using Imageboard10.Makaba.Network.Json;
 using Imageboard10.Makaba.Network.JsonParsers;
@@ -247,6 +249,10 @@ namespace Imageboard10UnitTests
                     CollectionAssert.AreEquivalent(srcBoards, dstBoards, $"Полученные доски (IsAdult = {afn}, Category = \"{c}\") не совпадают с исходными.");
                 }
             }
+
+            var toGet = sourceData.Take(50).Select(t => t.BoardLink).ToArray();
+            var got = (await _store.LoadShortReferences(toGet)).Select(t => t.BoardLink).ToArray();
+            CollectionAssert.AreEquivalent(toGet.Select(l => l.GetLinkHash()).ToArray(), got.Select(l => l.GetLinkHash()).ToArray(), "Взятые ссылки не соответствуют запрошенным");
         }
 
         [TestMethod]
@@ -265,6 +271,58 @@ namespace Imageboard10UnitTests
             }
             st.Stop();
             Logger.LogMessage("Время загрузки полного списка досок в базу: {0:F2} сек. всего, {1:F2} мс на итерацию", st.Elapsed.TotalSeconds, st.Elapsed.TotalMilliseconds / iterations);
+        }
+
+        [TestMethod]
+        public async Task BoardReferenceParallelQuery()
+        {
+            var boards = await TestResources.LoadBoardReferencesFromResource();
+            var parser = _provider.FindNetworkDtoParser<MobileBoardInfoCollection, IList<IBoardReference>>();
+            var result = parser.Parse(boards);
+            await _store.UpdateReferences(result, true);
+
+            async Task<Nothing> Query()
+            {
+                var links = result.Take(40).Select(r => r.BoardLink);
+                foreach (var l in links)
+                {
+                    var o = await _store.LoadReference(l);
+                    Assert.IsNotNull(o, "Не получена информация о доске");
+                    Assert.IsTrue(BoardLinkEqualityComparer.Instance.Equals(l, o.BoardLink), "Ссылка не соответствует исходной");
+                }
+                return Nothing.Value;
+            }
+
+            for (var i = 0; i < 4; i++)
+            {
+                await _collection.Suspend();
+                await _collection.Resume();
+                var toWait = new Task[]
+                {
+                    CoreTaskHelper.RunAsyncFuncOnNewThread(Query),
+                    CoreTaskHelper.RunAsyncFuncOnNewThread(Query),
+                    CoreTaskHelper.RunAsyncFuncOnNewThread(Query),
+                    CoreTaskHelper.RunAsyncFuncOnNewThread(Query),
+                    CoreTaskHelper.RunAsyncFuncOnNewThread(Query),
+                    CoreTaskHelper.RunAsyncFuncOnNewThread(Query),
+                    CoreTaskHelper.RunAsyncFuncOnNewThread(Query),
+                    CoreTaskHelper.RunAsyncFuncOnNewThread(Query),
+                    CoreTaskHelper.RunAsyncFuncOnNewThread(Query),
+                    CoreTaskHelper.RunAsyncFuncOnNewThread(Query),
+                    CoreTaskHelper.RunAsyncFuncOnNewThread(Query),
+                    CoreTaskHelper.RunAsyncFuncOnNewThread(Query),
+                    CoreTaskHelper.RunAsyncFuncOnNewThread(Query),
+                    CoreTaskHelper.RunAsyncFuncOnNewThread(Query),
+                    CoreTaskHelper.RunAsyncFuncOnNewThread(Query),
+                    CoreTaskHelper.RunAsyncFuncOnNewThread(Query),
+                    CoreTaskHelper.RunAsyncFuncOnNewThread(Query),
+                    CoreTaskHelper.RunAsyncFuncOnNewThread(Query),
+                    CoreTaskHelper.RunAsyncFuncOnNewThread(Query),
+                    CoreTaskHelper.RunAsyncFuncOnNewThread(Query),
+                };
+
+                await Task.WhenAll(toWait);
+            }
         }
 
         private async Task<IList<IBoardReference>> UploadTestData()

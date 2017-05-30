@@ -152,28 +152,10 @@ namespace Imageboard10.Core.ModelStorage
                 return default(T);
             }
             CheckModuleReady();
-            using (var readonlySession = await EsentProvider.CreateReadOnlySession())
+            var readonlySession = EsentProvider.GetReadOnlySession();
+            using (readonlySession.UseSession())
             {
                 return await logic(readonlySession);
-            }
-        }
-
-        /// <summary>
-        /// Запросить данные базы в режиме read-only. Обращения к базе должны производиться из одного потока.
-        /// </summary>
-        /// <typeparam name="T">Тип результата.</typeparam>
-        /// <param name="logic">Логика.</param>
-        /// <returns>Результат.</returns>
-        protected T QueryReadonlyThreadUnsafe<T>(Func<IEsentSession, T> logic)
-        {
-            if (logic == null)
-            {
-                return default(T);
-            }
-            CheckModuleReady();
-            using (var readonlySession = EsentProvider.CreateThreadUnsafeReadOnlySession())
-            {
-                return logic(readonlySession);
             }
         }
 
@@ -183,9 +165,24 @@ namespace Imageboard10.Core.ModelStorage
         /// <typeparam name="T">Тип результата.</typeparam>
         /// <param name="logic">Логика.</param>
         /// <returns>Результат.</returns>
-        protected Task<T> QueryReadonlyThreadUnsafeAsync<T>(Func<IEsentSession, T> logic)
+        protected async Task<T> QueryReadonly<T>(Func<IEsentSession, T> logic)
         {
-            return Task.Factory.StartNew(() => QueryReadonlyThreadUnsafe(logic));
+            if (logic == null)
+            {
+                return default(T);
+            }
+            CheckModuleReady();
+            var readonlySession = EsentProvider.GetReadOnlySession();
+            using (readonlySession.UseSession())
+            {
+                T result = default(T);
+                await readonlySession.Run(() =>
+                {
+                    // ReSharper disable once AccessToDisposedClosure
+                    result = logic(readonlySession);
+                });
+                return result;
+            }
         }
 
         /// <summary>
@@ -554,7 +551,7 @@ namespace Imageboard10.Core.ModelStorage
         Task<bool> IModelStorageForTests.IsTablePresent(string tableName)
         {
             if (tableName == null) throw new ArgumentNullException(nameof(tableName));
-            return QueryReadonlyThreadUnsafeAsync(session =>
+            return QueryReadonly(session =>
             {
                 var sid = session.Session;
                 var dbid = session.Database;

@@ -108,7 +108,7 @@ namespace Imageboard10.Core.Database
             return Nothing.Value;
         }
 
-        private IEsentSession _cachedSession;
+        private MainSessionObj _cachedSession;
 
         private async Task CreateCachedInstance()
         {
@@ -116,11 +116,25 @@ namespace Imageboard10.Core.Database
             try
             {
                 // ReSharper disable once AccessToDisposedClosure
-                var session = await dispatcher.QueueAction(() => CreateInstance(dispatcher));
-                var old = Interlocked.Exchange(ref _cachedSession, session.session);
-                if (old is EsentSession s)
+                var mainSession = await dispatcher.QueueAction(() => CreateInstance(dispatcher));
+                var newSession = new MainSessionObj()
                 {
-                    await s.DisposeInternal();
+                    MainSession = mainSession,
+                    ReadonlySessions = await Task.WhenAll(
+                        EsentSession.CreateReadOnlySession(mainSession, this),
+                        EsentSession.CreateReadOnlySession(mainSession, this),
+                        EsentSession.CreateReadOnlySession(mainSession, this),
+                        EsentSession.CreateReadOnlySession(mainSession, this),
+                        EsentSession.CreateReadOnlySession(mainSession, this),
+                        EsentSession.CreateReadOnlySession(mainSession, this),
+                        EsentSession.CreateReadOnlySession(mainSession, this)
+                        )
+                };
+                
+                var old = Interlocked.Exchange(ref _cachedSession, newSession);
+                if (old != null)
+                {
+                    await old.DisposeAsync();
                 }
             }
             catch
@@ -132,7 +146,7 @@ namespace Imageboard10.Core.Database
 
         private string GetEdbFilePath() => Path.Combine(DatabasePath, "database.edb");
 
-        private (IEsentSession session, bool isCreated) CreateInstance(SingleThreadDispatcher dispatcher)
+        private IEsentSession CreateInstance(SingleThreadDispatcher dispatcher)
         {
             var databasePath = GetEdbFilePath();
             var instance = DoCreateInstance();
@@ -174,7 +188,7 @@ namespace Imageboard10.Core.Database
                     throw;
                 }
             }
-            return (result, isCreated);
+            return result;
         }
 
         private Instance DoCreateInstance()
@@ -201,7 +215,7 @@ namespace Imageboard10.Core.Database
 
         private TimeSpan _shutdownTimeout = TimeSpan.FromSeconds(5);
 
-        private async ValueTask<Nothing> WaitDisposed()
+        private async Task<Nothing> WaitDisposed()
         {
             var session = Interlocked.Exchange(ref _cachedSession, null);
             Task[] toWait;
@@ -220,34 +234,54 @@ namespace Imageboard10.Core.Database
                 var task = await Task.WhenAny(waiter);
                 LastShutdownTimeout = !ReferenceEquals(task, waiter[0]);
             }
-            if (session is EsentSession s)
+            if (session != null)
             {
-                await s.DisposeInternal();
+                await session.DisposeAsync();
             }
             return Nothing.Value;
         }
 
+        private sealed class MainSessionObj
+        {
+            public IEsentSession MainSession;
+            public IEsentSession[] ReadonlySessions;
+
+            public async Task DisposeAsync()
+            {
+                foreach (var s in ReadonlySessions)
+                {
+                    await DisposeAsync(s);
+                }
+                await DisposeAsync(MainSession);
+            }
+
+            private async Task DisposeAsync(IEsentSession session)
+            {
+                if (session is EsentSession s)
+                {
+                    await s.DisposeInternal();
+                }
+            }
+        }
+
+        private MainSessionObj _mainSession => Interlocked.CompareExchange(ref _cachedSession, null, null) ?? throw new InvalidOperationException("Нет активной сессии ESENT");
+
         /// <summary>
         /// Основная сессия. Не вызывать Dispose(), т.к. временем жизни основной сессии управляет провайдер.
         /// </summary>
-        public IEsentSession MainSession => Interlocked.CompareExchange(ref _cachedSession, null, null) ?? throw new InvalidOperationException("Нет активной сессии ESENT");
+        public IEsentSession MainSession => _mainSession.MainSession;
+
+        private readonly Random _rnd = new Random();
 
         /// <summary>
         /// Получить сессию только для чтения.
         /// </summary>
         /// <returns>Экземпляр.</returns>
-        public Task<IEsentSession> CreateReadOnlySession()
+        public IEsentSession GetReadOnlySession()
         {
-            return EsentSession.CreateReadOnlySession(MainSession, this);
-        }
-
-        /// <summary>
-        /// Получить сессию только для чтения, вызовы к которой строго должны производиться из одного потока.
-        /// </summary>
-        /// <returns></returns>
-        public IEsentSession CreateThreadUnsafeReadOnlySession()
-        {
-            return EsentSession.CreateThreadUnsafeReadOnlySession(MainSession, this);
+            var session = _mainSession;
+            var idx = _rnd.Next(0, session.ReadonlySessions.Length);
+            return session.ReadonlySessions[idx];
         }
 
         /// <summary>
@@ -259,7 +293,6 @@ namespace Imageboard10.Core.Database
         {
             private readonly string _databasePath;
             private readonly IDisposeWaiters _waiters;
-            private readonly IDisposable _defaultUsage;
 
             public static async Task<IEsentSession> CreateReadOnlySession(IEsentSession parentSession, IDisposeWaiters waiters)
             {
@@ -291,23 +324,6 @@ namespace Imageboard10.Core.Database
                 }
             }
 
-            public static IEsentSession CreateThreadUnsafeReadOnlySession(IEsentSession parentSession, IDisposeWaiters waiters)
-            {
-                var session = new Session(parentSession.Instance);
-                try
-                {
-                    Api.JetAttachDatabase(session, parentSession.DatabaseFile, AttachDatabaseGrbit.ReadOnly);
-                    JET_DBID dbid;
-                    Api.JetOpenDatabase(session, parentSession.DatabaseFile, string.Empty, out dbid, OpenDatabaseGrbit.ReadOnly);
-                    return new EsentSession(parentSession.Instance, session, dbid, parentSession.DatabaseFile, waiters, null, true);
-                }
-                catch
-                {
-                    session.Dispose();
-                    throw;
-                }
-            }
-
             public EsentSession(Instance instance, Session session, JET_DBID dbid, string databasePath, IDisposeWaiters waiters, SingleThreadDispatcher dispatcher, bool isReadOnly)
             {
                 Instance = instance;
@@ -317,10 +333,6 @@ namespace Imageboard10.Core.Database
                 _database = dbid;
                 IsReadOnly = isReadOnly;
                 _dispatcher = dispatcher;
-                if (isReadOnly)
-                {
-                    _defaultUsage = new SessionDisposeWaiter(_waiters);
-                }
             }
 
             public ValueTask<Nothing> DisposeInternal()
@@ -329,8 +341,8 @@ namespace Imageboard10.Core.Database
                 {
                     try
                     {
-                        Api.JetCloseDatabase(Session, Database, CloseDatabaseGrbit.None);
-                        Api.JetDetachDatabase(Session, _databasePath);
+                        //Api.JetCloseDatabase(Session, Database, CloseDatabaseGrbit.None);
+                        //Api.JetDetachDatabase(Session, _databasePath);
                         Session.Dispose();
                         if (!IsReadOnly)
                         {
@@ -340,7 +352,6 @@ namespace Imageboard10.Core.Database
                     finally 
                     {
                         _dispatcher?.Dispose();
-                        _defaultUsage?.Dispose();
                     }
                     return Nothing.Value;
                 }
@@ -351,38 +362,6 @@ namespace Imageboard10.Core.Database
                     return new ValueTask<Nothing>(Do());
                 }
                 return new ValueTask<Nothing>(_dispatcher.QueueAction(Do));
-            }
-
-            public void Dispose()
-            {
-                if (!IsReadOnly)
-                {
-                    throw new InvalidOperationException("Нельзя вручную завершать основную сессию ESENT");
-                }
-
-                async void Do()
-                {
-                    try
-                    {
-                        await DisposeInternal();
-                    }
-                    catch
-                    {
-                        // Игнорируем ошибки
-                    }
-                }
-
-                Do();
-            }
-
-            public async Task DisposeAsync()
-            {
-                if (!IsReadOnly)
-                {
-                    throw new InvalidOperationException("Нельзя вручную завершать основную сессию ESENT");
-                }
-
-                await DisposeInternal();
             }
 
             public Instance Instance { get; }

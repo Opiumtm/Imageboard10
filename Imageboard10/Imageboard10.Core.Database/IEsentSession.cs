@@ -7,7 +7,7 @@ namespace Imageboard10.Core.Database
     /// <summary>
     /// Сессия ESENT.
     /// </summary>
-    public interface IEsentSession : IDisposable
+    public interface IEsentSession
     {
         /// <summary>
         /// Экземпляр.
@@ -59,11 +59,5 @@ namespace Imageboard10.Core.Database
         /// <param name="grbit">Биты.</param>
         /// <returns>Таблица.</returns>
         EsentTable OpenTable(string tableName, OpenTableGrbit grbit);
-
-        /// <summary>
-        /// Асинхронное завершение работы.
-        /// </summary>
-        /// <returns>Результат.</returns>
-        Task DisposeAsync();
     }
 }

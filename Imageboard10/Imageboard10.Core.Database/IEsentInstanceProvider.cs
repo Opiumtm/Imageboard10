@@ -16,13 +16,7 @@ namespace Imageboard10.Core.Database
         /// Получить сессию только для чтения.
         /// </summary>
         /// <returns>Экземпляр.</returns>
-        Task<IEsentSession> CreateReadOnlySession();
-
-        /// <summary>
-        /// Получить сессию только для чтения, вызовы к которой строго должны производиться из одного потока.
-        /// </summary>
-        /// <returns></returns>
-        IEsentSession CreateThreadUnsafeReadOnlySession();
+        IEsentSession GetReadOnlySession();
 
         /// <summary>
         /// Путь к базе данных.
