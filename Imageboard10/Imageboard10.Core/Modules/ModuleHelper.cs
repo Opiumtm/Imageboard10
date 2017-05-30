@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using System;
+using System.Threading.Tasks;
 using Imageboard10.Core.Modules.Wrappers;
 
 namespace Imageboard10.Core.Modules
@@ -221,7 +222,8 @@ namespace Imageboard10.Core.Modules
         public static void RegisterModule<T, TIntf>(this IModuleCollection collection, IStaticModuleQueryFilter filter = null)
             where T : IModule, TIntf, new()
         {
-            collection.RegisterProvider(typeof(TIntf), new StaticModuleProvider<T, TIntf>(new T(), filter));
+            var module = new T();
+            collection.RegisterProvider(typeof(TIntf), new StaticModuleProvider<T, TIntf>(module, filter ?? module as IStaticModuleQueryFilter));
         }
 
         /// <summary>
@@ -235,7 +237,8 @@ namespace Imageboard10.Core.Modules
         public static void RegisterModule<T, TIntf>(this IModuleCollection collection, T module, IStaticModuleQueryFilter filter = null)
             where T : IModule, TIntf
         {
-            collection.RegisterProvider(typeof(TIntf), new StaticModuleProvider<T, TIntf>(module, filter));
+            if (module == null) throw new ArgumentNullException(nameof(module));
+            collection.RegisterProvider(typeof(TIntf), new StaticModuleProvider<T, TIntf>(module, filter ?? module as IStaticModuleQueryFilter));
         }
 
     }

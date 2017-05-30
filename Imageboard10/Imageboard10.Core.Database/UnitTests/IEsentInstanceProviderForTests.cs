@@ -1,8 +1,7 @@
 ﻿using System;
 using System.Threading.Tasks;
-using Microsoft.Isam.Esent.Interop;
 
-namespace Imageboard10.Core.Database
+namespace Imageboard10.Core.Database.UnitTests
 {
     /// <summary>
     /// Информация для юнит-тестов.

@@ -10,6 +10,8 @@ using Imageboard10.Core.ModelInterface.Links;
 using Imageboard10.Core.Models.Boards;
 using Imageboard10.Core.Models.Links.LinkTypes;
 using Imageboard10.Core.ModelStorage.Boards.DataContracts;
+using Imageboard10.Core.ModelStorage.UnitTests;
+using Imageboard10.Core.Modules;
 using Imageboard10.Core.Utility;
 using Microsoft.Isam.Esent.Interop;
 
@@ -18,7 +20,7 @@ namespace Imageboard10.Core.ModelStorage.Boards
     /// <summary>
     /// Базовая реализация хранилища ссылок на доски.
     /// </summary>
-    public class BoardReferenceStore : ModelStorageBase<IBoardReferenceStore>, IBoardReferenceStore
+    public class BoardReferenceStore : ModelStorageBase<IBoardReferenceStore>, IBoardReferenceStore, IBoardReferenceStoreForTests, IStaticModuleQueryFilter
     {
         /// <summary>
         /// Конструктор.
@@ -27,6 +29,20 @@ namespace Imageboard10.Core.ModelStorage.Boards
         public BoardReferenceStore(string engineId)
         {
             EngineId = engineId ?? throw new ArgumentNullException(nameof(engineId));
+        }
+
+        /// <summary>
+        /// Запросить представление модуля.
+        /// </summary>
+        /// <param name="viewType">Тип представления.</param>
+        /// <returns>Представление.</returns>
+        public override object QueryView(Type viewType)
+        {
+            if (viewType == typeof(IBoardReferenceStoreForTests))
+            {
+                return this;
+            }
+            return base.QueryView(viewType);
         }
 
         /// <summary>
@@ -210,18 +226,18 @@ namespace Imageboard10.Core.ModelStorage.Boards
             {
                 Api.JetSetCurrentIndex(sid, tableid, TableIsAdultIndexName);
                 Api.MakeKey(sid, tableid, query.IsAdult.Value, MakeKeyGrbit.NewKey);
-                return Api.TrySeek(sid, tableid, SeekGrbit.SeekEQ);
+                return Api.TrySeek(sid, tableid, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange);
             }
             if (query.IsAdult == null)
             {
                 Api.JetSetCurrentIndex(sid, tableid, TableCategoryIndexName);
                 Api.MakeKey(sid, tableid, query.Category, Encoding.Unicode, MakeKeyGrbit.NewKey);
-                return Api.TrySeek(sid, tableid, SeekGrbit.SeekEQ);
+                return Api.TrySeek(sid, tableid, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange);
             }
             Api.JetSetCurrentIndex(sid, tableid, TableIsAdultAndCategoryIndexName);
             Api.MakeKey(sid, tableid, query.IsAdult.Value, MakeKeyGrbit.NewKey);
             Api.MakeKey(sid, tableid, query.Category, Encoding.Unicode, MakeKeyGrbit.None);
-            return Api.TrySeek(sid, tableid, SeekGrbit.SeekEQ);
+            return Api.TrySeek(sid, tableid, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange);
         }
 
         /// <summary>
@@ -239,9 +255,11 @@ namespace Imageboard10.Core.ModelStorage.Boards
         /// </summary>
         /// <param name="query">Запрос.</param>
         /// <returns>Количество досок.</returns>
-        protected virtual Task<int> DoGetCount(BoardReferenceStoreQuery query)
+        protected virtual async Task<int> DoGetCount(BoardReferenceStoreQuery query)
         {
-            return QueryReadonlyThreadUnsafeAsync(session =>
+            CheckModuleReady();
+            await WaitForTablesInitialize();
+            return await QueryReadonlyThreadUnsafeAsync(session =>
             {
                 var sid = session.Session;
                 using (var table = session.OpenTable(TableName, OpenTableGrbit.ReadOnly))
@@ -263,30 +281,62 @@ namespace Imageboard10.Core.ModelStorage.Boards
         /// <returns>Количество категорий.</returns>
         public IAsyncOperation<int> GetCategoryCount()
         {
-            return DoGetCategoryCount().AsAsyncOperation();
+            return DoGetCategoryCount(null).AsAsyncOperation();
         }
 
         /// <summary>
         /// Получить количество категорий.
         /// </summary>
+        /// <param name="isAdult">Только для взрослы. null = не имеет значения.</param>
         /// <returns>Количество категорий.</returns>
-        protected virtual Task<int> DoGetCategoryCount()
+        public IAsyncOperation<int> GetCategoryCount(bool? isAdult)
         {
-            return QueryReadonlyThreadUnsafeAsync(session =>
+            return DoGetCategoryCount(isAdult).AsAsyncOperation();
+        }
+
+        /// <summary>
+        /// Получить количество категорий.
+        /// </summary>
+        /// <param name="isAdult">Только для взрослы. null = не имеет значения.</param>
+        /// <returns>Количество категорий.</returns>
+        protected virtual async Task<int> DoGetCategoryCount(bool? isAdult)
+        {
+            CheckModuleReady();
+            await WaitForTablesInitialize();
+            return await QueryReadonlyThreadUnsafeAsync(session =>
             {
                 var sid = session.Session;
                 using (new Transaction(sid))
                 {
                     using (var table = session.OpenTable(TableName, OpenTableGrbit.ReadOnly))
                     {
-                        Api.JetSetCurrentIndex(sid, table, TableCategoryIndexName);
                         int count = 0;
-                        if (Api.TryMoveFirst(sid, table))
+                        if (isAdult == null)
                         {
-                            do
+                            Api.JetSetCurrentIndex(sid, table, TableCategoryIndexName);
+                            if (Api.TryMoveFirst(sid, table))
                             {
-                                count++;
-                            } while (Api.TryMove(sid, table, JET_Move.Next, MoveGrbit.MoveKeyNE));
+                                do
+                                {
+                                    count++;
+                                } while (Api.TryMove(sid, table, JET_Move.Next, MoveGrbit.MoveKeyNE));
+                            }
+                        }
+                        else
+                        {
+                            var acolid = Api.GetTableColumnid(sid, table, ColumnNames.IsAdult);
+                            Api.JetSetCurrentIndex(sid, table, TableIsAdultAndCategoryIndexName);
+                            if (Api.TryMoveFirst(sid, table))
+                            {
+                                do
+                                {
+                                    var a = Api.RetrieveColumnAsBoolean(sid, table, acolid, RetrieveColumnGrbit.RetrieveFromIndex);
+                                    if (a == isAdult.Value)
+                                    {
+                                        count++;
+                                    }
+                                } while (Api.TryMove(sid, table, JET_Move.Next, MoveGrbit.MoveKeyNE));
+                            }
                         }
                         return count;
                     }
@@ -299,7 +349,7 @@ namespace Imageboard10.Core.ModelStorage.Boards
         /// </summary>
         /// <param name="query">Запрос.</param>
         /// <returns>Ссылки на доски.</returns>
-        public IAsyncOperation<IList<ILink>> GetBoardLiks(BoardReferenceStoreQuery query)
+        public IAsyncOperation<IList<ILink>> GetBoardLinks(BoardReferenceStoreQuery query)
         {
             return DoGetBoardLinks(query).AsAsyncOperation();
         }
@@ -309,9 +359,11 @@ namespace Imageboard10.Core.ModelStorage.Boards
         /// </summary>
         /// <param name="query">Запрос.</param>
         /// <returns>Ссылки на доски.</returns>
-        protected virtual Task<IList<ILink>> DoGetBoardLinks(BoardReferenceStoreQuery query)
+        protected virtual async Task<IList<ILink>> DoGetBoardLinks(BoardReferenceStoreQuery query)
         {
-            return QueryReadonlyThreadUnsafeAsync(session =>
+            CheckModuleReady();
+            await WaitForTablesInitialize();
+            return await QueryReadonlyThreadUnsafeAsync(session =>
             {
                 var sid = session.Session;
                 using (new Transaction(sid))
@@ -340,32 +392,65 @@ namespace Imageboard10.Core.ModelStorage.Boards
         /// <returns>Все категории.</returns>
         public IAsyncOperation<IList<string>> GetAllCategories()
         {
-            return DoGetAllCategories().AsAsyncOperation();
+            return DoGetAllCategories(null).AsAsyncOperation();
         }
 
         /// <summary>
         /// Получить все категории.
         /// </summary>
+        /// <param name="isAdult">Только для взрослых. null = не имеет значения.</param>
         /// <returns>Все категории.</returns>
-        protected virtual Task<IList<string>> DoGetAllCategories()
+        public IAsyncOperation<IList<string>> GetAllCategories(bool? isAdult)
         {
-            return QueryReadonlyThreadUnsafeAsync(session =>
+            return DoGetAllCategories(isAdult).AsAsyncOperation();
+        }
+
+        /// <summary>
+        /// Получить все категории.
+        /// </summary>
+        /// <param name="isAdult">Только для взрослых. null = не имеет значения.</param>
+        /// <returns>Все категории.</returns>
+        protected virtual async Task<IList<string>> DoGetAllCategories(bool? isAdult)
+        {
+            CheckModuleReady();
+            await WaitForTablesInitialize();
+            return await QueryReadonlyThreadUnsafeAsync(session =>
             {
                 var sid = session.Session;
                 using (new Transaction(sid))
                 {
                     using (var tableid = session.OpenTable(TableName, OpenTableGrbit.ReadOnly))
                     {
-                        Api.JetSetCurrentIndex(sid, tableid, TableCategoryIndexName);
                         var colid = Api.GetTableColumnid(sid, tableid, ColumnNames.Category);
                         HashSet<string> categories = new HashSet<string>();
-                        if (Api.TryMoveFirst(sid, tableid))
+                        if (isAdult == null)
                         {
-                            do
+                            Api.JetSetCurrentIndex(sid, tableid, TableCategoryIndexName);
+                            if (Api.TryMoveFirst(sid, tableid))
                             {
-                                var c = Api.RetrieveColumnAsString(sid, tableid, colid, Encoding.Unicode, RetrieveColumnGrbit.RetrieveFromIndex);
-                                categories.Add(c);
-                            } while (Api.TryMove(sid, tableid, JET_Move.Next, MoveGrbit.MoveKeyNE));
+                                do
+                                {
+                                    var c = Api.RetrieveColumnAsString(sid, tableid, colid, Encoding.Unicode, RetrieveColumnGrbit.RetrieveFromIndex);
+                                    categories.Add(c);
+                                } while (Api.TryMove(sid, tableid, JET_Move.Next, MoveGrbit.MoveKeyNE));
+                            }
+                        }
+                        else
+                        {
+                            Api.JetSetCurrentIndex(sid, tableid, TableIsAdultAndCategoryIndexName);
+                            var acolid = Api.GetTableColumnid(sid, tableid, ColumnNames.IsAdult);
+                            if (Api.TryMoveFirst(sid, tableid))
+                            {
+                                do
+                                {
+                                    var a = Api.RetrieveColumnAsBoolean(sid, tableid, acolid, RetrieveColumnGrbit.RetrieveFromIndex);
+                                    if (a == isAdult.Value)
+                                    {
+                                        var c = Api.RetrieveColumnAsString(sid, tableid, colid, Encoding.Unicode, RetrieveColumnGrbit.RetrieveFromIndex);
+                                        categories.Add(c);
+                                    }
+                                } while (Api.TryMove(sid, tableid, JET_Move.Next, MoveGrbit.MoveKeyNE));
+                            }
                         }
                         IList<string> result = categories.ToList();
                         return result;
@@ -390,14 +475,16 @@ namespace Imageboard10.Core.ModelStorage.Boards
         /// </summary>
         /// <param name="link">Ссылка.</param>
         /// <returns>Ссылка на доску.</returns>
-        protected virtual Task<IBoardReference> DoLoadReference(ILink link)
+        protected virtual async Task<IBoardReference> DoLoadReference(ILink link)
         {
+            CheckModuleReady();
             if (link == null)
             {
                 const IBoardReference result = null;
-                return Task.FromResult(result);
+                return result;
             }
-            return QueryReadonlyThreadUnsafeAsync(session =>
+            await WaitForTablesInitialize();
+            return await QueryReadonlyThreadUnsafeAsync(session =>
             {
                 var sid = session.Session;
                 using (new Transaction(sid))
@@ -589,14 +676,16 @@ namespace Imageboard10.Core.ModelStorage.Boards
         /// <param name="count">Количество.</param>
         /// <param name="query">Запрос.</param>
         /// <returns>Ссылки.</returns>
-        protected virtual Task<IList<IBoardShortInfo>> DoLoadShortReferences(int start, int count, BoardReferenceStoreQuery query)
+        protected async virtual Task<IList<IBoardShortInfo>> DoLoadShortReferences(int start, int count, BoardReferenceStoreQuery query)
         {
+            CheckModuleReady();
             if (count < 1)
             {
                 IList<IBoardShortInfo> result = new List<IBoardShortInfo>();
-                return Task.FromResult(result);
+                return result;
             }
-            return QueryReadonlyThreadUnsafeAsync(session =>
+            await WaitForTablesInitialize();
+            return await QueryReadonlyThreadUnsafeAsync(session =>
             {
                 var sid = session.Session;
                 using (new Transaction(sid))
@@ -643,14 +732,16 @@ namespace Imageboard10.Core.ModelStorage.Boards
         /// </summary>
         /// <param name="links">Список ссылок.</param>
         /// <returns>Ссылки на доски.</returns>
-        protected virtual Task<IList<IBoardShortInfo>> DoLoadShortReferences(IList<ILink> links)
+        protected virtual async Task<IList<IBoardShortInfo>> DoLoadShortReferences(IList<ILink> links)
         {
+            CheckModuleReady();
             if (links == null || links.Count == 0)
             {
                 IList<IBoardShortInfo> result = new List<IBoardShortInfo>();
-                return Task.FromResult(result);
+                return result;
             }
-            return QueryReadonlyThreadUnsafeAsync(session =>
+            await WaitForTablesInitialize();
+            return await QueryReadonlyThreadUnsafeAsync(session =>
             {
                 var sid = session.Session;
                 using (new Transaction(sid))
@@ -685,9 +776,11 @@ namespace Imageboard10.Core.ModelStorage.Boards
         /// <summary>
         /// Очистить всю информацию.
         /// </summary>
-        protected virtual Task DoClear()
+        protected virtual async Task DoClear()
         {
-            return UpdateAsync(async session =>
+            CheckModuleReady();
+            await WaitForTablesInitialize();
+            await UpdateAsync(async session =>
             {
                 await session.RunInTransaction(() =>
                 {
@@ -782,16 +875,18 @@ namespace Imageboard10.Core.ModelStorage.Boards
         /// Обновить ссылку.
         /// </summary>
         /// <param name="reference">Ссылка.</param>
-        protected virtual Task DoUpdateReference(IBoardReference reference)
+        protected virtual async Task DoUpdateReference(IBoardReference reference)
         {
             if (reference == null) throw new ArgumentNullException(nameof(reference));
-            return UpdateAsync(async session =>
+            CheckModuleReady();
+            await WaitForTablesInitialize();
+            await UpdateAsync(async session =>
             {
                 await session.RunInTransaction(() =>
                 {
                     using (var table = session.OpenTable(TableName, OpenTableGrbit.DenyWrite))
                     {
-                        DoUpdateOneRow(table, reference);
+                        DoUpdateOneRow(table, reference, false);
                     }
                     return true;
                 });
@@ -805,20 +900,37 @@ namespace Imageboard10.Core.ModelStorage.Boards
         /// </summary>
         /// <param name="table">Таблица.</param>
         /// <param name="reference">Ссылка.</param>
-        protected virtual void DoUpdateOneRow(EsentTable table, IBoardReference reference)
+        /// <param name="alwaysInsert">Всегда вставлять (после очистки таблицы).</param>
+        protected virtual void DoUpdateOneRow(EsentTable table, IBoardReference reference, bool alwaysInsert)
         {
             if (reference == null) throw new ArgumentNullException(nameof(reference));
-            var id = GetId(reference);
-            Api.MakeKey(table.Session, table, id, Encoding.Unicode, MakeKeyGrbit.NewKey);
-            if (Api.TrySeek(table.Session, table, SeekGrbit.SeekEQ))
+            if (!alwaysInsert)
             {
-                Api.JetPrepareUpdate(table.Session, table, JET_prep.Replace);
+                var id = GetId(reference);
+                Api.MakeKey(table.Session, table, id, Encoding.Unicode, MakeKeyGrbit.NewKey);
+                Update rowUpdate;
+                if (Api.TrySeek(table.Session, table, SeekGrbit.SeekEQ))
+                {
+                    rowUpdate = new Update(table.Session, table, JET_prep.Replace);
+                }
+                else
+                {
+                    rowUpdate = new Update(table.Session, table, JET_prep.Insert);
+                }
+                using (rowUpdate)
+                {
+                    UpdateFullRowInfo(table, reference, Api.GetColumnDictionary(table.Session, table));
+                    rowUpdate.Save();
+                }
             }
             else
             {
-                Api.JetPrepareUpdate(table.Session, table, JET_prep.Insert);
+                using (var rowUpdate = new Update(table.Session, table, JET_prep.Insert))
+                {
+                    UpdateFullRowInfo(table, reference, Api.GetColumnDictionary(table.Session, table));
+                    rowUpdate.Save();
+                }
             }
-            UpdateFullRowInfo(table, reference, Api.GetColumnDictionary(table.Session, table));
         }
 
         /// <summary>
@@ -836,13 +948,15 @@ namespace Imageboard10.Core.ModelStorage.Boards
         /// </summary>
         /// <param name="references">Ссылки.</param>
         /// <param name="clearPrevious">Очистить предыдущие.</param>
-        protected virtual Task DoUpdateReferences(IList<IBoardReference> references, bool clearPrevious)
+        protected virtual async Task DoUpdateReferences(IList<IBoardReference> references, bool clearPrevious)
         {
+            CheckModuleReady();
             if (references == null || references.Count == 0)
             {
-                return Task.CompletedTask;
+                return;
             }
-            return UpdateAsync(async session =>
+            await WaitForTablesInitialize();
+            await UpdateAsync(async session =>
             {
                 await session.Run(() =>
                 {
@@ -853,7 +967,7 @@ namespace Imageboard10.Core.ModelStorage.Boards
                             using (var transaction = new Transaction(table.Session))
                             {
                                 DeleteAllRows(table);
-                                transaction.Commit(CommitTransactionGrbit.LazyFlush);
+                                transaction.Commit(CommitTransactionGrbit.None);
                             }
                         }
                         foreach (var references1 in references.Where(r => r != null).SplitSet(10))
@@ -862,9 +976,9 @@ namespace Imageboard10.Core.ModelStorage.Boards
                             {
                                 foreach (var reference in references1)
                                 {
-                                    DoUpdateOneRow(table, reference);
+                                    DoUpdateOneRow(table, reference, clearPrevious);
                                 }
-                                transaction.Commit(CommitTransactionGrbit.LazyFlush);
+                                transaction.Commit(CommitTransactionGrbit.None);
                             }
                         }
                     }
@@ -872,6 +986,30 @@ namespace Imageboard10.Core.ModelStorage.Boards
                 return Nothing.Value;
             });
 
+        }
+
+        /// <summary>
+        /// Имя таблицы с досками.
+        /// </summary>
+        string IBoardReferenceStoreForTests.BoardsTableName => TableName;
+
+        /// <summary>
+        /// Проверить запрос.
+        /// </summary>
+        /// <typeparam name="T">Тип запроса.</typeparam>
+        /// <param name="query">Запрос.</param>
+        /// <returns>Результат.</returns>
+        bool IStaticModuleQueryFilter.CheckQuery<T>(T query)
+        {
+            if (typeof(T) == typeof(string))
+            {
+                var s = (string) (object) query;
+                if (EngineId.Equals(s, StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+            }
+            return false;
         }
     }
 }

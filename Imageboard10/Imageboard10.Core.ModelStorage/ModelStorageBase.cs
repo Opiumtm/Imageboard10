@@ -1,12 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Runtime.Serialization;
 using System.Text;
 using System.Threading.Tasks;
 using System.Xml;
 using Imageboard10.Core.Database;
 using Imageboard10.Core.ModelInterface.Links;
+using Imageboard10.Core.ModelStorage.UnitTests;
 using Imageboard10.Core.Modules;
 using Imageboard10.Core.Tasks;
 using Imageboard10.Core.Utility;
@@ -18,7 +18,7 @@ namespace Imageboard10.Core.ModelStorage
     /// Базовый класс хранилища данных модели.
     /// </summary>
     /// <typeparam name="TIntf">Тип интерфейса.</typeparam>
-    public abstract class ModelStorageBase<TIntf> : ModuleBase<TIntf> where TIntf : class
+    public abstract class ModelStorageBase<TIntf> : ModuleBase<TIntf>, IModelStorageForTests where TIntf : class
     {
         /// <summary>
         /// Конструктор.
@@ -28,6 +28,20 @@ namespace Imageboard10.Core.ModelStorage
         {
             _upgradeTcs = new TaskCompletionSource<Nothing>();
             _upgradeWaitTask = _upgradeTcs.Task;
+        }
+
+        /// <summary>
+        /// Запросить представление модуля.
+        /// </summary>
+        /// <param name="viewType">Тип представления.</param>
+        /// <returns>Представление.</returns>
+        public override object QueryView(Type viewType)
+        {
+            if (viewType == typeof(IModelStorageForTests))
+            {
+                return this;
+            }
+            return base.QueryView(viewType);
         }
 
         /// <summary>
@@ -52,8 +66,8 @@ namespace Imageboard10.Core.ModelStorage
         protected override async ValueTask<Nothing> OnInitialize(IModuleProvider moduleProvider)
         {
             await base.OnInitialize(moduleProvider);
-            EsentProvider = await moduleProvider.QueryModuleAsync<IEsentInstanceProvider>();
-            LinkSerialization = await moduleProvider.QueryModuleAsync<ILinkSerializationService>();
+            EsentProvider = await moduleProvider.QueryModuleAsync<IEsentInstanceProvider>() ?? throw new ModuleNotFoundException();
+            LinkSerialization = await moduleProvider.QueryModuleAsync<ILinkSerializationService>() ?? throw new ModuleNotFoundException();
             GlobalErrorHandler = await moduleProvider.QueryModuleAsync<ModuleInterface.IGlobalErrorHandler>();
             return Nothing.Value;
         }
@@ -69,7 +83,10 @@ namespace Imageboard10.Core.ModelStorage
             await base.OnAllInitialized();
             try
             {
-                await UpdateAsync(EnsureTableversion);
+                Task<Nothing> DoEnsureTableversion()
+                {
+                    return UpdateAsync(EnsureTableversion);
+                }
 
                 async ValueTask<Nothing> DoUpdate()
                 {
@@ -78,8 +95,22 @@ namespace Imageboard10.Core.ModelStorage
                         _upgradeTcs.SetResult(Nothing.Value);
                     }
 
-                    await CreateOrUpgradeTables();
-                    CoreTaskHelper.RunUnawaitedTask(SignalUpdateComplete);
+                    void SignalUpdateError(Exception ex)
+                    {
+                        _upgradeTcs.SetException(ex);
+                    }
+
+                    try
+                    {
+                        await TableVersionStatus.Instance.InitializeTableVersionOnce(DoEnsureTableversion);
+                        await CreateOrUpgradeTables();
+                        CoreTaskHelper.RunUnawaitedTask(SignalUpdateComplete);
+                    }
+                    catch (Exception ex)
+                    {
+                        CoreTaskHelper.RunUnawaitedTask(() => SignalUpdateError(ex));
+                    }
+
                     return Nothing.Value;
                 }
 
@@ -324,16 +355,20 @@ namespace Imageboard10.Core.ModelStorage
                         Api.MakeKey(sid, tvid, tableName, Encoding.Unicode, MakeKeyGrbit.NewKey);
                         if (Api.TrySeek(sid, tvid, SeekGrbit.SeekEQ))
                         {
-                            Api.JetPrepareUpdate(sid, tvid, JET_prep.Replace);
-                            Api.SetColumn(sid, tvid, verid, currentVersion);
-                            Api.JetUpdate(sid, tvid);
+                            using (var rowUpdate = new Update(sid, tvid, JET_prep.Replace))
+                            {
+                                Api.SetColumn(sid, tvid, verid, currentVersion);
+                                rowUpdate.Save();
+                            }
                         }
                         else
                         {
-                            Api.JetPrepareUpdate(sid, tvid, JET_prep.Insert);
-                            Api.SetColumn(sid, tvid, iid, tableName, Encoding.Unicode);
-                            Api.SetColumn(sid, tvid, verid, currentVersion);
-                            Api.JetUpdate(sid, tvid);
+                            using (var rowUpdate = new Update(sid, tvid, JET_prep.Insert))
+                            {
+                                Api.SetColumn(sid, tvid, iid, tableName, Encoding.Unicode);
+                                Api.SetColumn(sid, tvid, verid, currentVersion);
+                                rowUpdate.Save();
+                            }
                         }
                         return true;
                     }
@@ -371,6 +406,34 @@ namespace Imageboard10.Core.ModelStorage
             }
 
             return newVersion;
+        }
+
+        /// <summary>
+        /// Удалить таблицу.
+        /// </summary>
+        /// <param name="tableName">Имя таблицы.</param>
+        protected async Task<Nothing> DeleteTable(string tableName)
+        {
+            if (tableName == null) throw new ArgumentNullException(nameof(tableName));
+            return await UpdateAsync(async session =>
+            {
+                await session.RunInTransaction(() =>
+                {
+                    var sid = session.Session;
+                    var dbid = session.Database;
+                    using (var table = session.OpenTable(TableVersionTable, OpenTableGrbit.DenyWrite))
+                    {
+                        Api.JetDeleteTable(sid, dbid, tableName);
+                        Api.MakeKey(table.Session, table, tableName, Encoding.Unicode, MakeKeyGrbit.NewKey);
+                        if (Api.TrySeek(sid, table, SeekGrbit.SeekEQ))
+                        {
+                            Api.JetDelete(sid, table);
+                        }
+                        return true;
+                    }
+                });
+                return Nothing.Value;
+            });
         }
 
         private async Task<Nothing> EnsureTableversion(IEsentSession session)
@@ -481,6 +544,51 @@ namespace Imageboard10.Core.ModelStorage
             {
                 Api.JetResetTableSequential(table.Session, table.Table, ResetTableSequentialGrbit.None);
             }
+        }
+
+        /// <summary>
+        /// Проверить существование таблицы.
+        /// </summary>
+        /// <param name="tableName">Имя таблицы.</param>
+        /// <returns>Результат.</returns>
+        Task<bool> IModelStorageForTests.IsTablePresent(string tableName)
+        {
+            if (tableName == null) throw new ArgumentNullException(nameof(tableName));
+            return QueryReadonlyThreadUnsafeAsync(session =>
+            {
+                var sid = session.Session;
+                var dbid = session.Database;
+                if (Api.TryOpenTable(sid, dbid, tableName, OpenTableGrbit.ReadOnly, out var tableid))
+                {
+                    Api.JetCloseTable(sid, tableid);
+                    return true;
+                }
+                return false;
+            });
+        }
+
+        /// <summary>
+        /// Получить версию таблицы.
+        /// </summary>
+        /// <param name="tableName">Имя таблицы.</param>
+        /// <returns>Версия.</returns>
+        Task<int> IModelStorageForTests.GetTableVersion(string tableName)
+        {
+            if (tableName == null) throw new ArgumentNullException(nameof(tableName));
+            return EnsureTable(tableName, int.MaxValue, null, null);
+        }
+
+        /// <summary>
+        /// Имя таблицы с версиями.
+        /// </summary>
+        string IModelStorageForTests.TableversionTableName => TableVersionTable;
+
+        /// <summary>
+        /// Ожидать инициализации.
+        /// </summary>
+        Task IModelStorageForTests.WaitForInitialization()
+        {
+            return WaitForTablesInitialize();
         }
     }
 }

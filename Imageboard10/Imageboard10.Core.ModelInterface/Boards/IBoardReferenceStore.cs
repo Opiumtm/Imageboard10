@@ -23,17 +23,31 @@ namespace Imageboard10.Core.ModelInterface.Boards
         IAsyncOperation<int> GetCategoryCount();
 
         /// <summary>
+        /// Получить количество категорий.
+        /// </summary>
+        /// <param name="isAdult">Только для взрослых. null = не имеет значения.</param>
+        /// <returns>Количество категорий.</returns>
+        IAsyncOperation<int> GetCategoryCount(bool? isAdult);
+
+        /// <summary>
         /// Получить все ссылки на доски.
         /// </summary>
         /// <param name="query">Запрос.</param>
         /// <returns>Ссылки на доски.</returns>
-        IAsyncOperation<IList<ILink>> GetBoardLiks(BoardReferenceStoreQuery query);
+        IAsyncOperation<IList<ILink>> GetBoardLinks(BoardReferenceStoreQuery query);
 
         /// <summary>
         /// Получить все категории.
         /// </summary>
         /// <returns>Все категории.</returns>
         IAsyncOperation<IList<string>> GetAllCategories();
+
+        /// <summary>
+        /// Получить все категории.
+        /// </summary>
+        /// <param name="isAdult">Только для взрослых. null = не имеет значения.</param>
+        /// <returns>Все категории.</returns>
+        IAsyncOperation<IList<string>> GetAllCategories(bool? isAdult);
 
         /// <summary>
         /// Загрузить ссылку на доску.

@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Windows.Storage;
+using Imageboard10.Core.Database.UnitTests;
 using Imageboard10.Core.Modules;
 using Imageboard10.Core.Tasks;
 using Microsoft.Isam.Esent.Interop;
@@ -329,9 +330,10 @@ namespace Imageboard10.Core.Database
                     try
                     {
                         Api.JetCloseDatabase(Session, Database, CloseDatabaseGrbit.None);
+                        Api.JetDetachDatabase(Session, _databasePath);
+                        Session.Dispose();
                         if (!IsReadOnly)
                         {
-                            Api.JetDetachDatabase(Session, _databasePath);
                             Instance.Dispose();
                         }
                     }
@@ -366,9 +368,21 @@ namespace Imageboard10.Core.Database
                     }
                     catch
                     {
+                        // Игнорируем ошибки
                     }
                 }
+
                 Do();
+            }
+
+            public async Task DisposeAsync()
+            {
+                if (!IsReadOnly)
+                {
+                    throw new InvalidOperationException("Нельзя вручную завершать основную сессию ESENT");
+                }
+
+                await DisposeInternal();
             }
 
             public Instance Instance { get; }
@@ -406,7 +420,7 @@ namespace Imageboard10.Core.Database
                     {
                         if (logic())
                         {
-                            transaction.Commit(CommitTransactionGrbit.LazyFlush);
+                            transaction.Commit(CommitTransactionGrbit.None);
                         }
                     }
                     return Nothing.Value;

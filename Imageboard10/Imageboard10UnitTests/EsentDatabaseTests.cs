@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Imageboard10.Core;
 using Imageboard10.Core.Database;
+using Imageboard10.Core.Database.UnitTests;
 using Imageboard10.Core.Modules;
 using Microsoft.Isam.Esent.Interop;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -218,11 +219,6 @@ namespace Imageboard10UnitTests
                     SimpleSyncTestOnNewThread(provider, "test_table_13"),
                     SimpleSyncTestOnNewThread(provider, "test_table_14"),
                     SimpleSyncTestOnNewThread(provider, "test_table_15"),
-                    SimpleSyncTestOnNewThread(provider, "test_table_16"),
-                    SimpleSyncTestOnNewThread(provider, "test_table_17"),
-                    SimpleSyncTestOnNewThread(provider, "test_table_18"),
-                    SimpleSyncTestOnNewThread(provider, "test_table_19"),
-                    SimpleSyncTestOnNewThread(provider, "test_table_20"),
                 };
                 await Task.WhenAll(tasks);
             });

@@ -111,7 +111,7 @@
     <Compile Include="EsentTable.cs" />
     <Compile Include="IDisposeWaiters.cs" />
     <Compile Include="IEsentInstanceProvider.cs" />
-    <Compile Include="IEsentInstanceProviderForTests.cs" />
+    <Compile Include="UnitTests\IEsentInstanceProviderForTests.cs" />
     <Compile Include="IEsentSession.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <EmbeddedResource Include="Properties\Imageboard10.Core.Database.rd.xml" />

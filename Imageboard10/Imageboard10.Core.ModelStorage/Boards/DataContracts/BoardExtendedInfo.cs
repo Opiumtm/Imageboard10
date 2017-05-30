@@ -95,10 +95,16 @@ namespace Imageboard10.Core.ModelStorage.Boards.DataContracts
                 reference.LikesEnabled = false;
                 reference.Icons = null;
                 reference.PostingCapabilities = null;
+                reference.SageEnabled = false;
+                reference.ThreadTagsEnabled = false;
+                reference.TripCodesEnabled = false;
             }
             else
             {
                 reference.LikesEnabled = extended.LikesEnabled;
+                reference.SageEnabled = extended.SageEnabled;
+                reference.ThreadTagsEnabled = extended.ThreadTagsEnabled;
+                reference.TripCodesEnabled = extended.TripCodesEnabled;
                 reference.Icons = extended.Icons?.Select(i => new BoardIcon()
                 {
                     Id = i?.Id,
@@ -195,8 +201,13 @@ namespace Imageboard10.Core.ModelStorage.Boards.DataContracts
                         Role = c.Role,
                         MaxFileCount = c.MaxFileCount
                     };
-                default:
+                case null:
                     return null;
+                default:
+                    return new BoardPostingCapability()
+                    {
+                        Role = capability.Role
+                    };
             }
         }
     }

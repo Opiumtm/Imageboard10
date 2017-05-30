@@ -59,5 +59,11 @@ namespace Imageboard10.Core.Database
         /// <param name="grbit">Биты.</param>
         /// <returns>Таблица.</returns>
         EsentTable OpenTable(string tableName, OpenTableGrbit grbit);
+
+        /// <summary>
+        /// Асинхронное завершение работы.
+        /// </summary>
+        /// <returns>Результат.</returns>
+        Task DisposeAsync();
     }
 }
