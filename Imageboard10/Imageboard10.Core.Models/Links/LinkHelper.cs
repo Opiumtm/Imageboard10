@@ -17,8 +17,11 @@ namespace Imageboard10.Core.Models.Links
         /// <returns>Сериализованная ссылка.</returns>
         public static string Serialize(this ILink link, IModuleProvider modules)
         {
-            if (link == null) throw new ArgumentNullException(nameof(link));
             if (modules == null) throw new ArgumentNullException(nameof(modules));
+            if (link == null)
+            {
+                return null;
+            }
             return (modules.QueryModule<ILinkSerializationService>() ?? throw new ModuleNotFoundException(typeof(ILinkSerializationService)))
                 .Serialize(link);
         }
@@ -32,7 +35,10 @@ namespace Imageboard10.Core.Models.Links
         public static ILink DeserializeLink(this IModuleProvider modules, string linkStr)
         {
             if (modules == null) throw new ArgumentNullException(nameof(modules));
-            if (linkStr == null) throw new ArgumentNullException(nameof(linkStr));
+            if (linkStr == null)
+            {
+                return null;
+            }
             return (modules.QueryModule<ILinkSerializationService>() ?? throw new ModuleNotFoundException(typeof(ILinkSerializationService)))
                 .Deserialize(linkStr);
         }

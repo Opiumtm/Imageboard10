@@ -1,4 +1,6 @@
-﻿using Imageboard10.Core.Modules;
+﻿using Imageboard10.Core.ModelInterface.Posts;
+using Imageboard10.Core.Models.Posts.Serialization;
+using Imageboard10.Core.Modules;
 
 namespace Imageboard10.Core.Models.Posts
 {
@@ -13,6 +15,8 @@ namespace Imageboard10.Core.Models.Posts
         /// <param name="collection">Коллекция.</param>
         public static void RegisterModules(IModuleCollection collection)
         {
+            collection.RegisterModule<PostMediaSerializationService, IPostMediaSerializationService>();
+            collection.RegisterProvider(typeof(IPostMediaSerializer), new StandardPostMediaSerializers());
         }
     }
 }
