@@ -3,7 +3,7 @@
     /// <summary>
     /// Медиафайл с изображением предварительного просмотра.
     /// </summary>
-    public interface IPostMediaWithThumbnail : IPostNode
+    public interface IPostMediaWithThumbnail : IPostMedia
     {
         /// <summary>
         /// Изображение предварительного просмотра.

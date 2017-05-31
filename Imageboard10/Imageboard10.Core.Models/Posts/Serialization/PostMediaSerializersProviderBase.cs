@@ -1,33 +1,30 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using Imageboard10.Core.ModelInterface.Links;
+using Imageboard10.Core.ModelInterface.Posts;
 using Imageboard10.Core.Modules;
 
-namespace Imageboard10.Core.Models.Links.Serialization
+namespace Imageboard10.Core.Models.Posts.Serialization
 {
     /// <summary>
-    /// Провайдер сериализаторов ссылок.
+    /// Базовый класс провайдера сериализации медиа в постах.
     /// </summary>
-    public abstract class LinkSerializersProviderBase : ModuleBase<IModuleProvider>, IModuleProvider
+    public abstract class PostMediaSerializersProviderBase : ModuleBase<IModuleProvider>, IModuleProvider
     {
         /// <summary>
         /// Родительский провайдер модулей.
         /// </summary>
         public IModuleProvider Parent => ModuleProvider;
 
-        /// <summary>
-        /// Конструктор.
-        /// </summary>
-        protected LinkSerializersProviderBase()
+        protected PostMediaSerializersProviderBase()
         {
             // ReSharper disable once VirtualMemberCallInConstructor
             foreach (var ls in CreateSerializers())
             {
                 if (ls is IModule m)
                 {
-                    _byId[ls.LinkTypeId ?? ""] = m;
-                    _byType[ls.LinkType ?? typeof(object)] = m;
+                    _byId[ls.TypeId ?? ""] = m;
+                    _byType[ls.Type ?? typeof(object)] = m;
                 }
             }
         }
@@ -55,7 +52,7 @@ namespace Imageboard10.Core.Models.Links.Serialization
             {
                 return null;
             }
-            if (moduleType != typeof(ILinkSerializer))
+            if (moduleType != typeof(IPostMediaSerializer))
             {
                 return null;
             }
@@ -100,7 +97,7 @@ namespace Imageboard10.Core.Models.Links.Serialization
         /// Создать сериализаторы.
         /// </summary>
         /// <returns>Сериализаторы.</returns>
-        protected abstract IEnumerable<ILinkSerializer> CreateSerializers();
+        protected abstract IEnumerable<IPostMediaSerializer> CreateSerializers();
 
         private readonly Dictionary<Type, IModule> _byType = new Dictionary<Type, IModule>();
 

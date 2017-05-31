@@ -66,8 +66,8 @@ namespace Imageboard10.Core.ModelStorage
         protected override async ValueTask<Nothing> OnInitialize(IModuleProvider moduleProvider)
         {
             await base.OnInitialize(moduleProvider);
-            EsentProvider = await moduleProvider.QueryModuleAsync<IEsentInstanceProvider>() ?? throw new ModuleNotFoundException();
-            LinkSerialization = await moduleProvider.QueryModuleAsync<ILinkSerializationService>() ?? throw new ModuleNotFoundException();
+            EsentProvider = await moduleProvider.QueryModuleAsync<IEsentInstanceProvider>() ?? throw new ModuleNotFoundException(typeof(IEsentInstanceProvider));
+            LinkSerialization = await moduleProvider.QueryModuleAsync<ILinkSerializationService>() ?? throw new ModuleNotFoundException(typeof(ILinkSerializationService));
             GlobalErrorHandler = await moduleProvider.QueryModuleAsync<ModuleInterface.IGlobalErrorHandler>();
             return Nothing.Value;
         }

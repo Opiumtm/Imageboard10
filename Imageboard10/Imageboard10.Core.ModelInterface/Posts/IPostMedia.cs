@@ -22,5 +22,11 @@ namespace Imageboard10.Core.ModelInterface.Posts
         /// Размер файла.
         /// </summary>
         ulong? FileSize { get; }
+
+        /// <summary>
+        /// Получить тип для сериализатора.
+        /// </summary>
+        /// <returns>Тип для сериализатора.</returns>
+        Type GetTypeForSerializer();
     }
 }

@@ -1,7 +1,8 @@
 ﻿using System;
 using Imageboard10.Core.ModelInterface.Links;
 using Imageboard10.Core.Modules;
-using Newtonsoft.Json;
+using static Imageboard10.Core.Models.SerializationImplHelper;
+
 
 namespace Imageboard10.Core.Models.Links
 {
@@ -17,17 +18,16 @@ namespace Imageboard10.Core.Models.Links
         /// <returns>Ссылка в виде строки.</returns>
         public string Serialize(ILink link)
         {
-            if (link == null) throw new ArgumentNullException(nameof(link));
+            if (link == null)
+            {
+                return null;
+            }
             var serializer = ModuleProvider?.QueryModule<ILinkSerializer, Type>(link.GetTypeForSerializer());
             if (serializer == null)
             {
-                throw new InvalidOperationException($"Не найдена логика сериализации для ссылки типа {link.GetType().FullName}");
+                throw new ModuleNotFoundException($"Не найдена логика сериализации для ссылки типа {link.GetTypeForSerializer()?.FullName}");
             }
-            return JsonConvert.SerializeObject(new Jo()
-            {
-                TypeId = serializer.LinkTypeId,
-                Link = serializer.Serialize(link)
-            });
+            return WithTypeId(serializer.Serialize(link), serializer.LinkTypeId);
         }
 
         /// <summary>
@@ -37,26 +37,17 @@ namespace Imageboard10.Core.Models.Links
         /// <returns>Ссыока.</returns>
         public ILink Deserialize(string linkStr)
         {
-            if (linkStr == null) throw new ArgumentNullException(nameof(linkStr));
-            var jo = JsonConvert.DeserializeObject<Jo>(linkStr);
-            if (jo.TypeId == null || jo.Link == null)
+            if (linkStr == null)
             {
-                throw new InvalidOperationException("Неправильный формат сериализованной ссылки");
+                return null;
             }
-            var serializer = ModuleProvider?.QueryModule<ILinkSerializer, string>(jo.TypeId);
+            (var data, var typeId) = ExtractTypeId(linkStr);
+            var serializer = ModuleProvider?.QueryModule<ILinkSerializer, string>(typeId);
             if (serializer == null)
             {
-                throw new InvalidOperationException($"Не найдена логика сериализации для ссылки идентификатора типа {jo.TypeId}");
+                throw new ModuleNotFoundException($"Не найдена логика сериализации для ссылки типа \"{typeId}\"");
             }
-            return serializer.Deserialize(jo.Link);
-        }
-
-        public class Jo
-        {
-            [JsonProperty("t")]
-            public string TypeId { get; set; }
-            [JsonProperty("l")]
-            public string Link { get; set; }
+            return serializer.Deserialize(data);
         }
     }
 }

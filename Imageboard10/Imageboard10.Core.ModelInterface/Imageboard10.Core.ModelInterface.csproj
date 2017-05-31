@@ -134,6 +134,7 @@
     <Compile Include="Posting\IPostingIconCapability.cs" />
     <Compile Include="Posting\IPostingMediaFileCapability.cs" />
     <Compile Include="Posting\PostingFieldSemanticRole.cs" />
+    <Compile Include="Posts\BoardPostFlags.cs" />
     <Compile Include="Posts\IBoardLinkPostNode.cs" />
     <Compile Include="Posts\IBoardPost.cs" />
     <Compile Include="Posts\IBoardPostCountryFlag.cs" />
@@ -147,9 +148,13 @@
     <Compile Include="Posts\IPosterInfo.cs" />
     <Compile Include="Posts\IPostLinkAttribute.cs" />
     <Compile Include="Posts\IPostMedia.cs" />
+    <Compile Include="Posts\IPostMediaSerializationService.cs" />
+    <Compile Include="Posts\IPostMediaSerializer.cs" />
+    <Compile Include="Posts\IPostMediaWithInfo.cs" />
     <Compile Include="Posts\IPostMediaWithSize.cs" />
     <Compile Include="Posts\IPostMediaWithThumbnail.cs" />
     <Compile Include="Posts\IPostNode.cs" />
+    <Compile Include="Posts\IPostDocumentSerializationService.cs" />
     <Compile Include="Posts\ITextPostNode.cs" />
     <Compile Include="Posts\PostBasicAttributes.cs" />
     <Compile Include="Posts\PostMediaTypes.cs" />

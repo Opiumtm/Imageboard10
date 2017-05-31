@@ -19,7 +19,7 @@ namespace Imageboard10.Core.Models.Links
         {
             if (link == null) throw new ArgumentNullException(nameof(link));
             if (modules == null) throw new ArgumentNullException(nameof(modules));
-            return (modules.QueryModule<ILinkSerializationService>() ?? throw new ModuleNotFoundException())
+            return (modules.QueryModule<ILinkSerializationService>() ?? throw new ModuleNotFoundException(typeof(ILinkSerializationService)))
                 .Serialize(link);
         }
 
@@ -33,7 +33,7 @@ namespace Imageboard10.Core.Models.Links
         {
             if (modules == null) throw new ArgumentNullException(nameof(modules));
             if (linkStr == null) throw new ArgumentNullException(nameof(linkStr));
-            return (modules.QueryModule<ILinkSerializationService>() ?? throw new ModuleNotFoundException())
+            return (modules.QueryModule<ILinkSerializationService>() ?? throw new ModuleNotFoundException(typeof(ILinkSerializationService)))
                 .Deserialize(linkStr);
         }
 
@@ -54,7 +54,7 @@ namespace Imageboard10.Core.Models.Links
             {
                 return dc.DeepClone(modules);
             }
-            var serializer = modules.QueryModule<ILinkSerializationService>() ?? throw new ModuleNotFoundException();
+            var serializer = modules.QueryModule<ILinkSerializationService>() ?? throw new ModuleNotFoundException(typeof(ILinkSerializationService));
             return serializer.Deserialize(serializer.Serialize(link));
         }
     }

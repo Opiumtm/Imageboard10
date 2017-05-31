@@ -10,6 +10,24 @@ namespace Imageboard10.Core.Modules
         /// <summary>
         /// Конструктор.
         /// </summary>
+        /// <param name="message">Сообщение.</param>
+        public ModuleNotFoundException(string message)
+            :base(message)
+        {            
+        }
+
+        /// <summary>
+        /// Конструктор.
+        /// </summary>
+        /// <param name="type">Тип модуля.</param>
+        public ModuleNotFoundException(Type type)
+            : base($"Запрошенный модуль не найден. Тип: {type.FullName}")
+        {
+        }
+
+        /// <summary>
+        /// Конструктор.
+        /// </summary>
         public ModuleNotFoundException()
             :base("Запрошенный модуль не найден")
         {            

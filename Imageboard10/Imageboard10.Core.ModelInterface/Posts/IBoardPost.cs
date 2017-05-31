@@ -25,6 +25,11 @@ namespace Imageboard10.Core.ModelInterface.Posts
         IPostDocument Comment { get; }
 
         /// <summary>
+        /// Цитаты.
+        /// </summary>
+        IList<ILink> Quotes { get; }
+
+        /// <summary>
         /// Медиафайлы.
         /// </summary>
         IList<IPostMedia> MediaFiles { get; }
@@ -48,6 +53,11 @@ namespace Imageboard10.Core.ModelInterface.Posts
         /// Порядковый номер поста.
         /// </summary>
         int Counter { get; }
+
+        /// <summary>
+        /// Флаги поста.
+        /// </summary>
+        IList<Guid> Flags { get; }
 
         /// <summary>
         /// MD5-хэш, если есть.

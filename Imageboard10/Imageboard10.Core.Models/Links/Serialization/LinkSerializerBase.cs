@@ -30,7 +30,10 @@ namespace Imageboard10.Core.Models.Links.Serialization
         /// <returns>Ссылка в виде строки.</returns>
         public string Serialize(ILink link)
         {
-            if (link == null) throw new ArgumentNullException(nameof(link));
+            if (link == null)
+            {
+                return null;
+            }
             if (link is T l)
             {
                 return JsonConvert.SerializeObject(GetJsonObject(l));
@@ -48,7 +51,7 @@ namespace Imageboard10.Core.Models.Links.Serialization
             var json = JsonConvert.DeserializeObject<TJson>(linkStr);
             if (json == null)
             {
-                throw new InvalidOperationException("Ошибка десериализации ссылки");
+                return null;
             }
             var result = new T();
             FillValues(result, json);
