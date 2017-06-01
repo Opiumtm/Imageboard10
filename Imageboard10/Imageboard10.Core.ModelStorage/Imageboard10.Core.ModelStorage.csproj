@@ -106,9 +106,23 @@
     <RestoreProjectStyle>PackageReference</RestoreProjectStyle>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="Blobs\BlobException.cs" />
+    <Compile Include="Blobs\BlobId.cs" />
+    <Compile Include="Blobs\BlobInfo.cs" />
+    <Compile Include="Blobs\BlobLockId.cs" />
+    <Compile Include="Blobs\BlobNotFoundException.cs" />
+    <Compile Include="Blobs\BlobsModelStore.cs" />
+    <Compile Include="Blobs\BlobStreamBase.cs" />
+    <Compile Include="Blobs\BlobTableInfo.cs" />
+    <Compile Include="Blobs\BlockReader.cs" />
+    <Compile Include="Blobs\BlocksBlobStream.cs" />
+    <Compile Include="Blobs\IBlobsModelStore.cs" />
+    <Compile Include="Blobs\InlineBlobStream.cs" />
+    <Compile Include="Blobs\InputBlob.cs" />
     <Compile Include="Boards\BoardReferenceStore.cs" />
     <Compile Include="Boards\DataContracts\BoardExtendedInfo.cs" />
     <Compile Include="Boards\DataContracts\BoardShortInfo.cs" />
+    <Compile Include="UnitTests\BlobStreamInfo.cs" />
     <Compile Include="UnitTests\IBoardReferenceStoreForTests.cs" />
     <Compile Include="UnitTests\IModelStorageForTests.cs" />
     <Compile Include="ModelStorageBase.cs" />

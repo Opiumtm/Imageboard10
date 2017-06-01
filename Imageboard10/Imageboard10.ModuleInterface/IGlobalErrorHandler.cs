@@ -8,7 +8,7 @@ namespace Imageboard10.ModuleInterface
     public interface IGlobalErrorHandler
     {
         /// <summary>
-        /// Сигнализировать об ошибке.
+        /// Сигнализировать об ошибке. Ни в коем случае не должен кидать исключения сам.
         /// </summary>
         /// <param name="error">Ошибка.</param>
         void SignalError(Exception error);

@@ -43,10 +43,7 @@ namespace Imageboard10.Core.Tasks
                 _queue.Enqueue(new ActionInfo()
                 {
                     tcs = tcs,
-                    action = () =>
-                    {
-                        return action();
-                    }
+                    action = () => action()
                 });
                 _queuedEvent.Set();
                 var obj = await tcs.Task;

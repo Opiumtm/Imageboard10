@@ -19,6 +19,12 @@ namespace Imageboard10.Core.Database
         IEsentSession GetReadOnlySession();
 
         /// <summary>
+        /// Уменьшить размер базы данных.
+        /// </summary>
+        /// <returns>Количество страниц после очистки.</returns>
+        Task<int> ShrinkDatabase();
+       
+        /// <summary>
         /// Путь к базе данных.
         /// </summary>
         string DatabasePath { get; }

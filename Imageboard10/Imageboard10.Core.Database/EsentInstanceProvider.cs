@@ -9,6 +9,8 @@ using Imageboard10.Core.Database.UnitTests;
 using Imageboard10.Core.Modules;
 using Imageboard10.Core.Tasks;
 using Microsoft.Isam.Esent.Interop;
+using Microsoft.Isam.Esent.Interop.Windows8;
+using Microsoft.Isam.Esent.Interop.Windows81;
 
 namespace Imageboard10.Core.Database
 {
@@ -204,6 +206,7 @@ namespace Imageboard10.Core.Database
                     Recovery = true,
                     CircularLog = true,
                     LogFileSize = 1024,
+                    EnableShrinkDatabase = ShrinkDatabaseGrbit.On
                 },
             };
             instance.Init();
@@ -282,6 +285,23 @@ namespace Imageboard10.Core.Database
             var session = _mainSession;
             var idx = _rnd.Next(0, session.ReadonlySessions.Length);
             return session.ReadonlySessions[idx];
+        }
+
+        /// <summary>
+        /// Уменьшить размер базы данных.
+        /// </summary>
+        /// <returns>Количество страниц после очистки.</returns>
+        public async Task<int> ShrinkDatabase()
+        {
+            var sesson = MainSession;
+            int result = int.MaxValue;
+            await sesson.Run(() =>
+            {
+                int actualPages;
+                Windows8Api.JetResizeDatabase(sesson.Session, sesson.Database, 0, out actualPages, ResizeDatabaseGrbit.None);
+                result = actualPages;
+            });
+            return result;
         }
 
         /// <summary>
