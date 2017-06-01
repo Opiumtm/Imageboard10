@@ -416,9 +416,66 @@ namespace Imageboard10.Core.ModelStorage.Blobs
         /// <param name="id">Идентификатор.</param>
         /// <param name="maxLockTime">Максимальное время блокировки.</param>
         /// <returns>Результат.</returns>
-        public Task<Stream> LoadBlob(BlobId id, TimeSpan maxLockTime)
+        public async Task<Stream> LoadBlob(BlobId id, TimeSpan maxLockTime)
         {
-            throw new NotImplementedException();
+            CheckModuleReady();
+            await WaitForTablesInitialize();
+
+            var r = await QueryReadonly(async session =>
+            {
+                BlobStreamBase result = null;
+                long size = 0;
+                await session.Run(() =>
+                {
+                    using (var table = session.OpenTable(BlobsTable, OpenTableGrbit.ReadOnly))
+                    {
+                        Api.MakeKey(table.Session, table, id.Id, MakeKeyGrbit.NewKey);
+                        if (Api.TrySeek(table.Session, table, SeekGrbit.SeekEQ))
+                        {
+                            var columnMap = Api.GetColumnDictionary(table.Session, table);
+                            var isInlined = Api.RetrieveColumnAsBoolean(table.Session, table, columnMap[BlobTableColumns.IsInlined]) ?? throw new BlobException($"Неверные даные в таблице {BlobsTable}");
+                            size = Api.RetrieveColumnAsInt64(table.Session, table, columnMap[BlobTableColumns.Length]) ?? throw new BlobException($"Неверные даные в таблице {BlobsTable}");
+                            if (isInlined)
+                            {
+                                var c = new ColumnValue[]
+                                {
+                                    new BytesColumnValue()
+                                    {
+                                        Columnid = columnMap[BlobTableColumns.InlineData],
+                                        RetrieveGrbit = RetrieveColumnGrbit.None
+                                    }
+                                };
+                                Api.RetrieveColumns(table.Session, table, c);
+                                var data = ((BytesColumnValue) c[0]).Value;
+                                if (data == null)
+                                {
+                                    throw new BlobException($"Неверные даные в таблице {BlobsTable}");
+                                }
+                                result = new InlineBlobStream(EsentProvider, this, GlobalErrorHandler, data);
+                            }
+                        }
+                        else
+                        {
+                            throw new BlobNotFoundException(id);
+                        }
+                    }
+                });
+                if (result == null)
+                {
+                    throw new BlobException("");
+                }
+                return (result, size);
+            });
+            if (r.Item1 != null)
+            {
+                return r.Item1;
+            }
+            var l = await LockBlob(id, maxLockTime);
+            if (l == null)
+            {
+                throw new BlobException($"Неверные даные в таблице {BlobsTable}");
+            }
+            return new BlocksBlobStream(EsentProvider, this, GlobalErrorHandler, l.Value, r.Item2, id);
         }
 
         /// <summary>
@@ -457,7 +514,7 @@ namespace Imageboard10.Core.ModelStorage.Blobs
                 BlobLockId? result = null;
                 await session.Run(() =>
                 {
-                    using (var table = session.OpenTable(BlobsTable, OpenTableGrbit.ReadOnly))
+                    using (var table = session.OpenTable(BlobsTable, OpenTableGrbit.DenyWrite))
                     {
                         Api.MakeKey(table.Session, table, id.Id, MakeKeyGrbit.NewKey);
                         if (Api.TrySeek(table.Session, table, SeekGrbit.SeekEQ))
@@ -495,7 +552,7 @@ namespace Imageboard10.Core.ModelStorage.Blobs
                 bool result = false;
                 await session.Run(() =>
                 {
-                    using (var table = session.OpenTable(BlobsTable, OpenTableGrbit.ReadOnly))
+                    using (var table = session.OpenTable(BlobsTable, OpenTableGrbit.DenyWrite))
                     {
                         Api.MakeKey(table.Session, table, lockId.BlobId.Id, MakeKeyGrbit.NewKey);
                         if (Api.TrySeek(table.Session, table, SeekGrbit.SeekEQ))

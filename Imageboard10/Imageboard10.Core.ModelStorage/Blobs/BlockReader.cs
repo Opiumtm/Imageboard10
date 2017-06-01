@@ -49,7 +49,7 @@ namespace Imageboard10.Core.ModelStorage.Blobs
                 {
                     break;
                 }
-                var sz = await _stream.ReadAsync(buf, 0, (int)toRead);
+                var sz = await _stream.ReadAsync(buf, 0, (int)toRead, token);
                 if (sz <= 0)
                 {
                     break;
