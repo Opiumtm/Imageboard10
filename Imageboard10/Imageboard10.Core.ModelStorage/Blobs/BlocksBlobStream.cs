@@ -136,9 +136,6 @@ namespace Imageboard10.Core.ModelStorage.Blobs
                                 break;
                             }
 
-                            Api.MakeKey(sid, table, _blobId.Id, MakeKeyGrbit.NewKey);
-                            Api.MakeKey(sid, table, blockNum, MakeKeyGrbit.None);
-
                             var data = LoadBlock(sid, table, colid, blockNum);
 
                             // Блок не найден. Т.е. предположительно предыдущие был последним блоком.
@@ -173,6 +170,8 @@ namespace Imageboard10.Core.ModelStorage.Blobs
                     return _blocksCache[blockNum].data;
                 }
                 byte[] data = null;
+                Api.MakeKey(sid, table, _blobId.Id, MakeKeyGrbit.NewKey);
+                Api.MakeKey(sid, table, blockNum, MakeKeyGrbit.None);
                 if (Api.TrySeek(sid, table, SeekGrbit.SeekEQ))
                 {
                     data = Api.RetrieveColumn(sid, table, colid);
