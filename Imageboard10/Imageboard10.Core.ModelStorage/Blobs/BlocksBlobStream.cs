@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Imageboard10.Core.Database;
@@ -11,6 +13,10 @@ namespace Imageboard10.Core.ModelStorage.Blobs
     internal sealed class BlocksBlobStream : BlobStreamBase
     {
         private readonly BlobId _blobId;
+
+        private readonly Dictionary<int, (int counter, byte[] data)> _blocksCache = new Dictionary<int, (int counter, byte[] data)>();
+
+        private int _cacheCounter;
 
         public BlocksBlobStream(IEsentInstanceProvider esent, IBlobsModelStore blobStore, IGlobalErrorHandler globalErrorHandler, BlobLockId lockId, long length, BlobId blobId)
             : base(esent, blobStore, globalErrorHandler, lockId)
@@ -133,18 +139,13 @@ namespace Imageboard10.Core.ModelStorage.Blobs
                             Api.MakeKey(sid, table, _blobId.Id, MakeKeyGrbit.NewKey);
                             Api.MakeKey(sid, table, blockNum, MakeKeyGrbit.None);
 
-                            // Блок не найден. Предположительно предыдущий блок был последним.
-                            if (!Api.TrySeek(sid, table, SeekGrbit.SeekEQ))
+                            var data = LoadBlock(sid, table, colid, blockNum);
+
+                            // Блок не найден. Т.е. предположительно предыдущие был последним блоком.
+                            if (data == null)
                             {
                                 break;
                             }
-                            var data = Api.RetrieveColumn(sid, table, colid);
-                            if (data == null)
-                            {
-                                throw new BlobException(
-                                    $"Ошибка в данных в таблице {BlobTableInfo.BlockTable}. Блок {_blobId.Id}:{blockNum} == null");
-                            }
-
                             var toCopy = Math.Min(toRead, data.Length - firstOfs);
                             // Размер блока меньше ожидаемого. Т.е. предположительно последний блок.
                             if (toCopy <= 0)
@@ -162,6 +163,36 @@ namespace Imageboard10.Core.ModelStorage.Blobs
                 }
             }
         }
+
+        private byte[] LoadBlock(Session sid, EsentTable table, JET_COLUMNID colid, int blockNum)
+        {
+            lock (_blocksCache)
+            {
+                if (_blocksCache.ContainsKey(blockNum))
+                {
+                    return _blocksCache[blockNum].data;
+                }
+                byte[] data = null;
+                if (Api.TrySeek(sid, table, SeekGrbit.SeekEQ))
+                {
+                    data = Api.RetrieveColumn(sid, table, colid);
+                    if (data == null)
+                    {
+                        throw new BlobException(
+                            $"Ошибка в данных в таблице {BlobTableInfo.BlockTable}. Блок {_blobId.Id}:{blockNum} == null");
+                    }
+                }
+                _cacheCounter++;
+                _blocksCache[blockNum] = (_cacheCounter, data);
+                while (_blocksCache.Count > 10)
+                {
+                    var l = _blocksCache.OrderBy(c => c.Value.counter).First();
+                    _blocksCache.Remove(l.Key);
+                }
+                return data;
+            }
+        }
+
 
         public override long Seek(long offset, SeekOrigin origin)
         {
