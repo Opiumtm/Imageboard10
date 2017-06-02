@@ -152,7 +152,7 @@ namespace Imageboard10.Core.ModelStorage
                 return default(T);
             }
             CheckModuleReady();
-            var readonlySession = EsentProvider.GetReadOnlySession();
+            var readonlySession = await EsentProvider.GetReadOnlySession();
             using (readonlySession.UseSession())
             {
                 return await logic(readonlySession);
@@ -172,7 +172,7 @@ namespace Imageboard10.Core.ModelStorage
                 return default(T);
             }
             CheckModuleReady();
-            var readonlySession = EsentProvider.GetReadOnlySession();
+            var readonlySession = await EsentProvider.GetReadOnlySession();
             using (readonlySession.UseSession())
             {
                 T result = default(T);

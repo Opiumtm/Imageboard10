@@ -970,7 +970,7 @@ namespace Imageboard10.Core.ModelStorage.Boards
                                 transaction.Commit(CommitTransactionGrbit.None);
                             }
                         }
-                        foreach (var references1 in references.Where(r => r != null).SplitSet(10))
+                        foreach (var references1 in references.Where(r => r != null).SplitSet(5))
                         {
                             using (var transaction = new Transaction(table.Session))
                             {

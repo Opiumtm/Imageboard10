@@ -16,7 +16,7 @@ namespace Imageboard10.Core.Database
         /// Получить сессию только для чтения.
         /// </summary>
         /// <returns>Экземпляр.</returns>
-        IEsentSession GetReadOnlySession();
+        ValueTask<IEsentSession> GetReadOnlySession();
 
       
         /// <summary>

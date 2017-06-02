@@ -122,16 +122,9 @@ namespace Imageboard10.Core.Database
                 var newSession = new MainSessionObj()
                 {
                     MainSession = mainSession,
-                    ReadonlySessions = await Task.WhenAll(
-                        EsentSession.CreateReadOnlySession(mainSession, this),
-                        EsentSession.CreateReadOnlySession(mainSession, this),
-                        EsentSession.CreateReadOnlySession(mainSession, this),
-                        EsentSession.CreateReadOnlySession(mainSession, this),
-                        EsentSession.CreateReadOnlySession(mainSession, this),
-                        EsentSession.CreateReadOnlySession(mainSession, this),
-                        EsentSession.CreateReadOnlySession(mainSession, this)
-                        )
+                    Waiters = this
                 };
+                await newSession.CreateReservedSessions();
                 
                 var old = Interlocked.Exchange(ref _cachedSession, newSession);
                 if (old != null)
@@ -206,7 +199,7 @@ namespace Imageboard10.Core.Database
                     Recovery = true,
                     CircularLog = true,
                     LogFileSize = 1024,
-                    EnableShrinkDatabase = ShrinkDatabaseGrbit.Realtime
+                    EnableShrinkDatabase = ShrinkDatabaseGrbit.On
                 },
             };
             instance.Init();
@@ -247,11 +240,22 @@ namespace Imageboard10.Core.Database
         private sealed class MainSessionObj
         {
             public IEsentSession MainSession;
-            public IEsentSession[] ReadonlySessions;
+            private readonly List<EsentSession> _readonlySessions = new List<EsentSession>();
+            public IDisposeWaiters Waiters;
+            private readonly Random _rnd = new Random();
+
+            public async Task CreateReservedSessions()
+            {
+                var s = ReserveSessionsCount;
+                for (var i = 0; i < s; i++)
+                {
+                    _readonlySessions.Add(await EsentSession.CreateReadOnlySession(MainSession, Waiters));
+                }
+            }
 
             public async Task DisposeAsync()
             {
-                foreach (var s in ReadonlySessions)
+                foreach (var s in _readonlySessions)
                 {
                     await DisposeAsync(s);
                 }
@@ -265,6 +269,67 @@ namespace Imageboard10.Core.Database
                     await s.DisposeInternal();
                 }
             }
+
+            public async ValueTask<IEsentSession> GetAvailableSession()
+            {
+                async Task<Nothing> DoDisposeExccessSessions()
+                {
+                    async Task DoDispose(EsentSession s)
+                    {
+                        try
+                        {
+                            await s.DisposeInternal();
+                        }
+                        catch
+                        {
+                            // Игнорируем ошибки
+                        }
+                    }
+
+                    List<EsentSession> toDispose = new List<EsentSession>();
+                    lock (Waiters.UsingLock)
+                    {
+                        var freeSessions = _readonlySessions.Where(s => s.UsingsCount == 0).ToArray();
+                        if (freeSessions.Length > 4)
+                        {
+                            toDispose.AddRange(freeSessions.Skip(4));
+                        }
+                        foreach (var s in toDispose)
+                        {
+                            _readonlySessions.Remove(s);
+                        }
+                    }
+                    if (toDispose.Count > 0)
+                    {
+                        var t1 = Task.WhenAll(toDispose.Select(DoDispose));
+                        var t2 = Task.Delay(TimeSpan.FromSeconds(15));
+                        await Task.WhenAny(t1, t2);
+                    }
+                    return Nothing.Value;
+                }
+
+                lock (Waiters.UsingLock)
+                {
+                    var freeSessions = _readonlySessions.Where(s => s.UsingsCount == 0).ToArray();
+                    if (freeSessions.Length > 0)
+                    {
+                        if (freeSessions.Length == 1)
+                        {
+                            return freeSessions[0];
+                        }
+                        return freeSessions[_rnd.Next(0, freeSessions.Length)];
+                    }
+                }
+                var newSession = await EsentSession.CreateReadOnlySession(MainSession, Waiters);
+                lock (Waiters.UsingLock)
+                {
+                    _readonlySessions.Add(newSession);
+                }
+                CoreTaskHelper.RunUnawaitedTaskAsync(DoDisposeExccessSessions);
+                return newSession;
+            }
+
+            private const int ReserveSessionsCount = 4;
         }
 
         private MainSessionObj _mainSession => Interlocked.CompareExchange(ref _cachedSession, null, null) ?? throw new InvalidOperationException("Нет активной сессии ESENT");
@@ -274,17 +339,14 @@ namespace Imageboard10.Core.Database
         /// </summary>
         public IEsentSession MainSession => _mainSession.MainSession;
 
-        private readonly Random _rnd = new Random();
-
         /// <summary>
         /// Получить сессию только для чтения.
         /// </summary>
         /// <returns>Экземпляр.</returns>
-        public IEsentSession GetReadOnlySession()
+        public ValueTask<IEsentSession> GetReadOnlySession()
         {
             var session = _mainSession;
-            var idx = _rnd.Next(0, session.ReadonlySessions.Length);
-            return session.ReadonlySessions[idx];
+            return session.GetAvailableSession();
         }
 
         /// <summary>
@@ -297,7 +359,9 @@ namespace Imageboard10.Core.Database
             private readonly string _databasePath;
             private readonly IDisposeWaiters _waiters;
 
-            public static async Task<IEsentSession> CreateReadOnlySession(IEsentSession parentSession, IDisposeWaiters waiters)
+            public int UsingsCount;
+
+            public static async Task<EsentSession> CreateReadOnlySession(IEsentSession parentSession, IDisposeWaiters waiters)
             {
                 var dispatcher = new SingleThreadDispatcher();
                 try
@@ -338,6 +402,8 @@ namespace Imageboard10.Core.Database
                 _dispatcher = dispatcher;
             }
 
+            private int _isDisposed;
+
             public ValueTask<Nothing> DisposeInternal()
             {
                 Nothing Do()
@@ -360,11 +426,15 @@ namespace Imageboard10.Core.Database
                 }
 
 
-                if (_dispatcher == null)
+                if (Interlocked.Exchange(ref _isDisposed, 1) == 0)
                 {
-                    return new ValueTask<Nothing>(Do());
+                    if (_dispatcher == null)
+                    {
+                        return new ValueTask<Nothing>(Do());
+                    }
+                    return new ValueTask<Nothing>(_dispatcher.QueueAction(Do));
                 }
-                return new ValueTask<Nothing>(_dispatcher.QueueAction(Do));
+                return new ValueTask<Nothing>(Nothing.Value);
             }
 
             public Instance Instance { get; }
@@ -441,8 +511,21 @@ namespace Imageboard10.Core.Database
 
             public IDisposable UseSession()
             {
-                return new SessionDisposeWaiter(_waiters);
+                void OnDispose()
+                {
+                    lock (_waiters.UsingLock)
+                    {
+                        UsingsCount--;
+                    }
+                }
+
+                lock (_waiters.UsingLock)
+                {
+                    UsingsCount++;
+                }
+                return new SessionDisposeWaiter(_waiters, OnDispose);
             }
+
 
             /// <summary>
             /// Открыть таблицу.
@@ -467,9 +550,11 @@ namespace Imageboard10.Core.Database
                 private readonly IDisposeWaiters _waiters;
                 private readonly TaskCompletionSource<bool> tcs;
                 private int _isDisposed;
+                private readonly Action _onDispose;
 
-                public SessionDisposeWaiter(IDisposeWaiters waiters)
+                public SessionDisposeWaiter(IDisposeWaiters waiters, Action onDispose)
                 {
+                    _onDispose = onDispose;
                     _waiters = waiters;
                     tcs = new TaskCompletionSource<bool>();
                     var task = tcs.Task;
@@ -494,6 +579,7 @@ namespace Imageboard10.Core.Database
                             {
                             }
                         });
+                        _onDispose.Invoke();
                     }
                 }
             }
@@ -568,5 +654,7 @@ namespace Imageboard10.Core.Database
                 _waitingDisposed.Remove(task);
             }
         }
+
+        object IDisposeWaiters.UsingLock { get; } = new object();
     }
 }

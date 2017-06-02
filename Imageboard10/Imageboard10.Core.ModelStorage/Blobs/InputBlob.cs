@@ -26,10 +26,5 @@ namespace Imageboard10.Core.ModelStorage.Blobs
         /// Максимальный размер (если данные содержат кроме файла что-то ещё). Если null - чтение до конца файла.
         /// </summary>
         public long? MaxSize;
-
-        /// <summary>
-        /// Запретить хранение в основной таблице.
-        /// </summary>
-        public bool DisableInlining;
     }
 }

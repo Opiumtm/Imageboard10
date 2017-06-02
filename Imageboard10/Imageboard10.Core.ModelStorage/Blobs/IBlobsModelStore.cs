@@ -48,21 +48,6 @@ namespace Imageboard10.Core.ModelStorage.Blobs
         Task<BlobId[]> DeleteBlobs(BlobId[] idArray);
 
         /// <summary>
-        /// Блокировка файла (нельзя удалить).
-        /// </summary>
-        /// <param name="id">Идентификатор файла.</param>
-        /// <param name="maxLockTime">Максимальное время блокировки.</param>
-        /// <returns>Идентификатор блокировки. null, если файл не найден.</returns>
-        Task<BlobLockId?> LockBlob(BlobId id, TimeSpan maxLockTime);
-
-        /// <summary>
-        /// Разблокировать файл.
-        /// </summary>
-        /// <param name="lockId">Идентификатор блокировки.</param>
-        /// <returns>true, если разблокировано.</returns>
-        Task<bool> UnlockBlob(BlobLockId lockId);
-
-        /// <summary>
         /// Получить размер файла.
         /// </summary>
         /// <param name="id">Идентификатор.</param>

@@ -113,7 +113,7 @@ namespace Imageboard10UnitTests
                     });
                     await RunAsyncOnThread(async () =>
                     {
-                        var session = provider.GetReadOnlySession();
+                        var session = await provider.GetReadOnlySession();
                         using (session.UseSession())
                         {
                             await session.RunInTransaction(() =>
@@ -146,7 +146,7 @@ namespace Imageboard10UnitTests
                         }
                     });
                     {
-                        var session = provider.GetReadOnlySession();
+                        var session = await provider.GetReadOnlySession();
                         using (session.UseSession())
                         {
                             JET_TABLEID tableid = default(JET_TABLEID);
@@ -249,7 +249,7 @@ namespace Imageboard10UnitTests
                     Assert.AreEqual(expectedInstanceCount, testData.InstancesCreated, $"Должно быть создано {expectedInstanceCount} инстансов вместо {testData.InstancesCreated}");
                     await Assert.ThrowsExceptionAsync<InvalidOperationException>(async () =>
                     {
-                        var session = provider.GetReadOnlySession();
+                        var session = await provider.GetReadOnlySession();
                         session.UseSession().Dispose();
                     }, "Не было брошено исключение при попытке получить сессию в приостановленном провайдере");
                     await collection.Resume();
@@ -274,9 +274,9 @@ namespace Imageboard10UnitTests
                     await collection.Suspend();
                     Assert.IsTrue(testData.IsSuspended, "Провайдер ESENT не был приостановлен");
                     Assert.AreEqual(expectedInstanceCount, testData.InstancesCreated, $"Должно быть создано {expectedInstanceCount} инстансов вместо {testData.InstancesCreated}");
-                    Assert.ThrowsException<InvalidOperationException>(() =>
+                    await Assert.ThrowsExceptionAsync<InvalidOperationException>(async () =>
                     {
-                        var session = provider.GetReadOnlySession();
+                        var session = await provider.GetReadOnlySession();
                         session.UseSession().Dispose();
                     }, "Не было брошено исключение при попытке получить сессию в приостановленном провайдере");
                     await Task.WhenAll(toAwait.ToArray());

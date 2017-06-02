@@ -31,10 +31,5 @@ namespace Imageboard10.Core.ModelStorage.Blobs
         /// Размер.
         /// </summary>
         public long Size;
-
-        /// <summary>
-        /// Файл заблокирован на удаление.
-        /// </summary>
-        public bool IsLocked;
     }
 }

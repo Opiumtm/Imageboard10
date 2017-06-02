@@ -18,5 +18,10 @@ namespace Imageboard10.Core.Database
         /// </summary>
         /// <param name="task">Таск.</param>
         void RemoveWaiter(Task task);
+
+        /// <summary>
+        /// Объект блокировки по обновлению данных использования.
+        /// </summary>
+        object UsingLock { get; }
     }
 }

@@ -18,11 +18,9 @@ namespace Imageboard10.Core.ModelStorage.Blobs
         /// <summary>
         /// Конструктор.
         /// </summary>
-        /// <param name="esent">Провайдер ESENT.</param>
-        /// <param name="blobStore">Хранилище файлов.</param>
         /// <param name="globalErrorHandler">Обработчик глобальных ошибок.</param>
         /// <param name="data">Данные.</param>
-        public InlineBlobStream(IEsentInstanceProvider esent, IBlobsModelStore blobStore, IGlobalErrorHandler globalErrorHandler, byte[] data) : base(esent, blobStore, globalErrorHandler, null)
+        public InlineBlobStream(IGlobalErrorHandler globalErrorHandler, byte[] data) : base(globalErrorHandler)
         {
             if (data == null) throw new ArgumentNullException(nameof(data));
             _inlinedStream = new MemoryStream(data);
