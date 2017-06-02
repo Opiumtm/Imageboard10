@@ -95,6 +95,7 @@
     <SDKReference Include="TestPlatform.Universal, Version=$(UnitTestPlatformVersion)" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="BlobStoreTests.cs" />
     <Compile Include="BoardReferencesStoreTests.cs" />
     <Compile Include="EsentDatabaseTests.cs" />
     <Compile Include="LinkSerializationTests.cs" />

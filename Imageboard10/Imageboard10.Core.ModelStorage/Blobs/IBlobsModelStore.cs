@@ -29,9 +29,8 @@ namespace Imageboard10.Core.ModelStorage.Blobs
         /// Загрузить файл.
         /// </summary>
         /// <param name="id">Идентификатор.</param>
-        /// <param name="maxLockTime">Максимальное время блокировки.</param>
         /// <returns>Результат.</returns>
-        Task<Stream> LoadBlob(BlobId id, TimeSpan maxLockTime);
+        Task<Stream> LoadBlob(BlobId id);
 
         /// <summary>
         /// Удалить файл.

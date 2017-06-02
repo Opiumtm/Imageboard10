@@ -116,7 +116,7 @@ namespace Imageboard10.Core.ModelStorage.Blobs
                         {
                             using (var update = new Update(sid, table, JET_prep.Insert))
                             {
-                                blobId = Api.RetrieveColumnAsInt32(sid, table, columnMap[BlobTableColumns.Id]) ??
+                                blobId = Api.RetrieveColumnAsInt32(sid, table, columnMap[BlobTableColumns.Id], RetrieveColumnGrbit.RetrieveCopy) ??
                                          throw new BlobException("Не доступно значение autioncrement Id");
                                 var columns = new ColumnValue[]
                                 {
@@ -143,7 +143,7 @@ namespace Imageboard10.Core.ModelStorage.Blobs
                                     new Int64ColumnValue()
                                     {
                                         Columnid = columnMap[BlobTableColumns.Length],
-                                        Value = null
+                                        Value = 0
                                     },
                                 };
                                 Api.SetColumns(sid, table, columns);
@@ -265,9 +265,8 @@ namespace Imageboard10.Core.ModelStorage.Blobs
         /// Загрузить файл.
         /// </summary>
         /// <param name="id">Идентификатор.</param>
-        /// <param name="maxLockTime">Максимальное время блокировки.</param>
         /// <returns>Результат.</returns>
-        public async Task<Stream> LoadBlob(BlobId id, TimeSpan maxLockTime)
+        public async Task<Stream> LoadBlob(BlobId id)
         {
             CheckModuleReady();
             await WaitForTablesInitialize();
