@@ -47,7 +47,7 @@ namespace Imageboard10.Core.ModelStorage.Blobs
                         {
                             throw new BlobNotFoundException(blobId);
                         }
-                        _inlinedStream = new ColumnStream(sid, _table, Api.GetTableColumnid(sid, _table, BlobTableInfo.BlobTableColumns.Data));
+                        _inlinedStream = new ColumnStream(sid, _table, Api.GetTableColumnid(sid, _table, BlobTableInfo.BlobsTableColumns.Data));
                         Length = _inlinedStream.Length;
                     }
                     catch
@@ -118,6 +118,14 @@ namespace Imageboard10.Core.ModelStorage.Blobs
             base.Dispose(disposing);
             if (disposing)
             {
+                DisposeAsync().Wait(TimeSpan.FromSeconds(5));
+            }
+        }
+
+        private async Task DisposeAsync()
+        {
+            await _session.Run(() =>
+            {
                 try
                 {
                     _inlinedStream.Dispose();
@@ -140,7 +148,7 @@ namespace Imageboard10.Core.ModelStorage.Blobs
                         }
                     }
                 }
-            }
+            });
         }
     }
 }

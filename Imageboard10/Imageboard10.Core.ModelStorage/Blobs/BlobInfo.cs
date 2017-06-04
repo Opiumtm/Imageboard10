@@ -31,5 +31,15 @@ namespace Imageboard10.Core.ModelStorage.Blobs
         /// Размер.
         /// </summary>
         public long Size;
+
+        /// <summary>
+        /// Количество ссылок.
+        /// </summary>
+        public Guid? ReferenceId;
+
+        /// <summary>
+        /// Загрузка не завершена.
+        /// </summary>
+        public bool IsUncompleted;
     }
 }

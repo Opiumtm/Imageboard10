@@ -1,13 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Linq;
 using Imageboard10.Core.Database;
 using Microsoft.Isam.Esent.Interop;
-
+using Microsoft.Isam.Esent.Interop.Vista;
 using static Imageboard10.Core.ModelStorage.Blobs.BlobTableInfo;
 
 namespace Imageboard10.Core.ModelStorage.Blobs
@@ -24,6 +24,7 @@ namespace Imageboard10.Core.ModelStorage.Blobs
         {
             await base.CreateOrUpgradeTables();
             await EnsureTable(BlobsTable, 1, InitializeBlobsTable, null);
+            await EnsureTable(ReferencesTable, 1, InitializeReferencesTable, null);
             return Nothing.Value;
         }
 
@@ -33,52 +34,82 @@ namespace Imageboard10.Core.ModelStorage.Blobs
 
             JET_COLUMNID tempid;
 
-            Api.JetAddColumn(sid, tableid, BlobTableColumns.Id, new JET_COLUMNDEF()
+            Api.JetAddColumn(sid, tableid, BlobsTableColumns.Id, new JET_COLUMNDEF()
             {
                 coltyp = JET_coltyp.Long,
                 grbit = ColumndefGrbit.ColumnAutoincrement | ColumndefGrbit.ColumnNotNULL
             }, null, 0, out tempid);
 
-            Api.JetAddColumn(sid, tableid, BlobTableColumns.Name, new JET_COLUMNDEF()
+            Api.JetAddColumn(sid, tableid, BlobsTableColumns.Name, new JET_COLUMNDEF()
             {
                 coltyp = JET_coltyp.LongText,
                 grbit = ColumndefGrbit.ColumnNotNULL,
                 cp = JET_CP.Unicode
             }, null, 0, out tempid);
 
-            Api.JetAddColumn(sid, tableid, BlobTableColumns.Category, new JET_COLUMNDEF()
+            Api.JetAddColumn(sid, tableid, BlobsTableColumns.Category, new JET_COLUMNDEF()
             {
                 coltyp = JET_coltyp.LongText,
                 grbit = ColumndefGrbit.ColumnMaybeNull,
                 cp = JET_CP.Unicode
             }, null, 0, out tempid);
 
-            Api.JetAddColumn(sid, tableid, BlobTableColumns.Length, new JET_COLUMNDEF()
+            Api.JetAddColumn(sid, tableid, BlobsTableColumns.Length, new JET_COLUMNDEF()
             {
                 coltyp = JET_coltyp.Currency,
                 grbit = ColumndefGrbit.ColumnNotNULL,
             }, null, 0, out tempid);
 
-            Api.JetAddColumn(sid, tableid, BlobTableColumns.CreatedDate, new JET_COLUMNDEF()
+            Api.JetAddColumn(sid, tableid, BlobsTableColumns.CreatedDate, new JET_COLUMNDEF()
             {
                 coltyp = JET_coltyp.DateTime,
                 grbit = ColumndefGrbit.ColumnNotNULL,
             }, null, 0, out tempid);
 
-            Api.JetAddColumn(sid, tableid, BlobTableColumns.Data, new JET_COLUMNDEF()
+            Api.JetAddColumn(sid, tableid, BlobsTableColumns.Data, new JET_COLUMNDEF()
             {
                 coltyp = JET_coltyp.LongBinary,
                 grbit = ColumndefGrbit.ColumnMaybeNull,
             }, null, 0, out tempid);
 
-            var pkDef = $"+{BlobTableColumns.Id}\0\0";
-            var nameDef = $"+{BlobTableColumns.Name}\0\0";
-            var categoryDef = $"+{BlobTableColumns.Category}\0\0";
-            Api.JetCreateIndex(sid, tableid, BlobTableIndexes.Primary, CreateIndexGrbit.IndexPrimary | CreateIndexGrbit.IndexUnique, pkDef, pkDef.Length, 100);
-            Api.JetCreateIndex(sid, tableid, BlobTableIndexes.Name, CreateIndexGrbit.IndexUnique, nameDef, nameDef.Length, 100);
-            Api.JetCreateIndex(sid, tableid, BlobTableIndexes.Category, CreateIndexGrbit.None, categoryDef, categoryDef.Length, 100);
+            Api.JetAddColumn(sid, tableid, BlobsTableColumns.ReferenceId, new JET_COLUMNDEF()
+            {
+                coltyp = VistaColtyp.GUID,
+                grbit = ColumndefGrbit.ColumnMaybeNull
+            }, null, 0, out tempid);
+
+            Api.JetAddColumn(sid, tableid, BlobsTableColumns.IsCompleted, new JET_COLUMNDEF()
+            {
+                coltyp = JET_coltyp.Bit,
+                grbit = ColumndefGrbit.ColumnNotNULL
+            }, null, 0, out tempid);
+
+            var pkDef = $"+{BlobsTableColumns.Id}\0\0";
+            var nameDef = $"+{BlobsTableColumns.Name}\0\0";
+            var categoryDef = $"+{BlobsTableColumns.Category}\0+{BlobsTableColumns.IsCompleted}\0\0";
+            var refDef = $"+{BlobsTableColumns.ReferenceId}\0+{BlobsTableColumns.IsCompleted}\0\0";
+            var compDef = $"+{BlobsTableColumns.IsCompleted}\0\0";
+            Api.JetCreateIndex(sid, tableid, BlobsTableIndexes.Primary, CreateIndexGrbit.IndexPrimary | CreateIndexGrbit.IndexUnique, pkDef, pkDef.Length, 100);
+            Api.JetCreateIndex(sid, tableid, BlobsTableIndexes.Name, CreateIndexGrbit.IndexUnique, nameDef, nameDef.Length, 100);
+            Api.JetCreateIndex(sid, tableid, BlobsTableIndexes.Category, CreateIndexGrbit.None, categoryDef, categoryDef.Length, 100);
+            Api.JetCreateIndex(sid, tableid, BlobsTableIndexes.ReferenceId, CreateIndexGrbit.None, refDef, refDef.Length, 100);
+            Api.JetCreateIndex(sid, tableid, BlobsTableIndexes.IsCompleted, CreateIndexGrbit.None, compDef, compDef.Length, 100);
         }
 
+        private void InitializeReferencesTable(IEsentSession session, JET_TABLEID tableid)
+        {
+            var sid = session.Session;
+
+            JET_COLUMNID tempid;
+
+            Api.JetAddColumn(sid, tableid, ReferencesTableColumns.ReferenceId, new JET_COLUMNDEF()
+            {
+                coltyp = VistaColtyp.GUID,
+                grbit = ColumndefGrbit.ColumnNotNULL
+            }, null, 0, out tempid);
+            var pkDef = $"+{ReferencesTableColumns.ReferenceId}\0\0";
+            Api.JetCreateIndex(sid, tableid, BlobsTableIndexes.Primary, CreateIndexGrbit.IndexPrimary | CreateIndexGrbit.IndexUnique, pkDef, pkDef.Length, 100);
+        }
 
         /// <summary>
         /// Сохранить файл.
@@ -116,34 +147,44 @@ namespace Imageboard10.Core.ModelStorage.Blobs
                         {
                             using (var update = new Update(sid, table, JET_prep.Insert))
                             {
-                                blobId = Api.RetrieveColumnAsInt32(sid, table, columnMap[BlobTableColumns.Id], RetrieveColumnGrbit.RetrieveCopy) ??
+                                blobId = Api.RetrieveColumnAsInt32(sid, table, columnMap[BlobsTableColumns.Id], RetrieveColumnGrbit.RetrieveCopy) ??
                                          throw new BlobException("Не доступно значение autioncrement Id");
                                 var columns = new ColumnValue[]
                                 {
                                     new StringColumnValue()
                                     {
-                                        Columnid = columnMap[BlobTableColumns.Name],
+                                        Columnid = columnMap[BlobsTableColumns.Name],
                                         Value = blob.UniqueName,
                                     },
                                     new StringColumnValue()
                                     {
-                                        Columnid = columnMap[BlobTableColumns.Category],
+                                        Columnid = columnMap[BlobsTableColumns.Category],
                                         Value = blob.Category,
                                     },
                                     new DateTimeColumnValue()
                                     {
-                                        Columnid = columnMap[BlobTableColumns.CreatedDate],
+                                        Columnid = columnMap[BlobsTableColumns.CreatedDate],
                                         Value = DateTime.Now
                                     },
                                     new BytesColumnValue()
                                     {
-                                        Columnid = columnMap[BlobTableColumns.Data],
+                                        Columnid = columnMap[BlobsTableColumns.Data],
                                         Value = new byte[0]
                                     },
                                     new Int64ColumnValue()
                                     {
-                                        Columnid = columnMap[BlobTableColumns.Length],
+                                        Columnid = columnMap[BlobsTableColumns.Length],
                                         Value = 0
+                                    },
+                                    new GuidColumnValue()
+                                    {
+                                        Columnid = columnMap[BlobsTableColumns.ReferenceId],
+                                        Value = blob.ReferenceId
+                                    },
+                                    new BoolColumnValue()
+                                    {
+                                        Columnid = columnMap[BlobsTableColumns.IsCompleted],
+                                        Value = false
                                     },
                                 };
                                 Api.SetColumns(sid, table, columns);
@@ -153,7 +194,6 @@ namespace Imageboard10.Core.ModelStorage.Blobs
                         }
 
                         byte[] buffer = new byte[64 * 1024];
-                        long lastSz;
                         try
                         {
                             var toRead = blob.MaxSize ?? long.MaxValue;
@@ -180,7 +220,7 @@ namespace Imageboard10.Core.ModelStorage.Blobs
                                     }
                                     using (var update = new Update(sid, table, JET_prep.Replace))
                                     {
-                                        using (var str = new ColumnStream(sid, table, columnMap[BlobTableColumns.Data]))
+                                        using (var str = new ColumnStream(sid, table, columnMap[BlobsTableColumns.Data]))
                                         {
                                             str.Seek(0, SeekOrigin.End);
                                             str.Write(buffer, 0, sz);
@@ -205,19 +245,27 @@ namespace Imageboard10.Core.ModelStorage.Blobs
                                 }
                                 using (var update = new Update(sid, table, JET_prep.Replace))
                                 {
-                                    var size = Api.RetrieveColumnSize(table.Session, table, columnMap[BlobTableColumns.Length]) ?? 0;
-                                    Api.SetColumn(sid, table, columnMap[BlobTableColumns.Length], size);
+                                    var size = Api.RetrieveColumnSize(table.Session, table, columnMap[BlobsTableColumns.Data]) ?? 0;
+                                    Api.SetColumn(sid, table, columnMap[BlobsTableColumns.Length], (long)size);
+                                    Api.SetColumn(sid, table, columnMap[BlobsTableColumns.IsCompleted], true);
                                     update.Save();
                                 }
                                 transaction.Commit(CommitTransactionGrbit.None);
                             }
                         }
-                        catch
+                        catch (Exception e)
                         {
-                            using (var transaction = new Transaction(sid))
+                            try
                             {
-                                DoDeleteBlob(session, new BlobId() { Id = blobId });
-                                transaction.Commit(CommitTransactionGrbit.None);
+                                using (var transaction = new Transaction(sid))
+                                {
+                                    DoDeleteBlob(table, new BlobId() { Id = blobId });
+                                    transaction.Commit(CommitTransactionGrbit.None);
+                                }
+                            }
+                            catch (Exception e2)
+                            {
+                                throw new AggregateException(e, e2);
                             }
                             throw;
                         }
@@ -246,14 +294,17 @@ namespace Imageboard10.Core.ModelStorage.Blobs
                 {
                     using (var table = session.OpenTable(BlobsTable, OpenTableGrbit.ReadOnly))
                     {
-                        Api.JetSetCurrentIndex(table.Session, table, BlobTableIndexes.Name);
+                        Api.JetSetCurrentIndex(table.Session, table, BlobsTableIndexes.Name);
                         Api.MakeKey(table.Session, table, uniqueName, Encoding.Unicode, MakeKeyGrbit.NewKey);
                         if (Api.TrySeek(table.Session, table, SeekGrbit.SeekEQ))
                         {
-                            result = new BlobId()
+                            if (Api.RetrieveColumnAsBoolean(table.Session, table.Table, Api.GetTableColumnid(table.Session, table.Table, BlobsTableColumns.IsCompleted)) ?? false)
                             {
-                                Id = Api.RetrieveColumnAsInt32(table.Session, table, Api.GetTableColumnid(table.Session, table, BlobTableColumns.Id)) ?? 0
-                            };
+                                result = new BlobId()
+                                {
+                                    Id = Api.RetrieveColumnAsInt32(table.Session, table, Api.GetTableColumnid(table.Session, table, BlobsTableColumns.Id)) ?? 0
+                                };
+                            }
                         }
                     }
                 });
@@ -282,14 +333,14 @@ namespace Imageboard10.Core.ModelStorage.Blobs
                         if (Api.TrySeek(table.Session, table, SeekGrbit.SeekEQ))
                         {
                             var columnMap = Api.GetColumnDictionary(table.Session, table);
-                            var size = Api.RetrieveColumnSize(table.Session, table, columnMap[BlobTableColumns.Length]) ?? 0;
+                            var size = Api.RetrieveColumnSize(table.Session, table, columnMap[BlobsTableColumns.Data]) ?? 0;
                             if (size <= MaxInlineSize)
                             {
                                 var columns = new ColumnValue[]
                                 {
-                                    new ByteColumnValue()
+                                    new BytesColumnValue()
                                     {
-                                        Columnid = columnMap[BlobTableColumns.Length],
+                                        Columnid = columnMap[BlobsTableColumns.Data],
                                     },
                                 };
                                 Api.RetrieveColumns(table.Session, table, columns);
@@ -319,17 +370,16 @@ namespace Imageboard10.Core.ModelStorage.Blobs
             });
         }
 
-        private void DoDeleteBlob(IEsentSession session, BlobId blobId)
+        private bool DoDeleteBlob(EsentTable table, BlobId blobId)
         {
-            var sid = session.Session;
-            using (var table = session.OpenTable(BlobsTable, OpenTableGrbit.DenyWrite))
+            var sid = table.Session;
+            Api.MakeKey(sid, table, blobId.Id, MakeKeyGrbit.NewKey);
+            if (Api.TrySeek(sid, table, SeekGrbit.SeekEQ))
             {
-                Api.MakeKey(sid, table, blobId.Id, MakeKeyGrbit.NewKey);
-                if (Api.TrySeek(sid, table, SeekGrbit.SeekEQ))
-                {
-                    Api.JetDelete(sid, table);
-                }
+                Api.JetDelete(sid, table);
+                return true;
             }
+            return false;
         }
 
         /// <summary>
@@ -337,9 +387,23 @@ namespace Imageboard10.Core.ModelStorage.Blobs
         /// </summary>
         /// <param name="id">Идентификатор.</param>
         /// <returns>true, если файл найден и удалён. false, если нет такого файла или файл заблокирован на удаление.</returns>
-        public Task<bool> DeleteBlob(BlobId id)
+        public async Task<bool> DeleteBlob(BlobId id)
         {
-            throw new NotImplementedException();
+            CheckModuleReady();
+            await WaitForTablesInitialize();
+            return await UpdateAsync(async session =>
+            {
+                bool result = false;
+                await session.RunInTransaction(() =>
+                {
+                    using (var table = session.OpenTable(BlobsTable, OpenTableGrbit.DenyWrite))
+                    {
+                        result = DoDeleteBlob(table, id);
+                    }
+                    return true;
+                });
+                return result;
+            });
         }
 
         /// <summary>
@@ -347,9 +411,29 @@ namespace Imageboard10.Core.ModelStorage.Blobs
         /// </summary>
         /// <param name="idArray">Массив идентификаторов.</param>
         /// <returns>Массив идентификаторов тех файлов, которые получилось удалить.</returns>
-        public Task<BlobId[]> DeleteBlobs(BlobId[] idArray)
+        public async Task<BlobId[]> DeleteBlobs(BlobId[] idArray)
         {
-            throw new NotImplementedException();
+            CheckModuleReady();
+            await WaitForTablesInitialize();
+            return await UpdateAsync(async session =>
+            {
+                List<BlobId> result = new List<BlobId>();
+                await session.RunInTransaction(() =>
+                {
+                    using (var table = session.OpenTable(BlobsTable, OpenTableGrbit.DenyWrite))
+                    {
+                        foreach (var id in idArray)
+                        {
+                            if (DoDeleteBlob(table, id))
+                            {
+                                result.Add(id);
+                            }
+                        }
+                    }
+                    return true;
+                });
+                return result.ToArray();
+            });
         }
 
         /// <summary>
@@ -357,19 +441,159 @@ namespace Imageboard10.Core.ModelStorage.Blobs
         /// </summary>
         /// <param name="id">Идентификатор.</param>
         /// <returns>Информация о файле.</returns>
-        public Task<BlobInfo?> GetBlobInfo(BlobId id)
+        public async Task<BlobInfo?> GetBlobInfo(BlobId id)
         {
-            throw new NotImplementedException();
+            CheckModuleReady();
+            await WaitForTablesInitialize();
+            return await QueryReadonly(async session =>
+            {
+                BlobInfo? result = null;
+                await session.Run(() =>
+                {
+                    using (var table = session.OpenTable(BlobsTable, OpenTableGrbit.ReadOnly))
+                    {
+                        var columnMap = Api.GetColumnDictionary(table.Session, table);
+                        result = LoadBlobInfo(table, id, columnMap);
+                    }
+                });
+                return result;
+            });
         }
 
-        /// <summary>
-        /// Проверка, заблокирован ли файл.
-        /// </summary>
-        /// <param name="id">Идентификатор.</param>
-        /// <returns>Результат.</returns>
-        public Task<bool?> IsLocked(BlobId id)
+        private BlobInfo? LoadBlobInfo(EsentTable table, BlobId id, IDictionary<string, JET_COLUMNID> columnMap)
         {
-            throw new NotImplementedException();
+            BlobInfo? result = null;
+            if (SeekBlob(table, id, false))
+            {
+                var columns = new ColumnValue[]
+                {
+                    new StringColumnValue()
+                    {
+                        Columnid = columnMap[BlobsTableColumns.Name],
+                    },
+                    new StringColumnValue()
+                    {
+                        Columnid = columnMap[BlobsTableColumns.Category],
+                    },
+                    new DateTimeColumnValue()
+                    {
+                        Columnid = columnMap[BlobsTableColumns.CreatedDate],
+                    },
+                    new Int64ColumnValue()
+                    {
+                        Columnid = columnMap[BlobsTableColumns.Length],
+                    },
+                    new GuidColumnValue()
+                    {
+                        Columnid = columnMap[BlobsTableColumns.ReferenceId],
+                    },
+                    new BoolColumnValue()
+                    {
+                        Columnid = columnMap[BlobsTableColumns.IsCompleted],
+                    },
+                };
+                Api.RetrieveColumns(table.Session, table, columns);
+                if (((BoolColumnValue) columns[5]).Value ?? false)
+                {
+                    result = new BlobInfo()
+                    {
+                        Id = id,
+                        UniqueName = ((StringColumnValue)columns[0]).Value,
+                        Category = ((StringColumnValue)columns[1]).Value,
+                        CreatedTime = ((DateTimeColumnValue)columns[2]).Value ?? DateTime.MinValue,
+                        Size = ((Int64ColumnValue)columns[3]).Value ?? 0,
+                        ReferenceId = ((GuidColumnValue)columns[4]).Value,
+                        IsUncompleted = false
+                    };
+                }
+                else
+                {
+                    result = new BlobInfo()
+                    {
+                        Id = id,
+                        UniqueName = ((StringColumnValue)columns[0]).Value,
+                        Category = ((StringColumnValue)columns[1]).Value,
+                        CreatedTime = ((DateTimeColumnValue)columns[2]).Value ?? DateTime.MinValue,
+                        Size = Api.RetrieveColumnSize(table.Session, table, columnMap[BlobsTableColumns.Data]) ?? 0,
+                        ReferenceId = ((GuidColumnValue)columns[4]).Value,
+                        IsUncompleted = true
+                    };
+                }
+            }
+            return result;
+        }
+
+        private BlobInfo LoadBlobInfo(EsentTable table, IDictionary<string, JET_COLUMNID> columnMap)
+        {
+            var columns = new ColumnValue[]
+            {
+                new StringColumnValue()
+                {
+                    Columnid = columnMap[BlobsTableColumns.Name],
+                },
+                new StringColumnValue()
+                {
+                    Columnid = columnMap[BlobsTableColumns.Category],
+                },
+                new DateTimeColumnValue()
+                {
+                    Columnid = columnMap[BlobsTableColumns.CreatedDate],
+                },
+                new Int64ColumnValue()
+                {
+                    Columnid = columnMap[BlobsTableColumns.Length],
+                },
+                new GuidColumnValue()
+                {
+                    Columnid = columnMap[BlobsTableColumns.ReferenceId],
+                },
+                new Int32ColumnValue()
+                {
+                    Columnid = columnMap[BlobsTableColumns.Id],
+                },
+                new BoolColumnValue()
+                {
+                    Columnid = columnMap[BlobsTableColumns.IsCompleted],
+                },
+            };
+            Api.RetrieveColumns(table.Session, table, columns);
+            if (((BoolColumnValue) columns[6]).Value ?? false)
+            {
+                return new BlobInfo()
+                {
+                    Id = new BlobId() { Id = ((Int32ColumnValue)columns[5]).Value ?? 0 },
+                    UniqueName = ((StringColumnValue)columns[0]).Value,
+                    Category = ((StringColumnValue)columns[1]).Value,
+                    CreatedTime = ((DateTimeColumnValue)columns[2]).Value ?? DateTime.MinValue,
+                    Size = ((Int64ColumnValue)columns[3]).Value ?? 0,
+                    ReferenceId = ((GuidColumnValue)columns[4]).Value,
+                    IsUncompleted = false
+                };
+            }
+            return new BlobInfo()
+            {
+                Id = new BlobId() { Id = ((Int32ColumnValue)columns[5]).Value ?? 0 },
+                UniqueName = ((StringColumnValue)columns[0]).Value,
+                Category = ((StringColumnValue)columns[1]).Value,
+                CreatedTime = ((DateTimeColumnValue)columns[2]).Value ?? DateTime.MinValue,
+                Size = Api.RetrieveColumnSize(table.Session, table, columnMap[BlobsTableColumns.Data]) ?? 0,
+                ReferenceId = ((GuidColumnValue)columns[4]).Value,
+                IsUncompleted = true
+            };
+        }
+
+        private bool SeekBlob(EsentTable table, BlobId id, bool includeUncompleted)
+        {
+            Api.MakeKey(table.Session, table, id.Id, MakeKeyGrbit.NewKey);
+            if (!Api.TrySeek(table.Session, table, SeekGrbit.SeekEQ))
+            {
+                return false;
+            }
+            if (!includeUncompleted)
+            {
+                return Api.RetrieveColumnAsBoolean(table.Session, table.Table, Api.GetTableColumnid(table.Session, table, BlobsTableColumns.IsCompleted)) ?? false;
+            }
+            return true;
         }
 
         /// <summary>
@@ -377,9 +601,65 @@ namespace Imageboard10.Core.ModelStorage.Blobs
         /// </summary>
         /// <param name="category">Категория.</param>
         /// <returns>Результат.</returns>
-        public Task<BlobInfo[]> ReadCategory(string category)
+        public async Task<BlobInfo[]> ReadCategory(string category)
         {
-            throw new NotImplementedException();
+            CheckModuleReady();
+            await WaitForTablesInitialize();
+            return await QueryReadonly(async session =>
+            {
+                List<BlobInfo> result = new List<BlobInfo>();
+                await session.Run(() =>
+                {
+                    using (var table = session.OpenTable(BlobsTable, OpenTableGrbit.ReadOnly))
+                    {
+                        var columnMap = Api.GetColumnDictionary(table.Session, table);
+                        Api.JetSetCurrentIndex(table.Session, table.Table, BlobsTableIndexes.Category);
+                        Api.MakeKey(table.Session, table, category, Encoding.Unicode, MakeKeyGrbit.NewKey);
+                        Api.MakeKey(table.Session, table, true, MakeKeyGrbit.None);
+                        if (Api.TrySeek(table.Session, table, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange))
+                        {
+                            do
+                            {
+                                result.Add(LoadBlobInfo(table, columnMap));
+                            } while (Api.TryMoveNext(table.Session, table));
+                        }
+                    }
+                });
+                return result.ToArray();
+            });
+        }
+
+        /// <summary>
+        /// Читать все файлы по ссылке.
+        /// </summary>
+        /// <param name="referenceId">Идентификатор ссылки.</param>
+        /// <returns>Результат.</returns>
+        public async Task<BlobInfo[]> ReadReferencedBlobs(Guid referenceId)
+        {
+            CheckModuleReady();
+            await WaitForTablesInitialize();
+            return await QueryReadonly(async session =>
+            {
+                List<BlobInfo> result = new List<BlobInfo>();
+                await session.Run(() =>
+                {
+                    using (var table = session.OpenTable(BlobsTable, OpenTableGrbit.ReadOnly))
+                    {
+                        var columnMap = Api.GetColumnDictionary(table.Session, table);
+                        Api.JetSetCurrentIndex(table.Session, table.Table, BlobsTableIndexes.ReferenceId);
+                        Api.MakeKey(table.Session, table.Table, referenceId, MakeKeyGrbit.NewKey);
+                        Api.MakeKey(table.Session, table, true, MakeKeyGrbit.None);
+                        if (Api.TrySeek(table.Session, table, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange))
+                        {
+                            do
+                            {
+                                result.Add(LoadBlobInfo(table, columnMap));
+                            } while (Api.TryMoveNext(table.Session, table));
+                        }
+                    }
+                });
+                return result.ToArray();
+            });
         }
 
         /// <summary>
@@ -387,7 +667,453 @@ namespace Imageboard10.Core.ModelStorage.Blobs
         /// </summary>
         /// <param name="category">Категория.</param>
         /// <returns>Размер категории.</returns>
-        public Task<long> GetCategorySize(string category)
+        public async Task<long> GetCategorySize(string category)
+        {
+            CheckModuleReady();
+            await WaitForTablesInitialize();
+            return await QueryReadonly(async session =>
+            {
+                long result = 0;
+                await session.Run(() =>
+                {
+                    using (var table = session.OpenTable(BlobsTable, OpenTableGrbit.ReadOnly))
+                    {
+                        var columnMap = Api.GetColumnDictionary(table.Session, table);
+                        Api.JetSetCurrentIndex(table.Session, table.Table, BlobsTableIndexes.Category);
+                        Api.MakeKey(table.Session, table.Table, category, Encoding.Unicode, MakeKeyGrbit.NewKey);
+                        Api.MakeKey(table.Session, table, true, MakeKeyGrbit.None);
+                        if (Api.TrySeek(table.Session, table, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange))
+                        {
+                            do
+                            {
+                                result += Api.RetrieveColumnAsInt64(table.Session, table.Table, columnMap[BlobsTableColumns.Length]) ?? 0;
+                            } while (Api.TryMoveNext(table.Session, table));
+                        }
+                    }
+                });
+                return result;
+            });
+        }
+
+        /// <summary>
+        /// Получить количество файлов в категории.
+        /// </summary>
+        /// <param name="category">Категория.</param>
+        /// <returns>Количество файлов.</returns>
+        public async Task<int> GetCategoryBlobsCount(string category)
+        {
+            CheckModuleReady();
+            await WaitForTablesInitialize();
+            return await QueryReadonly(async session =>
+            {
+                int result = 0;
+                await session.Run(() =>
+                {
+                    using (var table = session.OpenTable(BlobsTable, OpenTableGrbit.ReadOnly))
+                    {
+                        Api.JetSetCurrentIndex(table.Session, table.Table, BlobsTableIndexes.Category);
+                        Api.MakeKey(table.Session, table.Table, category, Encoding.Unicode, MakeKeyGrbit.NewKey);
+                        Api.MakeKey(table.Session, table, true, MakeKeyGrbit.None);
+                        if (Api.TrySeek(table.Session, table, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange))
+                        {
+                            Api.JetIndexRecordCount(table.Session, table.Table, out result, int.MaxValue);
+                        }
+                    }
+                });
+                return result;
+            });
+        }
+
+        /// <summary>
+        /// Получить размер элементов со ссылкой.
+        /// </summary>
+        /// <param name="referenceId">Идентификатор ссылки.</param>
+        /// <returns>Размер категории.</returns>
+        public async Task<long> GetReferencedSize(Guid referenceId)
+        {
+            CheckModuleReady();
+            await WaitForTablesInitialize();
+            return await QueryReadonly(async session =>
+            {
+                long result = 0;
+                await session.Run(() =>
+                {
+                    using (var table = session.OpenTable(BlobsTable, OpenTableGrbit.ReadOnly))
+                    {
+                        var columnMap = Api.GetColumnDictionary(table.Session, table);
+                        Api.JetSetCurrentIndex(table.Session, table.Table, BlobsTableIndexes.ReferenceId);
+                        Api.MakeKey(table.Session, table.Table, referenceId, MakeKeyGrbit.NewKey);
+                        Api.MakeKey(table.Session, table, true, MakeKeyGrbit.None);
+                        if (Api.TrySeek(table.Session, table, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange))
+                        {
+                            do
+                            {
+                                result += Api.RetrieveColumnAsInt64(table.Session, table.Table, columnMap[BlobsTableColumns.Length]) ?? 0;
+                            } while (Api.TryMoveNext(table.Session, table));
+                        }
+                    }
+                });
+                return result;
+            });
+        }
+
+        /// <summary>
+        /// Получить количество файлов со ссылкой.
+        /// </summary>
+        /// <param name="referenceId">Идентификатор ссылки.</param>
+        /// <returns>Количество файлов.</returns>
+        public async Task<int> GetReferencedBlobsCount(Guid referenceId)
+        {
+            CheckModuleReady();
+            await WaitForTablesInitialize();
+            return await QueryReadonly(async session =>
+            {
+                int result = 0;
+                await session.Run(() =>
+                {
+                    using (var table = session.OpenTable(BlobsTable, OpenTableGrbit.ReadOnly))
+                    {
+                        Api.JetSetCurrentIndex(table.Session, table.Table, BlobsTableIndexes.ReferenceId);
+                        Api.MakeKey(table.Session, table.Table, referenceId, MakeKeyGrbit.NewKey);
+                        Api.MakeKey(table.Session, table, true, MakeKeyGrbit.None);
+                        if (Api.TrySeek(table.Session, table, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange))
+                        {
+                            Api.JetIndexRecordCount(table.Session, table.Table, out result, int.MaxValue);
+                        }
+                    }
+                });
+                return result;
+            });
+        }
+
+        /// <summary>
+        /// Добавить постоянную ссылку.
+        /// </summary>
+        /// <param name="referenceId">Идентификатор ссылки.</param>
+        public async Task AddPermanentReference(Guid referenceId)
+        {
+            CheckModuleReady();
+            await WaitForTablesInitialize();
+            await UpdateAsync(async session =>
+            {
+                await session.RunInTransaction(() =>
+                {
+                    using (var table = session.OpenTable(ReferencesTable, OpenTableGrbit.DenyWrite))
+                    {
+                        Api.MakeKey(table.Session, table, referenceId, MakeKeyGrbit.NewKey);
+                        if (!Api.TrySeek(table.Session, table, SeekGrbit.SeekEQ))
+                        {
+                            using (var update = new Update(table.Session, table, JET_prep.Insert))
+                            {
+                                Api.SetColumn(table.Session, table, Api.GetTableColumnid(table.Session, table, ReferencesTableColumns.ReferenceId), referenceId);
+                                update.Save();
+                            }
+                        }
+                    }
+                    return true;
+                });
+                return Nothing.Value;
+            });
+        }
+
+        /// <summary>
+        /// Удалить постоянную ссылку.
+        /// </summary>
+        /// <param name="referenceId">Идентификатор ссылки.</param>
+        public async Task RemovePermanentReference(Guid referenceId)
+        {
+            CheckModuleReady();
+            await WaitForTablesInitialize();
+            await UpdateAsync(async session =>
+            {
+                await session.RunInTransaction(() =>
+                {
+                    using (var table = session.OpenTable(ReferencesTable, OpenTableGrbit.DenyWrite))
+                    {
+                        Api.MakeKey(table.Session, table, referenceId, MakeKeyGrbit.NewKey);
+                        if (Api.TrySeek(table.Session, table, SeekGrbit.SeekEQ))
+                        {
+                            Api.JetDelete(table.Session, table);
+                        }
+                    }
+                    return true;
+                });
+                return Nothing.Value;
+            });
+        }
+
+        /// <summary>
+        /// Проверить являются ли ссылки постояными.
+        /// </summary>
+        /// <param name="references">Массив ссылок.</param>
+        /// <returns>Массив постоянных ссылок.</returns>
+        public async Task<Guid[]> CheckIfReferencesPermanent(Guid[] references)
+        {
+            if (references == null) throw new ArgumentNullException(nameof(references));
+
+            CheckModuleReady();
+            await WaitForTablesInitialize();
+            return await QueryReadonly(async session =>
+            {
+                HashSet<Guid> result = new HashSet<Guid>();
+                await session.RunInTransaction(() =>
+                {
+                    using (var table = session.OpenTable(ReferencesTable, OpenTableGrbit.ReadOnly))
+                    {
+                        foreach (var referenceId in references)
+                        {
+                            Api.MakeKey(table.Session, table, referenceId, MakeKeyGrbit.NewKey);
+                            if (Api.TrySeek(table.Session, table, SeekGrbit.SeekEQ))
+                            {
+                                result.Add(referenceId);
+                            }
+                        }
+                        return false;
+                    }
+                });
+                return result.ToArray();
+            });
+        }
+
+        /// <summary>
+        /// Удалить все файлы.
+        /// </summary>
+        public async Task DeleteAllBlobs()
+        {
+            CheckModuleReady();
+            await WaitForTablesInitialize();
+            await UpdateAsync(async session =>
+            {
+                await session.RunInTransaction(() =>
+                {
+                    using (var table = session.OpenTable(BlobsTable, OpenTableGrbit.DenyWrite))
+                    {
+                        if (Api.TryMoveFirst(table.Session, table))
+                        {
+                            do
+                            {
+                                Api.JetDelete(table.Session, table);
+                            } while (Api.TryMoveNext(table.Session, table));
+                        }
+                    }
+                    return true;
+                });
+                return Nothing.Value;
+            });
+        }
+
+        /// <summary>
+        /// Удалить все ссылки.
+        /// </summary>
+        public async Task DeleteAllReferences()
+        {
+            CheckModuleReady();
+            await WaitForTablesInitialize();
+            await UpdateAsync(async session =>
+            {
+                await session.RunInTransaction(() =>
+                {
+                    using (var table = session.OpenTable(ReferencesTable, OpenTableGrbit.DenyWrite))
+                    {
+                        if (Api.TryMoveFirst(table.Session, table))
+                        {
+                            do
+                            {
+                                Api.JetDelete(table.Session, table);
+                            } while (Api.TryMoveNext(table.Session, table));
+                        }
+                    }
+                    return true;
+                });
+                return Nothing.Value;
+            });
+        }
+
+        /// <summary>
+        /// Удалить все не завершённые файлы.
+        /// </summary>
+        public async Task DeleteAllUncompletedBlobs()
+        {
+            CheckModuleReady();
+            await WaitForTablesInitialize();
+            await UpdateAsync(async session =>
+            {
+                await session.RunInTransaction(() =>
+                {
+                    using (var table = session.OpenTable(BlobsTable, OpenTableGrbit.DenyWrite))
+                    {
+                        Api.JetSetCurrentIndex(table.Session, table, BlobsTableIndexes.IsCompleted);
+                        Api.MakeKey(table.Session, table, false, MakeKeyGrbit.NewKey);
+                        if (Api.TrySeek(table.Session, table, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange))
+                        {
+                            do
+                            {
+                                Api.JetDelete(table.Session, table);
+                            } while (Api.TryMoveNext(table.Session, table));
+                        }
+                    }
+                    return true;
+                });
+                return Nothing.Value;
+            });
+        }
+
+        /// <summary>
+        /// Получить количество всех файлов.
+        /// </summary>
+        /// <returns>Все файлы.</returns>
+        public async Task<int> GetBlobsCount()
+        {
+            CheckModuleReady();
+            await WaitForTablesInitialize();
+            return await QueryReadonly(async session =>
+            {
+                int result = 0;
+                await session.Run(() =>
+                {
+                    using (var table = session.OpenTable(BlobsTable, OpenTableGrbit.ReadOnly))
+                    {
+                        Api.JetSetCurrentIndex(table.Session, table.Table, BlobsTableIndexes.IsCompleted);
+                        Api.MakeKey(table.Session, table, true, MakeKeyGrbit.NewKey);
+                        if (Api.TrySeek(table.Session, table, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange))
+                        {
+                            Api.JetIndexRecordCount(table.Session, table.Table, out result, int.MaxValue);
+                        }
+                    }
+                });
+                return result;
+            });
+        }
+
+        /// <summary>
+        /// Получить общий размер.
+        /// </summary>
+        /// <returns></returns>
+        public async Task<long> GetTotalSize()
+        {
+            CheckModuleReady();
+            await WaitForTablesInitialize();
+            return await QueryReadonly(async session =>
+            {
+                long result = 0;
+                await session.Run(() =>
+                {
+                    using (var table = session.OpenTable(BlobsTable, OpenTableGrbit.ReadOnly))
+                    {
+                        var columnMap = Api.GetColumnDictionary(table.Session, table);
+                        Api.JetSetCurrentIndex(table.Session, table.Table, BlobsTableIndexes.IsCompleted);
+                        Api.MakeKey(table.Session, table, true, MakeKeyGrbit.NewKey);
+                        if (Api.TrySeek(table.Session, table, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange))
+                        {
+                            do
+                            {
+                                result += Api.RetrieveColumnAsInt64(table.Session, table.Table, columnMap[BlobsTableColumns.Length]) ?? 0;
+                            } while (Api.TryMoveNext(table.Session, table));
+                        }
+                    }
+                });
+                return result;
+            });
+        }
+
+        /// <summary>
+        /// Получить количество всех незавершённых файлов.
+        /// </summary>
+        /// <returns>Все файлы.</returns>
+        public async Task<int> GetUncompletedBlobsCount()
+        {
+            CheckModuleReady();
+            await WaitForTablesInitialize();
+            return await QueryReadonly(async session =>
+            {
+                int result = 0;
+                await session.Run(() =>
+                {
+                    using (var table = session.OpenTable(BlobsTable, OpenTableGrbit.ReadOnly))
+                    {
+                        Api.JetSetCurrentIndex(table.Session, table.Table, BlobsTableIndexes.IsCompleted);
+                        Api.MakeKey(table.Session, table, false, MakeKeyGrbit.NewKey);
+                        if (Api.TrySeek(table.Session, table, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange))
+                        {
+                            Api.JetIndexRecordCount(table.Session, table.Table, out result, int.MaxValue);
+                        }
+                    }
+                });
+                return result;
+            });
+        }
+
+        /// <summary>
+        /// Получить общий размер незавершённых файлов.
+        /// </summary>
+        /// <returns></returns>
+        public async Task<long> GetUncompletedTotalSize()
+        {
+            CheckModuleReady();
+            await WaitForTablesInitialize();
+            return await QueryReadonly(async session =>
+            {
+                long result = 0;
+                await session.Run(() =>
+                {
+                    using (var table = session.OpenTable(BlobsTable, OpenTableGrbit.ReadOnly))
+                    {
+                        var columnMap = Api.GetColumnDictionary(table.Session, table);
+                        Api.JetSetCurrentIndex(table.Session, table.Table, BlobsTableIndexes.IsCompleted);
+                        Api.MakeKey(table.Session, table, false, MakeKeyGrbit.NewKey);
+                        if (Api.TrySeek(table.Session, table, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange))
+                        {
+                            do
+                            {
+                                result += Api.RetrieveColumnSize(table.Session, table.Table, columnMap[BlobsTableColumns.Data]) ?? 0;
+                            } while (Api.TryMoveNext(table.Session, table));
+                        }
+                    }
+                });
+                return result;
+            });
+        }
+
+        /// <summary>
+        /// Найти незавершённые файлы.
+        /// </summary>
+        /// <returns>Список файлов.</returns>
+        public async Task<BlobId[]> FindUncompletedBlobs()
+        {
+            CheckModuleReady();
+            await WaitForTablesInitialize();
+            return await QueryReadonly(async session =>
+            {
+                List<BlobId> result = new List<BlobId>();
+                await session.Run(() =>
+                {
+                    using (var table = session.OpenTable(BlobsTable, OpenTableGrbit.ReadOnly))
+                    {
+                        var columnMap = Api.GetColumnDictionary(table.Session, table);
+                        Api.JetSetCurrentIndex(table.Session, table.Table, BlobsTableIndexes.ReferenceId);
+                        Api.MakeKey(table.Session, table, false, MakeKeyGrbit.NewKey);
+                        if (Api.TrySeek(table.Session, table, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange))
+                        {
+                            do
+                            {
+                                if (Api.RetrieveColumnAsBoolean(table.Session, table.Table, columnMap[BlobsTableColumns.IsCompleted]) ?? false)
+                                {
+                                    result.Add(LoadBlobInfo(table, columnMap));
+                                }
+                            } while (Api.TryMoveNext(table.Session, table));
+                        }
+                    }
+                });
+                return result.ToArray();
+            });
+        }
+
+        /// <summary>
+        /// Для юнит-тестов. Пометить файл как незавершённый.
+        /// </summary>
+        /// <param name="id">Идентификатор файла.</param>
+        /// <returns>true, если файл найден и помечен.</returns>
+        public Task<bool> MarkUncompleted(BlobId id)
         {
             throw new NotImplementedException();
         }

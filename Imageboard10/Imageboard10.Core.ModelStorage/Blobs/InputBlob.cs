@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 
 namespace Imageboard10.Core.ModelStorage.Blobs
 {
@@ -26,5 +27,10 @@ namespace Imageboard10.Core.ModelStorage.Blobs
         /// Максимальный размер (если данные содержат кроме файла что-то ещё). Если null - чтение до конца файла.
         /// </summary>
         public long? MaxSize;
+
+        /// <summary>
+        /// Идентификатор ссылки.
+        /// </summary>
+        public Guid? ReferenceId;
     }
 }
