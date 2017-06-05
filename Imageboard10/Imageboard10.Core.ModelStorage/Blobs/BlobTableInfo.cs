@@ -11,6 +11,11 @@
         public const int MaxInlineSize = 64 * 1024;
 
         /// <summary>
+        /// Макисмальный размер файла. Если размер файла превышает этот - при сохранении файла кидать исключение.
+        /// </summary>
+        public const long MaxFileSize = 64 * 1024 * 1024;
+
+        /// <summary>
         /// Имя таблицы.
         /// </summary>
         public const string BlobsTable = "blobs";

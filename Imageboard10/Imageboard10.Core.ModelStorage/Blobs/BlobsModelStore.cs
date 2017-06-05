@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Linq;
 using Imageboard10.Core.Database;
+using Imageboard10.Core.Tasks;
 using Microsoft.Isam.Esent.Interop;
 using Microsoft.Isam.Esent.Interop.Vista;
 using static Imageboard10.Core.ModelStorage.Blobs.BlobTableInfo;
@@ -25,6 +26,7 @@ namespace Imageboard10.Core.ModelStorage.Blobs
             await base.CreateOrUpgradeTables();
             await EnsureTable(BlobsTable, 1, InitializeBlobsTable, null);
             await EnsureTable(ReferencesTable, 1, InitializeReferencesTable, null);
+            CoreTaskHelper.RunUnawaitedTaskAsync(DeleteAllUncompletedBlobs);
             return Nothing.Value;
         }
 
@@ -224,6 +226,10 @@ namespace Imageboard10.Core.ModelStorage.Blobs
                                         {
                                             str.Seek(0, SeekOrigin.End);
                                             str.Write(buffer, 0, sz);
+                                            if (str.Length > MaxFileSize)
+                                            {
+                                                throw new BlobException("Размер сохраняемого файла больше допустимого");
+                                            }
                                         }
                                         update.Save();
                                     }
@@ -1119,7 +1125,7 @@ namespace Imageboard10.Core.ModelStorage.Blobs
                 var result = false;
                 await session.RunInTransaction(() =>
                 {
-                    using (var table = session.OpenTable(BlobsTable, OpenTableGrbit.ReadOnly))
+                    using (var table = session.OpenTable(BlobsTable, OpenTableGrbit.DenyWrite))
                     {
                         var columnMap = Api.GetColumnDictionary(table.Session, table);
                         if (SeekBlob(table, id, false))
