@@ -1090,16 +1090,13 @@ namespace Imageboard10.Core.ModelStorage.Blobs
                     using (var table = session.OpenTable(BlobsTable, OpenTableGrbit.ReadOnly))
                     {
                         var columnMap = Api.GetColumnDictionary(table.Session, table);
-                        Api.JetSetCurrentIndex(table.Session, table.Table, BlobsTableIndexes.ReferenceId);
+                        Api.JetSetCurrentIndex(table.Session, table.Table, BlobsTableIndexes.IsCompleted);
                         Api.MakeKey(table.Session, table, false, MakeKeyGrbit.NewKey);
                         if (Api.TrySeek(table.Session, table, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange))
                         {
                             do
                             {
-                                if (Api.RetrieveColumnAsBoolean(table.Session, table.Table, columnMap[BlobsTableColumns.IsCompleted]) ?? false)
-                                {
-                                    result.Add(LoadBlobInfo(table, columnMap));
-                                }
+                                result.Add(new BlobId() { Id = Api.RetrieveColumnAsInt32(table.Session, table, columnMap[BlobsTableColumns.Id]) ?? 0});
                             } while (Api.TryMoveNext(table.Session, table));
                         }
                     }
@@ -1113,9 +1110,32 @@ namespace Imageboard10.Core.ModelStorage.Blobs
         /// </summary>
         /// <param name="id">Идентификатор файла.</param>
         /// <returns>true, если файл найден и помечен.</returns>
-        public Task<bool> MarkUncompleted(BlobId id)
+        public async Task<bool> MarkUncompleted(BlobId id)
         {
-            throw new NotImplementedException();
+            CheckModuleReady();
+            await WaitForTablesInitialize();
+            return await UpdateAsync(async session =>
+            {
+                var result = false;
+                await session.RunInTransaction(() =>
+                {
+                    using (var table = session.OpenTable(BlobsTable, OpenTableGrbit.ReadOnly))
+                    {
+                        var columnMap = Api.GetColumnDictionary(table.Session, table);
+                        if (SeekBlob(table, id, false))
+                        {
+                            using (var update = new Update(table.Session, table, JET_prep.Replace))
+                            {
+                                Api.SetColumn(table.Session, table, columnMap[BlobsTableColumns.IsCompleted], false);
+                                update.Save();
+                                result = true;
+                            }
+                        }
+                    }
+                    return true;
+                });
+                return result;
+            });
         }
     }
 }
