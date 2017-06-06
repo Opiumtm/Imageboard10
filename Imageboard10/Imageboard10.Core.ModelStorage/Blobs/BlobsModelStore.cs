@@ -71,7 +71,7 @@ namespace Imageboard10.Core.ModelStorage.Blobs
             Api.JetAddColumn(sid, tableid, BlobsTableColumns.Data, new JET_COLUMNDEF()
             {
                 coltyp = JET_coltyp.LongBinary,
-                grbit = ColumndefGrbit.ColumnMaybeNull,
+                grbit = ColumndefGrbit.ColumnMaybeNull | ColumndefGrbit.ColumnTagged,
             }, null, 0, out tempid);
 
             Api.JetAddColumn(sid, tableid, BlobsTableColumns.ReferenceId, new JET_COLUMNDEF()
