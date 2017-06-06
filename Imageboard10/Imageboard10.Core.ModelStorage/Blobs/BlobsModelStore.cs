@@ -113,6 +113,13 @@ namespace Imageboard10.Core.ModelStorage.Blobs
             Api.JetCreateIndex(sid, tableid, BlobsTableIndexes.Primary, CreateIndexGrbit.IndexPrimary | CreateIndexGrbit.IndexUnique, pkDef, pkDef.Length, 100);
         }
 
+        private struct SaveId
+        {
+            public int Id;
+            public byte[] Bookmark;
+            public int BookmarkSize;
+        }
+
         /// <summary>
         /// Сохранить файл.
         /// </summary>
@@ -139,7 +146,7 @@ namespace Imageboard10.Core.ModelStorage.Blobs
             {
                 token.ThrowIfCancellationRequested();
 
-                var blobId = await session.RunInTransaction(() =>
+                var frs = await session.RunInTransaction(() =>
                 {
                     using (var table = session.OpenTable(BlobsTable, OpenTableGrbit.DenyWrite))
                     {
@@ -149,6 +156,8 @@ namespace Imageboard10.Core.ModelStorage.Blobs
                         {
                             var bid = Api.RetrieveColumnAsInt32(sid, table, columnMap[BlobsTableColumns.Id], RetrieveColumnGrbit.RetrieveCopy) ??
                                      throw new BlobException("Не доступно значение autioncrement Id");
+                            var bmark = new byte[SystemParameters.BookmarkMost];
+                            int bsize = 0;
                             var columns = new ColumnValue[]
                             {
                                 new StringColumnValue()
@@ -188,11 +197,15 @@ namespace Imageboard10.Core.ModelStorage.Blobs
                                 },
                             };
                             Api.SetColumns(sid, table, columns);
-                            update.Save();
-                            return (true, bid);
+                            update.Save(bmark, bmark.Length, out bsize);
+                            return (true, new SaveId() { Id = bid, Bookmark = bmark, BookmarkSize = bsize });
                         }
                     }
                 });
+
+                var blobId = frs.Id;
+                var bookmark = frs.Bookmark;
+                var bookmarkSize = frs.BookmarkSize;
 
                 byte[] buffer = new byte[64 * 1024];
                 long counter = 0;
@@ -223,9 +236,8 @@ namespace Imageboard10.Core.ModelStorage.Blobs
                                 var sid = table.Session;
                                 var columnMap = Api.GetColumnDictionary(sid, table);
 
-                                Api.MakeKey(sid, table, blobId, MakeKeyGrbit.NewKey);
-                                if (!Api.TrySeek(sid, table, SeekGrbit.SeekEQ))
-                                {
+                                if (!Api.TryGotoBookmark(table.Session, table, bookmark, bookmarkSize))
+                                {                                    
                                     throw new BlobException($"Неверные данные в таблице {BlobsTable}, ID={blobId}, pos={counter2}");
                                 }
                                 using (var update = new Update(sid, table, JET_prep.Replace))
@@ -260,8 +272,7 @@ namespace Imageboard10.Core.ModelStorage.Blobs
                         {
                             var sid = table.Session;
                             var columnMap = Api.GetColumnDictionary(sid, table);
-                            Api.MakeKey(sid, table, blobId, MakeKeyGrbit.NewKey);
-                            if (!Api.TrySeek(sid, table, SeekGrbit.SeekEQ))
+                            if (!Api.TryGotoBookmark(table.Session, table, bookmark, bookmarkSize))
                             {
                                 throw new BlobException($"Неверные данные в таблице {BlobsTable}, ID={blobId}");
                             }
@@ -284,7 +295,10 @@ namespace Imageboard10.Core.ModelStorage.Blobs
                         {
                             using (var table = session.OpenTable(BlobsTable, OpenTableGrbit.DenyWrite))
                             {
-                                DoDeleteBlob(table, new BlobId() { Id = blobId });
+                                if (Api.TryGotoBookmark(table.Session, table, bookmark, bookmarkSize))
+                                {
+                                    Api.JetDelete(table.Session, table);
+                                }
                                 return true;
                             }
                         });
@@ -304,7 +318,10 @@ namespace Imageboard10.Core.ModelStorage.Blobs
                         {
                             using (var table = session.OpenTable(BlobsTable, OpenTableGrbit.DenyWrite))
                             {
-                                DoDeleteBlob(table, new BlobId() { Id = blobId });
+                                if (Api.TryGotoBookmark(table.Session, table, bookmark, bookmarkSize))
+                                {
+                                    Api.JetDelete(table.Session, table);
+                                }
                                 return true;
                             }
                         });
