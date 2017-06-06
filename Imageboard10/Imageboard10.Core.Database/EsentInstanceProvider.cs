@@ -478,11 +478,40 @@ namespace Imageboard10.Core.Database
                     return Nothing.Value;
                 }
 
-                if (_dispatcher == null)
+                if (_dispatcher == null || _dispatcher.HaveAccess())
                 {
                     return new ValueTask<Nothing>(Do());
                 }
                 return new ValueTask<Nothing>(_dispatcher.QueueAction(Do));
+            }
+
+            public ValueTask<T> RunInTransaction<T>(Func<(bool commit, T result)> logic)
+            {
+                if (logic == null)
+                {
+                    return new ValueTask<T>(default(T));
+                }
+
+                T Do()
+                {
+                    var result = default(T);
+                    using (var transaction = new Transaction(Session))
+                    {
+                        var r = logic();
+                        if (r.commit)
+                        {
+                            transaction.Commit(CommitTransactionGrbit.None);
+                        }
+                        result = r.result;
+                    }
+                    return result;
+                }
+
+                if (_dispatcher == null || _dispatcher.HaveAccess())
+                {
+                    return new ValueTask<T>(Do());
+                }
+                return new ValueTask<T>(_dispatcher.QueueAction(Do));
             }
 
             /// <summary>
@@ -502,11 +531,30 @@ namespace Imageboard10.Core.Database
                     return Nothing.Value;
                 }
 
-                if (_dispatcher == null)
+                if (_dispatcher == null || _dispatcher.HaveAccess())
                 {
                     return new ValueTask<Nothing>(Do());
                 }
                 return new ValueTask<Nothing>(_dispatcher.QueueAction(Do));
+            }
+
+            public ValueTask<T> Run<T>(Func<T> logic)
+            {
+                if (logic == null)
+                {
+                    return new ValueTask<T>(default(T));
+                }
+
+                T Do()
+                {
+                    return logic();
+                }
+
+                if (_dispatcher == null || _dispatcher.HaveAccess())
+                {
+                    return new ValueTask<T>(Do());
+                }
+                return new ValueTask<T>(_dispatcher.QueueAction(Do));
             }
 
             public IDisposable UseSession()
@@ -526,6 +574,12 @@ namespace Imageboard10.Core.Database
                 return new SessionDisposeWaiter(_waiters, OnDispose);
             }
 
+            private EsentTable DoOpenTable(string tableName, OpenTableGrbit grbit)
+            {
+                JET_TABLEID tableid;
+                Api.OpenTable(_session, _database, tableName, grbit, out tableid);
+                return new EsentTable(_session, tableid);
+            }
 
             /// <summary>
             /// Открыть таблицу.
@@ -540,9 +594,34 @@ namespace Imageboard10.Core.Database
                 {
                     _dispatcher.CheckAccess();
                 }
-                JET_TABLEID tableid;
-                Api.OpenTable(_session, _database, tableName, grbit, out tableid);
-                return new EsentTable(_session, tableid);
+                return DoOpenTable(tableName, grbit);
+            }
+
+            /// <summary>
+            /// Открыть таблицу асинхронно (гарантирует выполнение на нужном потоке).
+            /// </summary>
+            /// <param name="tableName">Имя таблицы.</param>
+            /// <param name="grbit">Имя таблицы.</param>
+            /// <returns></returns>
+            public ValueTask<ThreadDisposableAccessGuard<EsentTable>> OpenTableAsync(string tableName, OpenTableGrbit grbit)
+            {
+                if (tableName == null) throw new ArgumentNullException(nameof(tableName));
+
+                if (_dispatcher == null || _dispatcher.HaveAccess())
+                {
+                    return new ValueTask<ThreadDisposableAccessGuard<EsentTable>>(new ThreadDisposableAccessGuard<EsentTable>(null, DoOpenTable(tableName, grbit)));
+                }
+                if (_dispatcher.HaveAccess())
+                {
+                    return new ValueTask<ThreadDisposableAccessGuard<EsentTable>>(_dispatcher.CreateDisposableThreadGuard(DoOpenTable(tableName, grbit)));
+                }
+
+                async ValueTask<ThreadDisposableAccessGuard<EsentTable>> Do()
+                {
+                    return await _dispatcher.QueueAction(() => _dispatcher.CreateDisposableThreadGuard(DoOpenTable(tableName, grbit)));
+                }
+
+                return Do();
             }
 
             private class SessionDisposeWaiter : IDisposable

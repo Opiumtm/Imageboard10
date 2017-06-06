@@ -118,6 +118,7 @@
     <AppxManifest Include="Package.appxmanifest">
       <SubType>Designer</SubType>
     </AppxManifest>
+    <Content Include="Resources\planet.jpg" />
     <None Include="Imageboard10UnitTests_TemporaryKey.pfx" />
     <Content Include="Resources\boards.json" />
   </ItemGroup>
@@ -139,10 +140,10 @@
       <Version>5.3.3</Version>
     </PackageReference>
     <PackageReference Include="MSTest.TestAdapter">
-      <Version>1.1.17</Version>
+      <Version>1.1.18</Version>
     </PackageReference>
     <PackageReference Include="MSTest.TestFramework">
-      <Version>1.1.17</Version>
+      <Version>1.1.18</Version>
     </PackageReference>
     <PackageReference Include="Newtonsoft.Json">
       <Version>10.0.2</Version>

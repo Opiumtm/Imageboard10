@@ -69,12 +69,44 @@ namespace Imageboard10.Core.Tasks
         }
 
         /// <summary>
+        /// Есть доступ.
+        /// </summary>
+        /// <returns>Результат.</returns>
+        public bool HaveAccess()
+        {
+            return _queueTask.Id == Task.CurrentId;
+        }
+
+        /// <summary>
         /// Проверить, что доступ осуществляется из диспетчеризующего треда.
         /// </summary>
         public T CheckAccess<T>(Func<T> func)
         {
             CheckAccess();
             return func != null ? func.Invoke() : default(T);
+        }
+
+        /// <summary>
+        /// Создать защиту от доступа с другого потока.
+        /// </summary>
+        /// <typeparam name="T">Тип объекта.</typeparam>
+        /// <param name="value">Объект.</param>
+        /// <returns>Защищённый объект.</returns>
+        public ThreadAccessGuard<T> CreateThreadGuard<T>(T value)
+        {
+            return new ThreadAccessGuard<T>(this, value);
+        }
+
+        /// <summary>
+        /// Создать защиту от доступа с другого потока.
+        /// </summary>
+        /// <typeparam name="T">Тип объекта.</typeparam>
+        /// <param name="value">Объект.</param>
+        /// <returns>Защищённый объект.</returns>
+        public ThreadDisposableAccessGuard<T> CreateDisposableThreadGuard<T>(T value)
+            where T : IDisposable
+        {
+            return new ThreadDisposableAccessGuard<T>(this, value);
         }
 
         private void TaskAction()

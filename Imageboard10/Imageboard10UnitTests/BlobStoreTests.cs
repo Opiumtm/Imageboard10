@@ -6,15 +6,20 @@ using System.Linq;
 using System.Runtime.InteropServices.WindowsRuntime;
 using System.Threading;
 using System.Threading.Tasks;
+using Windows.Graphics.Imaging;
 using Windows.Security.Cryptography;
 using Windows.Security.Cryptography.Core;
 using Windows.Storage;
+using Windows.UI.Core;
+using Windows.UI.Xaml.Media.Imaging;
+using Imageboard10.Core;
 using Imageboard10.Core.Database;
 using Imageboard10.Core.Models.Links;
 using Imageboard10.Core.ModelStorage.Blobs;
 using Imageboard10.Core.ModelStorage.UnitTests;
 using Imageboard10.Core.Modules;
 using Imageboard10.Core.Network;
+using Imageboard10.Core.Tasks;
 using Imageboard10.Makaba.Network.JsonParsers;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Microsoft.VisualStudio.TestTools.UnitTesting.Logging;
@@ -565,25 +570,29 @@ namespace Imageboard10UnitTests
                 sw = new Stopwatch();
                 sw.Start();
                 var l = new object();
-                await Task.Factory.StartNew(() =>
+
+                async Task<Nothing> DoSave()
                 {
-                    Parallel.ForEach(Enumerable.Range(0, 5), new ParallelOptions() { MaxDegreeOfParallelism = 5 }, i =>
+                    using (var str2 = new MemoryStream(dataBuf))
                     {
-                        using (var str2 = new MemoryStream(dataBuf))
+                        var id1 = await _store.SaveBlob(new InputBlob()
                         {
-                            var id1 = _store.SaveBlob(new InputBlob()
-                            {
-                                BlobStream = str2,
-                                Category = "test",
-                                UniqueName = Guid.NewGuid().ToString()
-                            }, CancellationToken.None).Result;
-                            lock (l)
-                            {
-                                id.Add(id1);
-                            }
+                            BlobStream = str2,
+                            Category = "test",
+                            UniqueName = Guid.NewGuid().ToString()
+                        }, CancellationToken.None);
+                        lock (l)
+                        {
+                            id.Add(id1);
                         }
-                    });
-                });
+                    }
+                    return Nothing.Value;
+                }
+
+                var toWait = Enumerable.Range(0, 5).Select(i => (Task)CoreTaskHelper.RunAsyncFuncOnNewThread(DoSave)).ToArray();
+
+                await Task.WhenAll(toWait);
+
                 sw.Stop();
                 var sizeMb = (float)size / (1024 * 1024);
                 var sec = sw.Elapsed.TotalSeconds / id.Count;
@@ -591,6 +600,60 @@ namespace Imageboard10UnitTests
                 sw.Start();
                 Logger.LogMessage($"Время сохранения файла размером {id.Count}x{sizeMb:F2} Мб: {sec} сек, {sizeMb / sec} Мб/Сек");
             }
+        }
+
+        [TestMethod]
+        public async Task BlobStoreJpegDecode()
+        {
+            var id = await _store.SaveBlob(new InputBlob()
+            {
+                UniqueName = "planet.jpg",
+                Category = "pictures",
+                BlobStream = await TestResources.ReadTestFile("planet.jpg")
+            }, CancellationToken.None);
+
+            using (var str = await _store.LoadBlob(id))
+            {
+                var decoder = await BitmapDecoder.CreateAsync(str.AsRandomAccessStream());
+                Assert.AreEqual(1700, (int)decoder.PixelWidth, "Ширина JPG не совпадает");
+                Assert.AreEqual(1026, (int)decoder.PixelHeight, "Высота JPG не совпадает");
+            }
+        }
+
+        [TestMethod]
+        public async Task BlobStoreJpegDecodeToBitmap()
+        {
+            var id = await _store.SaveBlob(new InputBlob()
+            {
+                UniqueName = "planet.jpg",
+                Category = "pictures",
+                BlobStream = await TestResources.ReadTestFile("planet.jpg")
+            }, CancellationToken.None);
+
+            var dispatcher = Windows.ApplicationModel.Core.CoreApplication.MainView.CoreWindow.Dispatcher;            
+
+            var tcs = new TaskCompletionSource<Nothing>();
+            
+            var unawaitedTask = dispatcher.RunAsync(CoreDispatcherPriority.Normal, async () =>
+            {
+                try
+                {
+                    using (var str = await _store.LoadBlob(id))
+                    {
+                        var bmp = new BitmapImage();
+                        await bmp.SetSourceAsync(str.AsRandomAccessStream());
+                        Assert.AreEqual(1700, bmp.PixelWidth, "Ширина JPG не совпадает");
+                        Assert.AreEqual(1026, bmp.PixelHeight, "Высота JPG не совпадает");
+                        Assert.AreEqual(str.Length, str.Position, "Прочитан не весь файл");
+                    }
+                    tcs.SetResult(Nothing.Value);
+                }
+                catch (Exception e)
+                {
+                    tcs.SetException(e);
+                }
+            });
+            await tcs.Task;
         }
 
         private async Task<byte[]> GetStreamHash(Stream str)
