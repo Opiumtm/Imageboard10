@@ -11,6 +11,11 @@
         public const int MaxInlineSize = 64 * 1024;
 
         /// <summary>
+        /// Размер, начиная с которого данные хранятся в виде файла на диске.
+        /// </summary>
+        public const long FileStreamSize = 256 * 1024;
+
+        /// <summary>
         /// Макисмальный размер файла. Если размер файла превышает этот - при сохранении файла кидать исключение.
         /// </summary>
         public const long MaxFileSize = 64 * 1024 * 1024;
@@ -70,6 +75,11 @@
             /// Загрузка завершена.
             /// </summary>
             public const string IsCompleted = "IsCompleted";
+
+            /// <summary>
+            /// Внешний файл.
+            /// </summary>
+            public const string IsFilestream = "IsFilestream";
         }
 
         /// <summary>

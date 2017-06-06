@@ -32,5 +32,10 @@ namespace Imageboard10.Core.ModelStorage.Blobs
         /// Идентификатор ссылки.
         /// </summary>
         public Guid? ReferenceId;
+
+        /// <summary>
+        /// Для юнит-тестов.
+        /// </summary>
+        public bool RememberTempFile;
     }
 }

@@ -116,6 +116,8 @@
     <Compile Include="Blobs\BlocksBlobStream.cs" />
     <Compile Include="Blobs\IBlobsModelStore.cs" />
     <Compile Include="Blobs\InlineBlobStream.cs" />
+    <Compile Include="Blobs\InlineBlobStreamBase.cs" />
+    <Compile Include="Blobs\InlineFileStream.cs" />
     <Compile Include="Blobs\InputBlob.cs" />
     <Compile Include="Boards\BoardReferenceStore.cs" />
     <Compile Include="Boards\DataContracts\BoardExtendedInfo.cs" />

@@ -108,6 +108,7 @@
   <ItemGroup>
     <Compile Include="CoreConstants.cs" />
     <Compile Include="IDeepCloneable.cs" />
+    <Compile Include="IO\SemiMemoryStream.cs" />
     <Compile Include="Modules\BaseModuleLogic.cs" />
     <Compile Include="Modules\IModuleLifetime.cs" />
     <Compile Include="Modules\IStaticModuleQueryFilter.cs" />

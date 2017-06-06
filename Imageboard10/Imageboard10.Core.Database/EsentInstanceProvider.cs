@@ -354,6 +354,11 @@ namespace Imageboard10.Core.Database
         /// </summary>
         public string DatabasePath { get; private set; }
 
+        /// <summary>
+        /// Очистить при старте.
+        /// </summary>
+        public bool Purge => _clearDbOnStart;
+
         private sealed class EsentSession : IEsentSession
         {
             private readonly string _databasePath;

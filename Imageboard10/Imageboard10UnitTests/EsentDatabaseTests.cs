@@ -447,7 +447,7 @@ namespace Imageboard10UnitTests
             Api.JetAddColumn(session.Session, tableid, "Val", new JET_COLUMNDEF()
             {
                 coltyp = JET_coltyp.LongText,
-                grbit = ColumndefGrbit.ColumnMaybeNull,
+                grbit = ColumndefGrbit.None,
                 cp = JET_CP.Unicode
             }, null, 0, out colVal);
             var idxDef = "+Id\0\0";

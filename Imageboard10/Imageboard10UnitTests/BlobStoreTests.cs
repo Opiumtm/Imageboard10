@@ -88,12 +88,61 @@ namespace Imageboard10UnitTests
                 {
                     BlobStream = b,
                     Category = "test",
-                    UniqueName = tmpFile.Name
+                    UniqueName = tmpFile.Name,
+                    RememberTempFile = true
                 }, CancellationToken.None);
             }
+
+            Assert.IsFalse(await _store.IsFilePresent(id), "await _store.IsFilePresent(id)");
+            Assert.IsNull(_store.GetTempFilePath(id), "Не должно быть временного файла");
             using (var str = await _store.LoadBlob(id))
             {
-                Assert.AreEqual(BlobStreamKind.Inlined, BlobStreamInfo.GetBlobStreamKind(str), "Тип потока не совпадает");
+                Assert.AreEqual(BlobStreamKind.Memory, BlobStreamInfo.GetBlobStreamKind(str), "Тип потока не совпадает");
+                Assert.AreEqual(size, str.Length, "Размер блоба не совпадает с исходным");
+                var newHash = await GetStreamHash(str);
+                Assert.AreEqual(Convert.ToBase64String(originalHash), Convert.ToBase64String(newHash), "Хэш-код данных не совпадает с исходным");
+            }
+        }
+
+        [TestMethod]
+        public async Task BlobStoreUploadMedium()
+        {
+            var tmpId = Guid.NewGuid();
+            var tmpFile = await ApplicationData.Current.TemporaryFolder.CreateFileAsync(tmpId.ToString());
+            long size;
+            byte[] originalHash;
+            using (var str = await tmpFile.OpenStreamForWriteAsync())
+            {
+                using (var wr = new BinaryWriter(str))
+                {
+                    for (int i = 0; i < 1024*32; i++)
+                    {
+                        wr.Write(i);
+                    }
+                    wr.Flush();
+                    size = str.Length;
+                    str.Position = 0;
+                    originalHash = await GetStreamHash(str);
+                }
+            }
+            BlobId id;
+            using (var b = await tmpFile.OpenStreamForReadAsync())
+            {
+                id = await _store.SaveBlob(new InputBlob()
+                {
+                    BlobStream = b,
+                    Category = "test",
+                    UniqueName = tmpFile.Name,
+                    RememberTempFile = true
+                }, CancellationToken.None);
+            }
+
+            Assert.IsFalse(await _store.IsFilePresent(id), "await _store.IsFilePresent(id)");
+            Assert.IsNotNull(_store.GetTempFilePath(id), "Должен быть временный файл");
+            Assert.IsFalse(File.Exists(_store.GetTempFilePath(id)), "Файл должен быть удалён");
+            using (var str = await _store.LoadBlob(id))
+            {
+                Assert.AreEqual(BlobStreamKind.Normal, BlobStreamInfo.GetBlobStreamKind(str), "Тип потока не совпадает");
                 Assert.AreEqual(size, str.Length, "Размер блоба не совпадает с исходным");
                 var newHash = await GetStreamHash(str);
                 Assert.AreEqual(Convert.ToBase64String(originalHash), Convert.ToBase64String(newHash), "Хэш-код данных не совпадает с исходным");
@@ -128,12 +177,16 @@ namespace Imageboard10UnitTests
                 {
                     BlobStream = b,
                     Category = "test",
-                    UniqueName = tmpFile.Name
+                    UniqueName = tmpFile.Name,
+                    RememberTempFile = true
                 }, CancellationToken.None);
             }
+            Assert.IsTrue(await _store.IsFilePresent(id), "await _store.IsFilePresent(id)");
+            Assert.IsNotNull(_store.GetTempFilePath(id), "Должен быть временный файл");
+            Assert.IsFalse(File.Exists(_store.GetTempFilePath(id)), "Файл должен быть удалён");
             using (var str = await _store.LoadBlob(id))
             {
-                Assert.AreEqual(BlobStreamKind.Normal, BlobStreamInfo.GetBlobStreamKind(str), "Тип потока не совпадает");
+                Assert.AreEqual(BlobStreamKind.Filestream, BlobStreamInfo.GetBlobStreamKind(str), "Тип потока не совпадает");
                 Assert.AreEqual(size, str.Length, "Размер блоба не совпадает с исходным");
                 var newHash = await GetStreamHash(str);
                 Assert.AreEqual(Convert.ToBase64String(originalHash), Convert.ToBase64String(newHash), "Хэш-код данных не совпадает с исходным");
@@ -143,7 +196,7 @@ namespace Imageboard10UnitTests
         [TestMethod]
         public async Task BlobStoreFindByName()
         {
-            (var tmpFile, var id, var size) = await UploadSmallTempFile();
+            (var tmpFile, var id, var size) = await UploadTempFile();
             var id2 = await _store.FindBlob(tmpFile.Name);
             Assert.AreEqual(id, id2, "ID найденного файла не совпадает");
             var id3 = await _store.FindBlob(Guid.NewGuid().ToString());
@@ -163,7 +216,7 @@ namespace Imageboard10UnitTests
             const int filecount = 10;
             for (var i = 0; i < filecount; i++)
             {
-                files.Add(await UploadSmallTempFile());
+                files.Add(await UploadTempFile());
             }
             var count = await _store.GetBlobsCount();
             Assert.AreEqual(files.Count, count, "Количество файлов не совпадает");
@@ -223,15 +276,15 @@ namespace Imageboard10UnitTests
             var files2 = new List<(StorageFile tempFile, BlobId id, long size)>();
             for (var i = 0; i < filecount; i++)
             {
-                files0.Add(await UploadSmallTempFile(category0));
+                files0.Add(await UploadTempFile(category0));
             }
             for (var i = 0; i < filecount + 1; i++)
             {
-                files1.Add(await UploadSmallTempFile(category1));
+                files1.Add(await UploadTempFile(category1));
             }
             for (var i = 0; i < filecount + 2; i++)
             {
-                files2.Add(await UploadSmallTempFile(category2));
+                files2.Add(await UploadTempFile(category2));
             }
 
             async Task AssertCategory(List<(StorageFile tempFile, BlobId id, long size)> files, string category, string suffix)
@@ -284,6 +337,95 @@ namespace Imageboard10UnitTests
         }
 
         [TestMethod]
+        public async Task BlobStoreCategoriesBig()
+        {
+            const string category0 = null;
+            const string category1 = "Категория 1";
+            const string category2 = "Категория 2";
+
+            const int filecount = 10;
+            var files0 = new List<(StorageFile tempFile, BlobId id, long size)>();
+            var files1 = new List<(StorageFile tempFile, BlobId id, long size)>();
+            var files2 = new List<(StorageFile tempFile, BlobId id, long size)>();
+            for (var i = 0; i < filecount; i++)
+            {
+                files0.Add(await UploadTempFile(category0, null, 256*1024));
+            }
+            for (var i = 0; i < filecount + 1; i++)
+            {
+                files1.Add(await UploadTempFile(category1, null, 256 * 1024));
+            }
+            for (var i = 0; i < filecount + 2; i++)
+            {
+                files2.Add(await UploadTempFile(category2, null, 256 * 1024));
+            }
+
+            async Task AssertCategory(List<(StorageFile tempFile, BlobId id, long size)> files, string category, string suffix)
+            {
+                var desiredCount = files.Count;
+                var desiredSize = files.Select(f => f.size).DefaultIfEmpty(0).Sum();
+                var count = await _store.GetCategoryBlobsCount(category);
+                var size = await _store.GetCategorySize(category);
+                var infos = (await _store.ReadCategory(category)).ToDictionary(i => i.Id);
+                var filesById = files.ToDictionary(f => f.id);
+
+                Assert.AreEqual(desiredCount, count, $"Категория {category}, количество файлов не совпадает{suffix}");
+                Assert.AreEqual(desiredCount, infos.Count, $"Категория {category}, количество записей с информацией не совпадает{suffix}");
+                Assert.AreEqual(desiredSize, size, $"Категория {category}, размер не совпадает{suffix}");
+
+                foreach (var id in filesById.Keys)
+                {
+                    Assert.IsTrue(infos.ContainsKey(id), $"Категория {category}, информация о файле {id.Id} не найдена{suffix}");
+                    Assert.IsTrue(await _store.IsFilePresent(id), $"Категория {category}, файл в файловой системе не найден, ID={id.Id}{suffix}");
+                    var desired = filesById[id];
+                    var info = infos[id];
+                    Assert.AreEqual(desired.size, info.Size, $"Категория {category}, размер файла {id.Id} не совпадает{suffix}");
+                    Assert.AreEqual(desired.tempFile.Name, info.UniqueName, $"Категория {category}, имя файла {id.Id} не совпадает{suffix}");
+                    Assert.AreEqual(category, info.Category, $"Категория {category}, категория файла {id.Id} не совпадает{suffix}");
+                }
+            }
+
+            await AssertCategory(files0, category0, "");
+            await AssertCategory(files1, category1, "");
+            await AssertCategory(files2, category2, "");
+
+            Assert.IsTrue(await _store.DeleteBlob(files0[0].id), $"Не удалось удалить файл {files0[0].id}");
+            Assert.IsFalse(await _store.IsFilePresent(files0[0].id), $"Файл не удалён из файловой системы {files0[0].id}");
+            files0.RemoveAt(0);
+            Assert.IsTrue(await _store.DeleteBlob(files1[0].id), $"Не удалось удалить файл {files1[0].id}");
+            Assert.IsFalse(await _store.IsFilePresent(files1[0].id), $"Файл не удалён из файловой системы {files1[0].id}");
+            files1.RemoveAt(0);
+            Assert.IsTrue(await _store.DeleteBlob(files2[0].id), $"Не удалось удалить файл {files2[0].id}");
+            Assert.IsFalse(await _store.IsFilePresent(files2[0].id), $"Файл не удалён из файловой системы {files2[0].id}");
+            files2.RemoveAt(0);
+            await AssertCategory(files0, category0, ", после удаления 1 файла");
+            await AssertCategory(files1, category1, ", после удаления 1 файла");
+            await AssertCategory(files2, category2, ", после удаления 1 файла");
+
+            await _store.DeleteBlobs(files0.Select(f => f.id).ToArray());
+            foreach (var f in files0)
+            {
+                Assert.IsFalse(await _store.IsFilePresent(f.id), $"Файл не удалён из файловой системы {f.id}");
+            }
+            files0.Clear();
+            await _store.DeleteBlobs(files1.Select(f => f.id).ToArray());
+            foreach (var f in files1)
+            {
+                Assert.IsFalse(await _store.IsFilePresent(f.id), $"Файл не удалён из файловой системы {f.id}");
+            }
+            files1.Clear();
+            await _store.DeleteBlobs(files2.Select(f => f.id).ToArray());
+            foreach (var f in files2)
+            {
+                Assert.IsFalse(await _store.IsFilePresent(f.id), $"Файл не удалён из файловой системы {f.id}");
+            }
+            files2.Clear();
+            await AssertCategory(files0, category0, ", после удаления всех файлов");
+            await AssertCategory(files1, category1, ", после удаления всех файлов");
+            await AssertCategory(files2, category2, ", после удаления всех файлов");
+        }
+
+        [TestMethod]
         public async Task BlobStoreReferenced()
         {
             var ref1 = Guid.NewGuid();
@@ -294,11 +436,11 @@ namespace Imageboard10UnitTests
             var files2 = new List<(StorageFile tempFile, BlobId id, long size)>();
             for (var i = 0; i < filecount; i++)
             {
-                files1.Add(await UploadSmallTempFile(null, ref1));
+                files1.Add(await UploadTempFile(null, ref1));
             }
             for (var i = 0; i < filecount + 1; i++)
             {
-                files2.Add(await UploadSmallTempFile(null, ref2));
+                files2.Add(await UploadTempFile(null, ref2));
             }
 
             async Task AssertReferenced(List<(StorageFile tempFile, BlobId id, long size)> files, Guid referenceId, string suffix)
@@ -332,6 +474,70 @@ namespace Imageboard10UnitTests
             Assert.IsTrue(await _store.DeleteBlob(files1[0].id), $"Не удалось удалить файл {files1[0].id}");
             files1.RemoveAt(0);
             Assert.IsTrue(await _store.DeleteBlob(files2[0].id), $"Не удалось удалить файл {files2[0].id}");
+            files2.RemoveAt(0);
+            await AssertReferenced(files1, ref1, ", после удаления 1 файла");
+            await AssertReferenced(files2, ref2, ", после удаления 1 файла");
+
+            await _store.DeleteBlobs(files1.Select(f => f.id).ToArray());
+            files1.Clear();
+            await _store.DeleteBlobs(files2.Select(f => f.id).ToArray());
+            files2.Clear();
+            await AssertReferenced(files1, ref1, ", после удаления всех файлов");
+            await AssertReferenced(files2, ref2, ", после удаления всех файлов");
+        }
+
+        [TestMethod]
+        public async Task BlobStoreReferencedBig()
+        {
+            var ref1 = Guid.NewGuid();
+            var ref2 = Guid.NewGuid();
+
+            const int filecount = 10;
+            var files1 = new List<(StorageFile tempFile, BlobId id, long size)>();
+            var files2 = new List<(StorageFile tempFile, BlobId id, long size)>();
+            for (var i = 0; i < filecount; i++)
+            {
+                files1.Add(await UploadTempFile(null, ref1, 256*1024));
+            }
+            for (var i = 0; i < filecount + 1; i++)
+            {
+                files2.Add(await UploadTempFile(null, ref2, 256*1024));
+            }
+
+            async Task AssertReferenced(List<(StorageFile tempFile, BlobId id, long size)> files, Guid referenceId, string suffix)
+            {
+                var desiredCount = files.Count;
+                var desiredSize = files.Select(f => f.size).DefaultIfEmpty(0).Sum();
+                var count = await _store.GetReferencedBlobsCount(referenceId);
+                var size = await _store.GetReferencedSize(referenceId);
+                var infos = (await _store.ReadReferencedBlobs(referenceId)).ToDictionary(i => i.Id);
+                var filesById = files.ToDictionary(f => f.id);
+
+                Assert.AreEqual(desiredCount, count, $"Ссылка {referenceId}, количество файлов не совпадает{suffix}");
+                Assert.AreEqual(desiredCount, infos.Count, $"Ссылка {referenceId}, количество записей с информацией не совпадает{suffix}");
+                Assert.AreEqual(desiredSize, size, $"Ссылка {referenceId}, размер не совпадает{suffix}");
+
+                foreach (var id in filesById.Keys)
+                {
+                    Assert.IsTrue(infos.ContainsKey(id), $"Ссылка {referenceId}, информация о файле {id.Id} не найдена{suffix}");
+                    Assert.IsTrue(await _store.IsFilePresent(id), $"Ссылка {referenceId}, файл в файловой системе не найден, ID={id.Id}{suffix}");
+                    var desired = filesById[id];
+                    var info = infos[id];
+                    Assert.AreEqual(desired.size, info.Size, $"Ссылка {referenceId}, размер файла {id.Id} не совпадает{suffix}");
+                    Assert.AreEqual(desired.tempFile.Name, info.UniqueName, $"Ссылка {referenceId}, имя файла {id.Id} не совпадает{suffix}");
+                    Assert.IsNotNull(info.ReferenceId, $"Ссылка {referenceId}, ссылка на файл {id.Id} равна null{suffix}");
+                    Assert.AreEqual(referenceId, info.ReferenceId, $"Ссылка {referenceId}, ссылка на файл {id.Id} не совпадает{suffix}");
+                }
+            }
+
+            await AssertReferenced(files1, ref1, "");
+            await AssertReferenced(files2, ref2, "");
+
+            Assert.IsTrue(await _store.DeleteBlob(files1[0].id), $"Не удалось удалить файл {files1[0].id}");
+            Assert.IsFalse(await _store.IsFilePresent(files1[0].id), $"Файл не удалён из файловой системы {files1[0].id}");
+            files1.RemoveAt(0);
+            Assert.IsTrue(await _store.DeleteBlob(files2[0].id), $"Не удалось удалить файл {files2[0].id}");
+            Assert.IsFalse(await _store.IsFilePresent(files2[0].id), $"Файл не удалён из файловой системы {files2[0].id}");
             files2.RemoveAt(0);
             await AssertReferenced(files1, ref1, ", после удаления 1 файла");
             await AssertReferenced(files2, ref2, ", после удаления 1 файла");
@@ -402,8 +608,8 @@ namespace Imageboard10UnitTests
             var rid = Guid.NewGuid();
             var f = new[]
             {
-                await UploadSmallTempFile("test", rid),
-                await UploadSmallTempFile("test", rid),
+                await UploadTempFile("test", rid),
+                await UploadTempFile("test", rid, 256*1024),
             };
             var ids = f.Select(a => a.id).ToArray();
 
@@ -411,16 +617,22 @@ namespace Imageboard10UnitTests
 
             Assert.AreEqual(2, await _store.GetBlobsCount(), "Не загружено 2 файла");
             Assert.AreEqual(totalSize, await _store.GetTotalSize(), "Не загружено 2 файла");
+            Assert.IsFalse(await _store.IsFilePresent(f[0].id), "Лишний файл в файловой системе");
+            Assert.IsTrue(await _store.IsFilePresent(f[1].id), "Нет файла в файловой системе");
             Assert.AreEqual(0, await _store.GetUncompletedBlobsCount(), "Найдены незавершённые файлы в списке обычных");
             Assert.AreEqual(0, await _store.GetUncompletedTotalSize(), "Найдены незавершённые файлы в списке обычных");
             CollectionAssert.AreEquivalent(new Guid[0], await _store.FindUncompletedBlobs(), "Найдены незавершённые файлы в списке обычных");
 
             Assert.IsTrue(await _store.MarkUncompleted(f[0].id), "Не удалось пометить как незавершённый файл");
             Assert.IsTrue(await _store.MarkUncompleted(f[1].id), "Не удалось пометить как незавершённый файл");
+            Assert.IsFalse(await _store.IsFilePresent(f[0].id), "Лишний файл в файловой системе");
+            Assert.IsTrue(await _store.IsFilePresent(f[1].id), "Нет файла в файловой системе");
 
             Assert.AreEqual(0, await _store.GetBlobsCount(), "Найдены незавершённые файлы в списке обычных");
             Assert.AreEqual(0, await _store.GetTotalSize(), "Найдены незавершённые файлы в списке обычных");
             Assert.AreEqual(2, await _store.GetUncompletedBlobsCount(), "Не найдены незавершённые файлы");
+            Assert.IsFalse(await _store.IsFilePresent(f[0].id), "Лишний файл в файловой системе");
+            Assert.IsTrue(await _store.IsFilePresent(f[1].id), "Нет файла в файловой системе");
             Assert.AreEqual(totalSize, await _store.GetUncompletedTotalSize(), "Не найдены незавершённые файлы");
             CollectionAssert.AreEquivalent(ids, await _store.FindUncompletedBlobs(), "Не найдены незавершённые файлы");
 
@@ -442,10 +654,12 @@ namespace Imageboard10UnitTests
 
             Assert.AreEqual(0, await _store.GetUncompletedBlobsCount(), "Незавершённые файлы не удалены");
             Assert.AreEqual(0, await _store.GetUncompletedTotalSize(), "Незавершённые файлы не удалены");
+            Assert.IsFalse(await _store.IsFilePresent(f[0].id), "Лишний файл в файловой системе");
+            Assert.IsFalse(await _store.IsFilePresent(f[1].id), "Лишний файл в файловой системе");
             CollectionAssert.AreEquivalent(new Guid[0], await _store.FindUncompletedBlobs(), "Незавершённые файлы не удалены");
         }
 
-        private async Task<(StorageFile tempFile, BlobId id, long size)> UploadSmallTempFile(string category = null, Guid? referenceId = null)
+        private async Task<(StorageFile tempFile, BlobId id, long size)> UploadTempFile(string category = null, Guid? referenceId = null, int length = 1024)
         {
             var tmpId = Guid.NewGuid();
             var tmpFile = await ApplicationData.Current.TemporaryFolder.CreateFileAsync(tmpId.ToString());
@@ -454,7 +668,7 @@ namespace Imageboard10UnitTests
             {
                 using (var wr = new BinaryWriter(str))
                 {
-                    for (int i = 0; i < 1024; i++)
+                    for (int i = 0; i < length; i++)
                     {
                         wr.Write(i);
                     }
@@ -471,8 +685,14 @@ namespace Imageboard10UnitTests
                     BlobStream = b,
                     Category = category,
                     UniqueName = tmpFile.Name,
-                    ReferenceId = referenceId
+                    ReferenceId = referenceId,
+                    RememberTempFile = true
                 }, CancellationToken.None);
+            }
+            var tp = _store.GetTempFilePath(id);
+            if (tp != null)
+            {
+                Assert.IsFalse(File.Exists(tp), "Не удалён временный файл");
             }
             return (tmpFile, id, size);
         }

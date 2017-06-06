@@ -19,9 +19,13 @@ namespace Imageboard10.Core.ModelStorage.UnitTests
             {
                 return BlobStreamKind.Normal;
             }
+            if (stream is InlineFileStream)
+            {
+                return BlobStreamKind.Filestream;
+            }
             if (stream is InlineBlobStream)
             {
-                return BlobStreamKind.Inlined;
+                return BlobStreamKind.Memory;
             }
             return BlobStreamKind.NotBlobStream;
         }
@@ -39,7 +43,11 @@ namespace Imageboard10.Core.ModelStorage.UnitTests
         /// <summary>
         /// Встроенный в основную таблицу.
         /// </summary>
-        Inlined,
+        Memory,
+        /// <summary>
+        /// Из файловой системы.
+        /// </summary>
+        Filestream,
         /// <summary>
         /// Не является BlobStream.
         /// </summary>

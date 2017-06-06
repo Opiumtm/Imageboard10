@@ -165,5 +165,19 @@ namespace Imageboard10.Core.ModelStorage.Blobs
         /// <param name="id">Идентификатор файла.</param>
         /// <returns>true, если файл найден и помечен.</returns>
         Task<bool> MarkUncompleted(BlobId id);
+
+        /// <summary>
+        /// Для юнит тестов. Проверка на наличие Файла.
+        /// </summary>
+        /// <param name="id">Идентификатор.</param>
+        /// <returns>Результат.</returns>
+        Task<bool> IsFilePresent(BlobId id);
+
+        /// <summary>
+        /// Для юнит-тестов.
+        /// </summary>
+        /// <param name="id">Идентификатор.</param>
+        /// <returns>Получить путь к временному файлу.</returns>
+        string GetTempFilePath(BlobId id);
     }
 }

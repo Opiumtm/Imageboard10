@@ -41,5 +41,10 @@ namespace Imageboard10.Core.ModelStorage.Blobs
         /// Загрузка не завершена.
         /// </summary>
         public bool IsUncompleted;
+
+        /// <summary>
+        /// Данные хранятся в файловой системе.
+        /// </summary>
+        public bool IsFilestream;
     }
 }

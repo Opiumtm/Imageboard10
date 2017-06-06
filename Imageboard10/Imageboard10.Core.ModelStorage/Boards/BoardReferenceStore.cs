@@ -124,13 +124,13 @@ namespace Imageboard10.Core.ModelStorage.Boards
             Api.JetAddColumn(sid, tableid, ColumnNames.ShortName, new JET_COLUMNDEF()
             {
                 coltyp = JET_coltyp.LongText,
-                grbit = ColumndefGrbit.ColumnMaybeNull,
+                grbit = ColumndefGrbit.None,
                 cp = JET_CP.Unicode
             }, null, 0, out tempcolid);
             Api.JetAddColumn(sid, tableid, ColumnNames.DisplayName, new JET_COLUMNDEF()
             {
                 coltyp = JET_coltyp.LongText,
-                grbit = ColumndefGrbit.ColumnMaybeNull,
+                grbit = ColumndefGrbit.None,
                 cp = JET_CP.Unicode
             }, null, 0, out tempcolid);
             Api.JetAddColumn(sid, tableid, ColumnNames.IsAdult, new JET_COLUMNDEF()
@@ -141,22 +141,22 @@ namespace Imageboard10.Core.ModelStorage.Boards
             Api.JetAddColumn(sid, tableid, ColumnNames.ExtendedData, new JET_COLUMNDEF()
             {
                 coltyp = JET_coltyp.LongBinary,
-                grbit = ColumndefGrbit.ColumnMaybeNull,
+                grbit = ColumndefGrbit.None,
             }, null, 0, out tempcolid);
             Api.JetAddColumn(sid, tableid, ColumnNames.BumpLimit, new JET_COLUMNDEF()
             {
                 coltyp = JET_coltyp.Long,
-                grbit = ColumndefGrbit.ColumnMaybeNull,
+                grbit = ColumndefGrbit.None,
             }, null, 0, out tempcolid);
             Api.JetAddColumn(sid, tableid, ColumnNames.DefaultName, new JET_COLUMNDEF()
             {
                 coltyp = JET_coltyp.LongText,
-                grbit = ColumndefGrbit.ColumnMaybeNull,
+                grbit = ColumndefGrbit.None,
             }, null, 0, out tempcolid);
             Api.JetAddColumn(sid, tableid, ColumnNames.Pages, new JET_COLUMNDEF()
             {
                 coltyp = JET_coltyp.Long,
-                grbit = ColumndefGrbit.ColumnMaybeNull,
+                grbit = ColumndefGrbit.None,
             }, null, 0, out tempcolid);
 
             var pkDef = $"+{ColumnNames.Id}\0\0";

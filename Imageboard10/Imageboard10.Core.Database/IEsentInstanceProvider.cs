@@ -23,5 +23,10 @@ namespace Imageboard10.Core.Database
         /// Путь к базе данных.
         /// </summary>
         string DatabasePath { get; }
+
+        /// <summary>
+        /// Очистить при старте.
+        /// </summary>
+        bool Purge { get; }
     }
 }
