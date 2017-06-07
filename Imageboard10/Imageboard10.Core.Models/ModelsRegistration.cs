@@ -1,5 +1,6 @@
 ﻿using Imageboard10.Core.Models.Links;
 using Imageboard10.Core.Models.Posts;
+using Imageboard10.Core.Models.Serialization;
 using Imageboard10.Core.Modules;
 
 namespace Imageboard10.Core.Models
@@ -15,6 +16,7 @@ namespace Imageboard10.Core.Models
         /// <param name="collection">Коллекция.</param>
         public static void RegisterModules(IModuleCollection collection)
         {
+            CommonSerializationRegistration.RegisterModules(collection);
             LinkModelsRegistration.RegisterModules(collection);
             PostModelsRegistration.RegisterModules(collection);
         }

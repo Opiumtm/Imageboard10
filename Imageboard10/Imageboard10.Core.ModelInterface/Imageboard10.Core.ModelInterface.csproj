@@ -112,6 +112,9 @@
     <Compile Include="Boards\IBoardReference.cs" />
     <Compile Include="Boards\IBoardReferenceStore.cs" />
     <Compile Include="Boards\IBoardShortInfo.cs" />
+    <Compile Include="IObjectSerializationService.cs" />
+    <Compile Include="ISerializableObject.cs" />
+    <Compile Include="ITypeProviderForSerializer.cs" />
     <Compile Include="Links\BoardCatalogSort.cs" />
     <Compile Include="Links\BoardLinkKind.cs" />
     <Compile Include="Links\IBoardLink.cs" />
@@ -142,6 +145,7 @@
     <Compile Include="Posts\IBoardPostTags.cs" />
     <Compile Include="Posts\ICompositePostNode.cs" />
     <Compile Include="Posts\ILineBreakPostNode.cs" />
+    <Compile Include="IObjectSerializer.cs" />
     <Compile Include="Posts\IPostAttribute.cs" />
     <Compile Include="Posts\IPostBasicAttribute.cs" />
     <Compile Include="Posts\IPostDocument.cs" />

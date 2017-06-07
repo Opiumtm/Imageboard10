@@ -2,13 +2,13 @@
 using Imageboard10.Core.Models.Posts.Serialization;
 using Imageboard10.Core.Models.Serialization;
 
-namespace Imageboard10.Core.Models.Posts.PostMedia
+namespace Imageboard10.Core.Models.Posts.PostNodes
 {
     /// <summary>
-    /// Внешний объект.
+    /// Внешний контракт.
     /// </summary>
     [DataContract(Namespace = CoreConstants.DvachBrowserNamespace)]
-    public class PostMediaExternalContract : PostMediaBase, IExternalContractHost
+    public class PostAttributeExternalContract : PostNodeAttribute
     {
         /// <summary>
         /// Внешний контракт.

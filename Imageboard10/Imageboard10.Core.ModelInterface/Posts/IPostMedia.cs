@@ -6,7 +6,7 @@ namespace Imageboard10.Core.ModelInterface.Posts
     /// <summary>
     /// Медиафайл поста.
     /// </summary>
-    public interface IPostMedia
+    public interface IPostMedia : ITypeProviderForSerializer
     {
         /// <summary>
         /// Ссылка на медиа.
@@ -22,11 +22,5 @@ namespace Imageboard10.Core.ModelInterface.Posts
         /// Размер файла.
         /// </summary>
         ulong? FileSize { get; }
-
-        /// <summary>
-        /// Получить тип для сериализатора.
-        /// </summary>
-        /// <returns>Тип для сериализатора.</returns>
-        Type GetTypeForSerializer();
     }
 }

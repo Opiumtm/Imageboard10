@@ -1,12 +1,12 @@
 ﻿using System;
 using System.IO;
-using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 using System.Xml;
 using Imageboard10.Core.ModelInterface.Links;
 using Imageboard10.Core.ModelInterface.Posts;
 using Imageboard10.Core.Models.Posts.PostMedia;
+using Imageboard10.Core.Models.Serialization;
 using Imageboard10.Core.Modules;
 using Imageboard10.Core.Utility;
 
@@ -185,20 +185,23 @@ namespace Imageboard10.Core.Models.Posts.Serialization
             var bytes = serializer.SerializeToBytes(media);
             return new PostMediaExternalContract()
             {
-                BinaryData = bytes != null ? Convert.ToBase64String(bytes) : null,
-                TypeId = serializer.TypeId,
+                Contract = new ExternalContractData()
+                {
+                    BinaryData = bytes != null ? Convert.ToBase64String(bytes) : null,
+                    TypeId = serializer.TypeId,
+                }
             };
         }
 
         private IPostMedia DeserializeExternalContract(PostMediaExternalContract contract)
         {
-            if (contract?.BinaryData == null)
+            if (contract?.Contract?.BinaryData == null)
             {
                 return null;
             }
-            var serializer = ModuleProvider.QueryModule<IPostMediaSerializer, string>(contract.TypeId) 
-                ?? throw new ModuleNotFoundException($"Неизвестный тип сериализованного медиа-объекта поста {contract.TypeId}");
-            var bytes = contract.BinaryData != null ? Convert.FromBase64String(contract.BinaryData) : null;
+            var serializer = ModuleProvider.QueryModule<IPostMediaSerializer, string>(contract.Contract.TypeId) 
+                ?? throw new ModuleNotFoundException($"Неизвестный тип сериализованного медиа-объекта поста {contract.Contract.TypeId}");
+            var bytes = contract.Contract.BinaryData != null ? Convert.FromBase64String(contract.Contract.BinaryData) : null;
             return serializer.Deserialize(bytes);
         }
     }
