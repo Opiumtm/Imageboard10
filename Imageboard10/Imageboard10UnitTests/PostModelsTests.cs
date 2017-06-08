@@ -1,21 +1,18 @@
 ﻿using System;
-using System.IO;
 using System.Text;
 using System.Threading.Tasks;
 using Windows.Graphics;
 using Windows.Storage.Pickers;
 using Imageboard10.Core.ModelInterface;
-using Imageboard10.Core.ModelInterface.Links;
 using Imageboard10.Core.ModelInterface.Posts;
 using Imageboard10.Core.Models.Links;
 using Imageboard10.Core.Models.Links.LinkTypes;
 using Imageboard10.Core.Models.Posts;
 using Imageboard10.Core.Models.Posts.PostMedia;
+using Imageboard10.Core.Models.Posts.PostNodes;
 using Imageboard10.Core.Models.Serialization;
 using Imageboard10.Core.Modules;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Bson;
 
 namespace Imageboard10UnitTests
 {
@@ -34,6 +31,7 @@ namespace Imageboard10UnitTests
             PostModelsRegistration.RegisterModules(_collection);
             LinkModelsRegistration.RegisterModules(_collection);
             _collection.RegisterModule<FakeExternalPostMediaSerializer, IObjectSerializer>();
+            _collection.RegisterModule<FakePostAttributeSerializer, IObjectSerializer>();
             await _collection.Seal();
             _modules = _collection.GetModuleProvider();
         }
@@ -235,6 +233,48 @@ namespace Imageboard10UnitTests
             });
         }
 
+        [TestMethod]
+        public void BasicAttributeSerialization()
+        {
+            TestAttributeModelSerialization(() => new PostBasicAttribute()
+            {
+                Attribute = "attribute"
+            }, (original, deserialized) =>
+            {
+                Assert.AreEqual(original.Attribute, deserialized.Attribute, "Значение базового атрибута не совпадает с исходным");
+            });
+        }
+
+        [TestMethod]
+        public void LinkAttributeSerialization()
+        {
+            TestAttributeModelSerialization(() => new PostLinkAttribute()
+            {
+                Link = new BoardMediaLink()
+                {
+                    Board = "b",
+                    Engine = "makaba",
+                    Uri = "*** uri ***"
+                }
+            }, (original, deserialized) =>
+            {
+                Assert.IsNotNull(deserialized.Link, "Десериализованная ссылка = null");
+                Assert.AreEqual(original.Link.GetLinkHash(), deserialized.Link.GetLinkHash(), "Значение ссылки не совпадает с исходным");
+            });
+        }
+
+        [TestMethod]
+        public void ExternalAttributeSerialization()
+        {
+            TestAttributeModelSerialization(() => new FakePostAttribute()
+            {
+                Attribute = "attribute"
+            }, (original, deserialized) =>
+            {
+                Assert.AreEqual(original.Attribute, deserialized.Attribute, "Значение базового атрибута не совпадает с исходным");
+            });
+        }
+
         private void TestMediaModelSerialization<T>(Func<T> createModel, Action<T, T> asserts)
             where T : IPostMedia
         {
@@ -251,6 +291,22 @@ namespace Imageboard10UnitTests
             CheckMediaModelsSerialization(m, m3, asserts);
         }
 
+        private void TestAttributeModelSerialization<T>(Func<T> createModel, Action<T, T> asserts)
+            where T : IPostAttribute
+        {
+            var m = createModel();
+            var provider = _modules.QueryModule<IObjectSerializationService>();
+            Assert.IsNotNull(provider, "Средство сериализации не найдено");
+
+            var str = provider.SerializeToString(m);
+            var m2 = provider.Deserialize(str) as IPostAttribute;
+            CheckAttributeModelsSerialization(m, m2, asserts);
+
+            var bytes = provider.SerializeToBytes(m);
+            var m3 = provider.Deserialize(bytes) as IPostAttribute;
+            CheckAttributeModelsSerialization(m, m3, asserts);
+        }
+
         private void CheckMediaModelsSerialization<T>(T original, IPostMedia deserialized, Action<T, T> asserts)
             where T : IPostMedia
         {
@@ -260,118 +316,15 @@ namespace Imageboard10UnitTests
             Assert.IsInstanceOfType(deserialized, typeof(T), $"Тип объекта не {typeof(T).FullName}");
             asserts?.Invoke(original, (T)deserialized);
         }
-    }
 
-    public class FakeExternalPostMedia : IPostMediaWithSize
-    {
-        [JsonIgnore]
-        public ILink MediaLink { get; set; }
-
-        [JsonProperty("MediaLink")]
-        public string MediaLinkJson { get; set; }
-
-        [JsonProperty("MediaType")]
-        public Guid MediaType { get; set; }
-
-        [JsonProperty("FileSize")]
-        public ulong? FileSize { get; set; }
-
-        public Type GetTypeForSerializer() => typeof(FakeExternalPostMedia);
-
-        [JsonIgnore]
-        public SizeInt32 Size { get; set; }
-
-        [JsonProperty("Width")]
-        public int Width { get; set; }
-
-        [JsonProperty("Height")]
-        public int Height { get; set; }
-
-        public void FillValuesBeforeSerialize(IModuleProvider modules)
+        private void CheckAttributeModelsSerialization<T>(T original, IPostAttribute deserialized, Action<T, T> asserts)
+            where T : IPostAttribute
         {
-            Height = Size.Height;
-            Width = Size.Width;
-            MediaLinkJson = MediaLink.Serialize(modules);
+            Assert.IsNotNull(deserialized, "Десериализованный объект == null");
+            Assert.AreNotSame(original, deserialized, "Десериализация вернула тот же объект");
+            Assert.IsInstanceOfType(deserialized, typeof(T), $"Тип объекта не {typeof(T).FullName}");
+            asserts?.Invoke(original, (T)deserialized);
         }
 
-        public FakeExternalPostMedia FillValuesAfterDeserialize(IModuleProvider modules)
-        {
-            Size = new SizeInt32()
-            {
-                Height = Height,
-                Width = Width
-            };
-            MediaLink = modules.DeserializeLink(MediaLinkJson);
-            MediaLinkJson = null;
-            return this;
-        }
-    }
-
-    public class FakeExternalPostMediaSerializer : ModuleBase<IObjectSerializer>, IObjectSerializer, IStaticModuleQueryFilter
-    {
-        public string TypeId => "tests.fakemedia";
-
-        public Type Type => typeof(FakeExternalPostMedia);
-
-        public string SerializeToString(ISerializableObject media)
-        {
-            ((FakeExternalPostMedia)media).FillValuesBeforeSerialize(ModuleProvider);
-            return JsonConvert.SerializeObject((FakeExternalPostMedia) media);
-        }
-
-        public byte[] SerializeToBytes(ISerializableObject media)
-        {
-            ((FakeExternalPostMedia)media).FillValuesBeforeSerialize(ModuleProvider);
-            using (var str = new MemoryStream())
-            {
-                using (var wr = new BsonDataWriter(str))
-                {
-                    var s = new JsonSerializer();
-                    s.Serialize(wr, (FakeExternalPostMedia)media);
-                    wr.Flush();
-                }
-                return str.ToArray();
-            }
-        }
-
-        public ISerializableObject Deserialize(string data)
-        {
-            return JsonConvert.DeserializeObject<FakeExternalPostMedia>(data).FillValuesAfterDeserialize(ModuleProvider);
-        }
-
-        public ISerializableObject Deserialize(byte[] data)
-        {
-            using (var str = new MemoryStream(data))
-            {
-                using (var rd = new BsonDataReader(str))
-                {
-                    var s = new JsonSerializer();
-                    return s.Deserialize<FakeExternalPostMedia>(rd).FillValuesAfterDeserialize(ModuleProvider);
-                }
-            }
-        }
-
-        public ISerializableObject BeforeSerialize(ISerializableObject obj)
-        {
-            return obj;
-        }
-
-        public ISerializableObject AfterDeserialize(ISerializableObject obj)
-        {
-            return obj;
-        }
-
-        public bool CheckQuery<T>(T query)
-        {
-            if (query is Type)
-            {
-                return (query as Type) == Type;
-            }
-            if (query is string)
-            {
-                return (query as string) == TypeId;
-            }
-            return false;
-        }
     }
 }

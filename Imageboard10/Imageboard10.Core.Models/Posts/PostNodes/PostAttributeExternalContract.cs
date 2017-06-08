@@ -8,7 +8,7 @@ namespace Imageboard10.Core.Models.Posts.PostNodes
     /// Внешний контракт.
     /// </summary>
     [DataContract(Namespace = CoreConstants.DvachBrowserNamespace)]
-    public class PostAttributeExternalContract : PostNodeAttribute
+    public class PostAttributeExternalContract : PostAttributeBase, IExternalContractHost
     {
         /// <summary>
         /// Внешний контракт.

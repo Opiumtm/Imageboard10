@@ -98,6 +98,10 @@
     <Compile Include="BlobStoreTests.cs" />
     <Compile Include="BoardReferencesStoreTests.cs" />
     <Compile Include="EsentDatabaseTests.cs" />
+    <Compile Include="Fakes\FakeExternalPostMediaSerializer.cs" />
+    <Compile Include="Fakes\FakeExternalPostMedia.cs" />
+    <Compile Include="Fakes\FakePostAttribute.cs" />
+    <Compile Include="Fakes\FakePostAttributeSerializer.cs" />
     <Compile Include="LinkSerializationTests.cs" />
     <Compile Include="MakabaDtoParseTests.cs" />
     <Compile Include="ModuleLifetimeTests.cs" />

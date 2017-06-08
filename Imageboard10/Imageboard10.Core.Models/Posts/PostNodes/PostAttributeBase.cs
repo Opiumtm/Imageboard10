@@ -1,4 +1,5 @@
-﻿using System.Runtime.Serialization;
+﻿using System;
+using System.Runtime.Serialization;
 using Imageboard10.Core.ModelInterface.Posts;
 
 namespace Imageboard10.Core.Models.Posts.PostNodes
@@ -10,7 +11,12 @@ namespace Imageboard10.Core.Models.Posts.PostNodes
     [KnownType(typeof(PostBasicAttribute))]
     [KnownType(typeof(PostLinkAttribute))]
     [KnownType(typeof(PostAttributeExternalContract))]
-    public abstract class PostNodeAttribute : IPostAttribute
+    public abstract class PostAttributeBase : IPostAttribute
     {
+        /// <summary>
+        /// Получить тип для сериализации.
+        /// </summary>
+        /// <returns>Тип для сериализации.</returns>
+        public Type GetTypeForSerializer() => GetType();
     }
 }

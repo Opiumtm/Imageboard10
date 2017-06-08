@@ -10,11 +10,9 @@ namespace Imageboard10.Core.Models.Serialization
     /// </summary>
     /// <typeparam name="T">Тип объекта.</typeparam>
     /// <typeparam name="TBase">Базовый класс контракта.</typeparam>
-    /// <typeparam name="TExtern">Внешний контракт.</typeparam>
-    public sealed class StandardObjectSerializer<T, TBase, TExtern> : ObjectSerializerBase<T, TBase>
+    public sealed class StandardObjectSerializer<T, TBase> : ObjectSerializerBase<T, TBase>
         where TBase : class, ISerializableObject
         where T : class, TBase, new()
-        where TExtern : class, TBase, IExternalContractHost, new()
     {
         private readonly IObjectSerializerCustomization<T> _customization;
 
@@ -25,7 +23,17 @@ namespace Imageboard10.Core.Models.Serialization
         /// <param name="typeId">Идентификатор типа.</param>
         public StandardObjectSerializer(IObjectSerializerCustomization<T> customization, string typeId)
         {
-            _customization = customization ?? throw new ArgumentNullException(nameof(customization));
+            _customization = customization;
+            TypeId = typeId ?? throw new ArgumentNullException(nameof(typeId));
+        }
+
+        /// <summary>
+        /// Конструктор.
+        /// </summary>
+        /// <param name="typeId">Идентификатор типа.</param>
+        public StandardObjectSerializer(string typeId)
+        {
+            _customization = null;
             TypeId = typeId ?? throw new ArgumentNullException(nameof(typeId));
         }
 
@@ -41,6 +49,10 @@ namespace Imageboard10.Core.Models.Serialization
         /// <returns>Проверенный объект.</returns>
         protected override TBase ValidateContract(T obj)
         {
+            if (_customization == null)
+            {
+                return obj;
+            }
             return _customization.ValidateContract(obj);
         }
 
@@ -51,6 +63,10 @@ namespace Imageboard10.Core.Models.Serialization
         /// <returns>Проверенный объект.</returns>
         protected override TBase ValidateAfterDeserialize(T obj)
         {
+            if (_customization == null)
+            {
+                return obj;
+            }
             return _customization.ValidateAfterDeserialize(obj);
         }
 
@@ -61,7 +77,10 @@ namespace Imageboard10.Core.Models.Serialization
         protected override async ValueTask<Nothing> OnInitialize(IModuleProvider moduleProvider)
         {
             await base.OnInitialize(moduleProvider);
-            await _customization.Initialize(moduleProvider);
+            if (_customization != null)
+            {
+                await _customization.Initialize(moduleProvider);
+            }
             return Nothing.Value;
         }
     }

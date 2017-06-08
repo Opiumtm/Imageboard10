@@ -3,7 +3,7 @@
     /// <summary>
     /// Атрибут поста.
     /// </summary>
-    public interface IPostAttribute
+    public interface IPostAttribute : ISerializableObject
     {        
     }
 }

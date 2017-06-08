@@ -7,7 +7,7 @@ namespace Imageboard10.Core.Models.Posts.PostNodes
     /// Базовый атрибут.
     /// </summary>
     [DataContract(Namespace = CoreConstants.DvachBrowserNamespace)]
-    public class PostBasicAttribute : PostNodeAttribute, IPostBasicAttribute
+    public class PostBasicAttribute : PostAttributeBase, IPostBasicAttribute
     {
         /// <summary>
         /// Атрибут.

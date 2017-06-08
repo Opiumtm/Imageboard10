@@ -8,7 +8,7 @@ namespace Imageboard10.Core.Models.Posts.PostNodes
     /// Атрибут ссылки.
     /// </summary>
     [DataContract(Namespace = CoreConstants.DvachBrowserNamespace)]
-    public class PostLinkAttribute : PostNodeAttribute, IPostLinkAttribute
+    public class PostLinkAttribute : PostAttributeBase, IPostLinkAttribute
     {
         /// <summary>
         /// Ссылка.
