@@ -1,7 +1,5 @@
 ﻿using System;
-using System.Threading.Tasks;
 using Imageboard10.Core.ModelInterface;
-using Imageboard10.Core.Modules;
 
 namespace Imageboard10.Core.Models.Serialization
 {
@@ -10,22 +8,16 @@ namespace Imageboard10.Core.Models.Serialization
     /// </summary>
     /// <typeparam name="T">Тип объекта.</typeparam>
     /// <typeparam name="TBase">Базовый класс контракта.</typeparam>
-    /// <typeparam name="TExtern">Внешний контракт.</typeparam>
-    public sealed class StandardObjectSerializer<T, TBase, TExtern> : ObjectSerializerBase<T, TBase>
+    public sealed class ExternContractObjectSerializer<T, TBase> : ObjectSerializerBase<T, TBase>
         where TBase : class, ISerializableObject
-        where T : class, TBase, new()
-        where TExtern : class, TBase, IExternalContractHost, new()
+        where T : class, TBase, IExternalContractHost, new()
     {
-        private readonly IObjectSerializerCustomization<T> _customization;
-
         /// <summary>
         /// Конструктор.
         /// </summary>
-        /// <param name="customization">Кастомизация.</param>
         /// <param name="typeId">Идентификатор типа.</param>
-        public StandardObjectSerializer(IObjectSerializerCustomization<T> customization, string typeId)
+        public ExternContractObjectSerializer(string typeId)
         {
-            _customization = customization ?? throw new ArgumentNullException(nameof(customization));
             TypeId = typeId ?? throw new ArgumentNullException(nameof(typeId));
         }
 
@@ -41,7 +33,7 @@ namespace Imageboard10.Core.Models.Serialization
         /// <returns>Проверенный объект.</returns>
         protected override TBase ValidateContract(T obj)
         {
-            return _customization.ValidateContract(obj);
+            return obj;
         }
 
         /// <summary>
@@ -51,18 +43,7 @@ namespace Imageboard10.Core.Models.Serialization
         /// <returns>Проверенный объект.</returns>
         protected override TBase ValidateAfterDeserialize(T obj)
         {
-            return _customization.ValidateAfterDeserialize(obj);
-        }
-
-        /// <summary>
-        /// Действие по инициализации.
-        /// </summary>
-        /// <param name="moduleProvider">Провайдер модулей.</param>
-        protected override async ValueTask<Nothing> OnInitialize(IModuleProvider moduleProvider)
-        {
-            await base.OnInitialize(moduleProvider);
-            await _customization.Initialize(moduleProvider);
-            return Nothing.Value;
+            return obj;
         }
     }
 }

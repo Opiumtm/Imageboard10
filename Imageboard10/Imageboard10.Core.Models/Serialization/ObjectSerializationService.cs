@@ -18,7 +18,7 @@ namespace Imageboard10.Core.Models.Serialization
             if (type == null) throw new ArgumentNullException(nameof(type));
             lock (_typeCache)
             {
-                if (_typeCache.ContainsKey(type))
+                if (!_typeCache.ContainsKey(type))
                 {
                     _typeCache[type] = ModuleProvider.QueryModule<IObjectSerializer, Type>(type)
                                        ?? throw new ModuleNotFoundException($"Не найдена логика сериализации типа {type.FullName}");
@@ -32,7 +32,7 @@ namespace Imageboard10.Core.Models.Serialization
             if (typeId == null) throw new ArgumentNullException(nameof(typeId));
             lock (_idCache)
             {
-                if (_idCache.ContainsKey(typeId))
+                if (!_idCache.ContainsKey(typeId))
                 {
                     _idCache[typeId] = ModuleProvider.QueryModule<IObjectSerializer, string>(typeId)
                                      ?? throw new ModuleNotFoundException($"Не найдена логика сериализации типа TypeId=\"{typeId}\"");
@@ -102,5 +102,19 @@ namespace Imageboard10.Core.Models.Serialization
             var serializer = GetSerializer(typeId);
             return serializer.Deserialize(sdata);
         }
+
+        /// <summary>
+        /// Найти сериализатор.
+        /// </summary>
+        /// <param name="type">Тип.</param>
+        /// <returns>Сериализатор.</returns>
+        public IObjectSerializer FindSerializer(Type type) => GetSerializer(type);
+
+        /// <summary>
+        /// Найти сериализатор.
+        /// </summary>
+        /// <param name="typeId">Идентификатор типа.</param>
+        /// <returns>Сериализатор.</returns>
+        public IObjectSerializer FindSerializer(string typeId) => GetSerializer(typeId);
     }
 }

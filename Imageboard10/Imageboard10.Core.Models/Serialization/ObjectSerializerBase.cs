@@ -1,9 +1,9 @@
 ﻿using System;
 using System.IO;
 using System.Text;
+using System.Threading.Tasks;
 using System.Xml;
 using Imageboard10.Core.ModelInterface;
-using Imageboard10.Core.ModelInterface.Posts;
 using Imageboard10.Core.Modules;
 using Imageboard10.Core.Utility;
 
@@ -14,11 +14,9 @@ namespace Imageboard10.Core.Models.Serialization
     /// </summary>
     /// <typeparam name="T">Тип объекта.</typeparam>
     /// <typeparam name="TBase">Базовый класс контракта.</typeparam>
-    /// <typeparam name="TExtern">Внешний контракт.</typeparam>
-    public abstract class ObjectSerializerBase<T, TBase, TExtern> : ModuleBase<IObjectSerializer>, IObjectSerializer
-        where TBase : class, ISerializableObject, new()
+    public abstract class ObjectSerializerBase<T, TBase> : ModuleBase<IObjectSerializer>, IObjectSerializer
+        where TBase : class, ISerializableObject
         where T : class, TBase, new()
-        where TExtern: class , TBase, IExternalContractHost, new()
     {
         /// <summary>
         /// Идентификатор типа.
@@ -29,6 +27,22 @@ namespace Imageboard10.Core.Models.Serialization
         /// Тип.
         /// </summary>
         public Type Type => typeof(T);
+
+        /// <summary>
+        /// Сервис сериализации объектов.
+        /// </summary>
+        public IObjectSerializationService ObjectSerializationService { get; private set; }
+
+        /// <summary>
+        /// Действие по инициализации.
+        /// </summary>
+        /// <param name="moduleProvider">Провайдер модулей.</param>
+        protected override async ValueTask<Nothing> OnInitialize(IModuleProvider moduleProvider)
+        {
+            await base.OnInitialize(moduleProvider);
+            ObjectSerializationService = await moduleProvider.QueryModuleAsync<IObjectSerializationService, object>(null);
+            return Nothing.Value;
+        }
 
         /// <summary>
         /// Сериализовать.
@@ -64,7 +78,7 @@ namespace Imageboard10.Core.Models.Serialization
         /// </summary>
         /// <param name="obj">Исходный объект.</param>
         /// <returns>Проверенный объект.</returns>
-        protected virtual T ValidateContract(T obj)
+        protected virtual TBase ValidateContract(T obj)
         {
             return obj;
         }
@@ -74,7 +88,7 @@ namespace Imageboard10.Core.Models.Serialization
         /// </summary>
         /// <param name="obj">Исходный объект.</param>
         /// <returns>Проверенный объект.</returns>
-        protected virtual T ValidateAfterDeserialize(T obj)
+        protected virtual TBase ValidateAfterDeserialize(T obj)
         {
             return obj;
         }
@@ -173,26 +187,6 @@ namespace Imageboard10.Core.Models.Serialization
         {
             var r = obj as T;
             return r != null ? ValidateAfterDeserialize(r) : null;
-        }
-
-        /// <summary>
-        /// Сериализовать во внешний контракт.
-        /// </summary>
-        /// <param name="obj">Объект.</param>
-        /// <returns>Внешний контракт.</returns>
-        protected TExtern SerializeToExternalContract(ISerializableObject obj)
-        {
-            return ModuleProvider.SerializeToExternalContract<TExtern>(obj);
-        }
-
-        /// <summary>
-        /// Десериализовать из внешнего контракта.
-        /// </summary>
-        /// <param name="contract">Контракт.</param>
-        /// <returns>Объект.</returns>
-        protected ISerializableObject DeserializeExternalContract(TExtern contract)
-        {
-            return ModuleProvider.DeserializeExternalContract(contract);
         }
     }
 }

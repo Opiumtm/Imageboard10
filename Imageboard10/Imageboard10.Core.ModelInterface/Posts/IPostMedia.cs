@@ -6,7 +6,7 @@ namespace Imageboard10.Core.ModelInterface.Posts
     /// <summary>
     /// Медиафайл поста.
     /// </summary>
-    public interface IPostMedia : ITypeProviderForSerializer
+    public interface IPostMedia : ISerializableObject
     {
         /// <summary>
         /// Ссылка на медиа.

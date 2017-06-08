@@ -165,13 +165,12 @@
     <Compile Include="Posts\PostNodes\PostLinkAttribute.cs" />
     <Compile Include="Posts\PostNodes\PostNodeAttribute.cs" />
     <Compile Include="Posts\PostNodes\PostNodeBase.cs" />
+    <Compile Include="Posts\Serialization\PostMediaSerializerCustomization.cs" />
+    <Compile Include="Posts\Serialization\PostMediaWithThumbnailSerializerCustomization.cs" />
+    <Compile Include="Serialization\ExternContractObjectSerializer.cs" />
     <Compile Include="Serialization\ObjectSerializationService.cs" />
     <Compile Include="Serialization\CommonSerializationRegistration.cs" />
     <Compile Include="Serialization\ExternalContractData.cs" />
-    <Compile Include="Posts\Serialization\PostMediaSerializationService.cs" />
-    <Compile Include="Posts\Serialization\PostMediaSerializer.cs" />
-    <Compile Include="Posts\Serialization\PostMediaSerializerBase.cs" />
-    <Compile Include="Posts\Serialization\PostMediaSerializersProviderBase.cs" />
     <Compile Include="Posts\Serialization\StandardPostMediaSerializers.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SerializationImplHelper.cs" />

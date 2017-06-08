@@ -43,6 +43,11 @@ namespace Imageboard10.Core.Models.Serialization
         protected IModuleProvider ModuleProvider { get; private set; }
 
         /// <summary>
+        /// Сервис сериализации.
+        /// </summary>
+        protected IObjectSerializationService ObjectSerializationService { get; private set; }
+
+        /// <summary>
         /// Инициализировать объект.
         /// </summary>
         /// <param name="modules">Модули.</param>
@@ -50,6 +55,7 @@ namespace Imageboard10.Core.Models.Serialization
         {
             ModuleProvider = modules;
             LinkSerializationService = await modules.QueryModuleAsync<ILinkSerializationService>() ?? throw new ModuleNotFoundException(typeof(ILinkSerializationService));
+            ObjectSerializationService = await modules.QueryModuleAsync<IObjectSerializationService>() ?? throw new ModuleNotFoundException(typeof(IObjectSerializationService));
             return Nothing.Value;
         }
     }

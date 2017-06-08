@@ -152,13 +152,10 @@
     <Compile Include="Posts\IPosterInfo.cs" />
     <Compile Include="Posts\IPostLinkAttribute.cs" />
     <Compile Include="Posts\IPostMedia.cs" />
-    <Compile Include="Posts\IPostMediaSerializationService.cs" />
-    <Compile Include="Posts\IPostMediaSerializer.cs" />
     <Compile Include="Posts\IPostMediaWithInfo.cs" />
     <Compile Include="Posts\IPostMediaWithSize.cs" />
     <Compile Include="Posts\IPostMediaWithThumbnail.cs" />
     <Compile Include="Posts\IPostNode.cs" />
-    <Compile Include="Posts\IPostDocumentSerializationService.cs" />
     <Compile Include="Posts\ITextPostNode.cs" />
     <Compile Include="Posts\PostBasicAttributes.cs" />
     <Compile Include="Posts\PostMediaTypes.cs" />

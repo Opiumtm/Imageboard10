@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Runtime.Serialization;
+using Imageboard10.Core.ModelInterface;
 
 namespace Imageboard10.Core.Models.Posts.PostMedia
 {
@@ -11,7 +12,7 @@ namespace Imageboard10.Core.Models.Posts.PostMedia
     [KnownType(typeof(PostMediaWithSize))]
     [KnownType(typeof(PostMediaWithThumbnail))]
     [KnownType(typeof(PostMediaExternalContract))]
-    public abstract class PostMediaBase
+    public abstract class PostMediaBase : ISerializableObject
     {
         /// <summary>
         /// Получить тип для сериализатора.

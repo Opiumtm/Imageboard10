@@ -1,3 +1,4 @@
+using System;
 using System.Runtime.InteropServices.WindowsRuntime;
 using Windows.Foundation.Metadata;
 
@@ -36,5 +37,20 @@ namespace Imageboard10.Core.ModelInterface
         /// <param name="data">Данные.</param>
         /// <returns>Объект.</returns>
         ISerializableObject Deserialize([ReadOnlyArray] byte[] data);
+
+        /// <summary>
+        /// Найти сериализатор.
+        /// </summary>
+        /// <param name="type">Тип.</param>
+        /// <returns>Сериализатор.</returns>
+        IObjectSerializer FindSerializer(Type type);
+
+        /// <summary>
+        /// Найти сериализатор.
+        /// </summary>
+        /// <param name="typeId">Идентификатор типа.</param>
+        /// <returns>Сериализатор.</returns>
+        [DefaultOverload]
+        IObjectSerializer FindSerializer(string typeId);
     }
 }

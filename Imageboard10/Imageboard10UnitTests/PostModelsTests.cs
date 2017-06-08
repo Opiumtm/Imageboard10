@@ -4,12 +4,14 @@ using System.Text;
 using System.Threading.Tasks;
 using Windows.Graphics;
 using Windows.Storage.Pickers;
+using Imageboard10.Core.ModelInterface;
 using Imageboard10.Core.ModelInterface.Links;
 using Imageboard10.Core.ModelInterface.Posts;
 using Imageboard10.Core.Models.Links;
 using Imageboard10.Core.Models.Links.LinkTypes;
 using Imageboard10.Core.Models.Posts;
 using Imageboard10.Core.Models.Posts.PostMedia;
+using Imageboard10.Core.Models.Serialization;
 using Imageboard10.Core.Modules;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Newtonsoft.Json;
@@ -28,9 +30,10 @@ namespace Imageboard10UnitTests
         public async Task Initialize()
         {
             _collection = new ModuleCollection();
+            _collection.RegisterModule<ObjectSerializationService, IObjectSerializationService>();
             PostModelsRegistration.RegisterModules(_collection);
             LinkModelsRegistration.RegisterModules(_collection);
-            _collection.RegisterModule<FakeExternalPostMediaSerializer, IPostMediaSerializer>();
+            _collection.RegisterModule<FakeExternalPostMediaSerializer, IObjectSerializer>();
             await _collection.Seal();
             _modules = _collection.GetModuleProvider();
         }
@@ -236,15 +239,15 @@ namespace Imageboard10UnitTests
             where T : IPostMedia
         {
             var m = createModel();
-            var provider = _modules.QueryModule<IPostMediaSerializationService>();
+            var provider = _modules.QueryModule<IObjectSerializationService>();
             Assert.IsNotNull(provider, "Средство сериализации не найдено");
 
             var str = provider.SerializeToString(m);
-            var m2 = provider.Deserialize(str);
+            var m2 = provider.Deserialize(str) as IPostMedia;
             CheckMediaModelsSerialization(m, m2, asserts);
 
             var bytes = provider.SerializeToBytes(m);
-            var m3 = provider.Deserialize(bytes);
+            var m3 = provider.Deserialize(bytes) as IPostMedia;
             CheckMediaModelsSerialization(m, m3, asserts);
         }
 
@@ -304,19 +307,19 @@ namespace Imageboard10UnitTests
         }
     }
 
-    public class FakeExternalPostMediaSerializer : ModuleBase<IPostMediaSerializer>, IPostMediaSerializer, IStaticModuleQueryFilter
+    public class FakeExternalPostMediaSerializer : ModuleBase<IObjectSerializer>, IObjectSerializer, IStaticModuleQueryFilter
     {
         public string TypeId => "tests.fakemedia";
 
         public Type Type => typeof(FakeExternalPostMedia);
 
-        public string SerializeToString(IPostMedia media)
+        public string SerializeToString(ISerializableObject media)
         {
             ((FakeExternalPostMedia)media).FillValuesBeforeSerialize(ModuleProvider);
             return JsonConvert.SerializeObject((FakeExternalPostMedia) media);
         }
 
-        public byte[] SerializeToBytes(IPostMedia media)
+        public byte[] SerializeToBytes(ISerializableObject media)
         {
             ((FakeExternalPostMedia)media).FillValuesBeforeSerialize(ModuleProvider);
             using (var str = new MemoryStream())
@@ -331,12 +334,12 @@ namespace Imageboard10UnitTests
             }
         }
 
-        public IPostMedia Deserialize(string data)
+        public ISerializableObject Deserialize(string data)
         {
             return JsonConvert.DeserializeObject<FakeExternalPostMedia>(data).FillValuesAfterDeserialize(ModuleProvider);
         }
 
-        public IPostMedia Deserialize(byte[] data)
+        public ISerializableObject Deserialize(byte[] data)
         {
             using (var str = new MemoryStream(data))
             {
@@ -346,6 +349,16 @@ namespace Imageboard10UnitTests
                     return s.Deserialize<FakeExternalPostMedia>(rd).FillValuesAfterDeserialize(ModuleProvider);
                 }
             }
+        }
+
+        public ISerializableObject BeforeSerialize(ISerializableObject obj)
+        {
+            return obj;
+        }
+
+        public ISerializableObject AfterDeserialize(ISerializableObject obj)
+        {
+            return obj;
         }
 
         public bool CheckQuery<T>(T query)
