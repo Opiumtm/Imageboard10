@@ -17,7 +17,10 @@ namespace Imageboard10.Core.Models.Posts.Serialization
         public override T ValidateContract(T obj)
         {
             obj = base.ValidateContract(obj);
-            obj.MediaLinkContract = obj.MediaLink != null ? LinkSerializationService.Serialize(obj.MediaLink) : null;
+            if (obj != null)
+            {
+                obj.MediaLinkContract = obj.MediaLink != null ? LinkSerializationService.Serialize(obj.MediaLink) : null;
+            }
             return obj;
         }
 
@@ -29,8 +32,11 @@ namespace Imageboard10.Core.Models.Posts.Serialization
         public override T ValidateAfterDeserialize(T obj)
         {
             obj = base.ValidateAfterDeserialize(obj);
-            obj.MediaLink = obj.MediaLinkContract != null ? LinkSerializationService.Deserialize(obj.MediaLinkContract) : null;
-            obj.MediaLinkContract = null;
+            if (obj != null)
+            {
+                obj.MediaLink = obj.MediaLinkContract != null ? LinkSerializationService.Deserialize(obj.MediaLinkContract) : null;
+                obj.MediaLinkContract = null;
+            }
             return obj;
         }
     }

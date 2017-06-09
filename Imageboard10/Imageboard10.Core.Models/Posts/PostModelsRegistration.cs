@@ -17,6 +17,7 @@ namespace Imageboard10.Core.Models.Posts
         {
             collection.RegisterProvider(typeof(IObjectSerializer), new StandardPostMediaSerializers());
             collection.RegisterProvider(typeof(IObjectSerializer), new StandardPostAttributeSerializers());
+            collection.RegisterProvider(typeof(IObjectSerializer), new StandardPostNodeSerializers());
         }
     }
 }

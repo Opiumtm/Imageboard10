@@ -17,7 +17,10 @@ namespace Imageboard10.Core.Models.Posts.Serialization
         public override T ValidateContract(T obj)
         {
             obj = base.ValidateContract(obj);
-            obj.ThumbnailContract = ModuleProvider.ValidateBeforeSerialize<IPostMediaWithSize, PostMediaBase, PostMediaExternalContract>(obj.Thumbnail);
+            if (obj != null)
+            {
+                obj.ThumbnailContract = ModuleProvider.ValidateBeforeSerialize<IPostMediaWithSize, PostMediaBase, PostMediaExternalContract>(obj.Thumbnail);
+            }
             return obj;
         }
 
@@ -29,8 +32,11 @@ namespace Imageboard10.Core.Models.Posts.Serialization
         public override T ValidateAfterDeserialize(T obj)
         {
             obj = base.ValidateAfterDeserialize(obj);
-            obj.Thumbnail = ModuleProvider.ValidateAfterDeserialize<PostMediaBase, IPostMediaWithSize, PostMediaExternalContract>(obj.ThumbnailContract);
-            obj.ThumbnailContract = null;
+            if (obj != null)
+            {
+                obj.Thumbnail = ModuleProvider.ValidateAfterDeserialize<PostMediaBase, IPostMediaWithSize, PostMediaExternalContract>(obj.ThumbnailContract);
+                obj.ThumbnailContract = null;
+            }
             return obj;
         }
     }

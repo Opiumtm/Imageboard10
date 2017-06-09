@@ -102,6 +102,8 @@
     <Compile Include="Fakes\FakeExternalPostMedia.cs" />
     <Compile Include="Fakes\FakePostAttribute.cs" />
     <Compile Include="Fakes\FakePostAttributeSerializer.cs" />
+    <Compile Include="Fakes\FakePostNode.cs" />
+    <Compile Include="Fakes\FakePostNodeSerializer.cs" />
     <Compile Include="LinkSerializationTests.cs" />
     <Compile Include="MakabaDtoParseTests.cs" />
     <Compile Include="ModuleLifetimeTests.cs" />

@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Windows.Graphics;
@@ -32,6 +34,7 @@ namespace Imageboard10UnitTests
             LinkModelsRegistration.RegisterModules(_collection);
             _collection.RegisterModule<FakeExternalPostMediaSerializer, IObjectSerializer>();
             _collection.RegisterModule<FakePostAttributeSerializer, IObjectSerializer>();
+            _collection.RegisterModule<FakePostNodeSerializer, IObjectSerializer>();
             await _collection.Seal();
             _modules = _collection.GetModuleProvider();
         }
@@ -275,6 +278,140 @@ namespace Imageboard10UnitTests
             });
         }
 
+        [TestMethod]
+        public void TextNodeSerialization()
+        {
+            TestNodeModelSerialization(() => new TextPostNode()
+            {
+                Text = "sample text"
+            }, (original, deserialized) =>
+            {
+                Assert.AreEqual(original.Text, deserialized.Text, "Текст не совпадает");
+            });
+        }
+
+        [TestMethod]
+        public void LineBreakNodeSerialization()
+        {
+            TestNodeModelSerialization(() => new LineBreakPostNode()
+            {
+            }, (original, deserialized) =>
+            {
+            });
+        }
+
+        [TestMethod]
+        public void BoardLinkNodeSerialization()
+        {
+            TestNodeModelSerialization(() => new BoardLinkPostNode()
+            {
+                BoardLink = new PostLink()
+                {
+                    Engine = "makaba",
+                    Board = "b",
+                    OpPostNum = 1234,
+                    PostNum = 4321
+                }
+            }, (original, deserialized) =>
+            {
+                Assert.IsNotNull(deserialized.BoardLink, "Ссылка равна null");
+                Assert.AreEqual(original.BoardLink.GetLinkHash(), deserialized.BoardLink.GetLinkHash(), "Ссылки не совпадают");
+            });
+        }
+
+        [TestMethod]
+        public void CompositeNodeSerialization()
+        {
+            TestNodeModelSerialization(() => new CompositePostNode()
+            {
+                Attribute = null,
+                Children = new List<IPostNode>()
+                {
+                    new TextPostNode() { Text = "sample text"},
+                    new BoardLinkPostNode()
+                    {
+                        BoardLink = new BoardLink() { Engine = "makaba", Board = "po" },                        
+                    },
+                    new LineBreakPostNode(),
+                    new LineBreakPostNode(),
+                    new TextPostNode() { Text = "sample text 2"},
+                    new CompositePostNode()
+                    {
+                        Attribute = new PostBasicAttribute()
+                        {
+                            Attribute = "i"
+                        },
+                        Children = new List<IPostNode>()
+                        {
+                            new CompositePostNode()
+                            {
+                                Attribute = new PostLinkAttribute()
+                                {
+                                    Link = new PostLink() { Board = "b", Engine = "makaba", OpPostNum = 1234, PostNum = 4321 },                                    
+                                },
+                                ChildrenContracts = new List<PostNodeBase>()
+                                {
+                                    new TextPostNode() { Text = "sample text 3"},
+                                    new LineBreakPostNode(),
+                                    new TextPostNode() { Text = "sample text 4"},
+                                }
+                            },
+                            new CompositePostNode()
+                            {
+                                Attribute = null,
+                                Children = new List<IPostNode>()
+                            },
+                            new CompositePostNode()
+                            {
+                                Attribute = null,
+                                Children = null
+                            }
+                        }
+                    },
+                    new LineBreakPostNode()
+                }
+            }, (original, deserialized) =>
+            {
+                AssertNodes(original, deserialized);
+            });
+        }
+
+        [TestMethod]
+        public void ExternalNodeSerialization()
+        {
+            TestNodeModelSerialization(() => new FakePostNode()
+            {
+                Text = "fake sample text",
+            }, (original, deserialized) =>
+            {
+                Assert.AreEqual(original.Text, deserialized.Text, "Текст не совпадает");
+            });
+
+            TestNodeModelSerialization(() => new CompositePostNode()
+            {
+                Attribute = null,
+                Children = new List<IPostNode>()
+                {
+                    new FakePostNode()
+                    {
+                        Text = "fake sample text 2"
+                    }
+                }
+            }, (original, deserialized) =>
+            {
+                AssertNodes(original, deserialized, null, (o, d) =>
+                {
+                    if (o is FakePostNode)
+                    {
+                        var of = (FakePostNode) o;
+                        var df = (FakePostNode) d;
+                        Assert.AreEqual(of.Text, df.Text, "Текст не совпадает");
+                    }
+                });
+            });
+
+        }
+
         private void TestMediaModelSerialization<T>(Func<T> createModel, Action<T, T> asserts)
             where T : IPostMedia
         {
@@ -307,6 +444,22 @@ namespace Imageboard10UnitTests
             CheckAttributeModelsSerialization(m, m3, asserts);
         }
 
+        private void TestNodeModelSerialization<T>(Func<T> createModel, Action<T, T> asserts)
+            where T : IPostNode
+        {
+            var m = createModel();
+            var provider = _modules.QueryModule<IObjectSerializationService>();
+            Assert.IsNotNull(provider, "Средство сериализации не найдено");
+
+            var str = provider.SerializeToString(m);
+            var m2 = provider.Deserialize(str) as IPostNode;
+            CheckPostModelsSerialization(m, m2, asserts);
+
+            var bytes = provider.SerializeToBytes(m);
+            var m3 = provider.Deserialize(bytes) as IPostNode;
+            CheckPostModelsSerialization(m, m3, asserts);
+        }
+
         private void CheckMediaModelsSerialization<T>(T original, IPostMedia deserialized, Action<T, T> asserts)
             where T : IPostMedia
         {
@@ -326,5 +479,58 @@ namespace Imageboard10UnitTests
             asserts?.Invoke(original, (T)deserialized);
         }
 
+        private void CheckPostModelsSerialization<T>(T original, IPostNode deserialized, Action<T, T> asserts)
+            where T : IPostNode
+        {
+            Assert.IsNotNull(deserialized, "Десериализованный объект == null");
+            Assert.AreNotSame(original, deserialized, "Десериализация вернула тот же объект");
+            Assert.IsInstanceOfType(deserialized, typeof(T), $"Тип объекта не {typeof(T).FullName}");
+            asserts?.Invoke(original, (T)deserialized);
+        }
+
+        private void AssertNodes(IPostNode original, IPostNode deserialized, int[] path = null, Action<IPostNode, IPostNode> assertCallback = null)
+        {
+            var p = path != null ? path.Aggregate(new StringBuilder(), (sb, n) => (sb.Length > 0 ? sb.Append("/") : sb).Append(n)).ToString() : "";
+            if (original == null)
+            {
+                Assert.IsNull(deserialized, $"{p} Объект должен быть null");
+            }
+            else
+            {
+                Assert.IsNotNull(deserialized, $"{p} Объект не должен быть null");
+                Assert.AreEqual(original.GetType(), deserialized.GetType(), $"{p} Тип объекта не совпадает");
+                switch (original)
+                {
+                    case TextPostNode ot:
+                        var dt = (TextPostNode) deserialized;
+                        Assert.AreEqual(ot.Text, dt.Text, $"{p} Текст не совпадает");
+                        break;
+                    case BoardLinkPostNode obl:
+                        var dbl = (BoardLinkPostNode) deserialized;
+                        Assert.AreEqual(obl.BoardLink?.GetLinkHash(), dbl.BoardLink?.GetLinkHash(), $"{p} Ссылка не совпадает");
+                        break;
+                    case CompositePostNode oc:
+                        var dc = (CompositePostNode) deserialized;
+                        var oat = _modules.QueryModule<IObjectSerializationService>().SerializeToString(oc.Attribute);
+                        var dat = _modules.QueryModule<IObjectSerializationService>().SerializeToString(dc.Attribute);
+                        Assert.AreEqual(oat, dat, $"{p} Атрибут узла не совпадает");
+                        if (oc.Children == null)
+                        {
+                            Assert.IsNull(dc.Children, $"{p} Список дочерних атрибутов должен быть null");
+                        }
+                        else
+                        {
+                            Assert.IsNotNull(dc.Children, $"{p} Список дочерних узлов не должен быть null");
+                            Assert.AreEqual(oc.Children.Count, dc.Children.Count, $"{p} Количество дочерних узлов не совпадает");
+                            for (var i = 0; i < dc.Children.Count; i++)
+                            {
+                                AssertNodes(oc.Children[i], dc.Children[i], (path ?? new int[0]).Concat(new [] { i+1 }).ToArray(), assertCallback);
+                            }
+                        }
+                        break;
+                }
+                assertCallback?.Invoke(original, deserialized);
+            }
+        }
     }
 }

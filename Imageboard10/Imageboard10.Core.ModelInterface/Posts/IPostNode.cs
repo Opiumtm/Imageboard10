@@ -3,7 +3,7 @@
     /// <summary>
     /// Узел поста.
     /// </summary>
-    public interface IPostNode
+    public interface IPostNode : ISerializableObject
     {        
     }
 }
