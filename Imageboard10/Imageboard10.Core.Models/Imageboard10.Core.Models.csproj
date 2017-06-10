@@ -154,6 +154,7 @@
     <Compile Include="Links\Serialization\UriLinkSerializer.cs" />
     <Compile Include="Links\Serialization\YoutubeLinkSerializer.cs" />
     <Compile Include="ModelsRegistration.cs" />
+    <Compile Include="Posts\PostDocument.cs" />
     <Compile Include="Posts\PostMedia\PostMedia.cs" />
     <Compile Include="Posts\PostMedia\PostMediaBase.cs" />
     <Compile Include="Posts\PostMedia\PostMediaExternalContract.cs" />
@@ -172,6 +173,7 @@
     <Compile Include="Posts\PostNodes\TextPostNode.cs" />
     <Compile Include="Posts\Serialization\BoardLinkPostNodeSerializerCustomization.cs" />
     <Compile Include="Posts\Serialization\CompositePostNodeSerializerCustomization.cs" />
+    <Compile Include="Posts\Serialization\PostDocumentSerializerCustomization.cs" />
     <Compile Include="Posts\Serialization\PostLinkAttributeCustomization.cs" />
     <Compile Include="Posts\Serialization\PostMediaSerializerCustomization.cs" />
     <Compile Include="Posts\Serialization\PostMediaWithThumbnailSerializerCustomization.cs" />

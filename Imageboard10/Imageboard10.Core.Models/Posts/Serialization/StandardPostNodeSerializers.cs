@@ -21,6 +21,8 @@ namespace Imageboard10.Core.Models.Posts.Serialization
             yield return new StandardObjectSerializer<LineBreakPostNode, PostNodeBase>("postnode:std:br");
             yield return new StandardObjectSerializer<BoardLinkPostNode, PostNodeBase>(new BoardLinkPostNodeSerializerCustomization(), "postnode:std:b/link");
             yield return new ExternContractObjectSerializer<PostNodeExternalContract, PostNodeBase>("postnode:std:extern");
+            
+            yield return new StandardObjectSerializer<PostDocument, PostDocument>(new PostDocumentSerializerCustomization(), "postdocument:std");
         }
     }
 }

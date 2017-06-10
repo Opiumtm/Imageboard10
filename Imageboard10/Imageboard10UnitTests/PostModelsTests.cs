@@ -412,6 +412,76 @@ namespace Imageboard10UnitTests
 
         }
 
+        [TestMethod]
+        public void CompositeDocumentSerialization()
+        {
+            TestDocumentModelSerialization(() => new PostDocument()
+            {
+                Nodes = new List<IPostNode>()
+                {
+                    new CompositePostNode()
+                    {
+                        Attribute = null,
+                        Children = new List<IPostNode>()
+                        {
+                            new TextPostNode() { Text = "sample text"},
+                            new BoardLinkPostNode()
+                            {
+                                BoardLink = new BoardLink() { Engine = "makaba", Board = "po" },
+                            },
+                            new LineBreakPostNode(),
+                            new LineBreakPostNode(),
+                            new TextPostNode() { Text = "sample text 2"},
+                            new CompositePostNode()
+                            {
+                                Attribute = new PostBasicAttribute()
+                                {
+                                    Attribute = "i"
+                                },
+                                Children = new List<IPostNode>()
+                                {
+                                    new CompositePostNode()
+                                    {
+                                        Attribute = new PostLinkAttribute()
+                                        {
+                                            Link = new PostLink() { Board = "b", Engine = "makaba", OpPostNum = 1234, PostNum = 4321 },
+                                        },
+                                        ChildrenContracts = new List<PostNodeBase>()
+                                        {
+                                            new TextPostNode() { Text = "sample text 3"},
+                                            new LineBreakPostNode(),
+                                            new TextPostNode() { Text = "sample text 4"},
+                                        }
+                                    },
+                                    new CompositePostNode()
+                                    {
+                                        Attribute = null,
+                                        Children = new List<IPostNode>()
+                                    },
+                                    new CompositePostNode()
+                                    {
+                                        Attribute = null,
+                                        Children = null
+                                    }
+                                }
+                            },
+                            new LineBreakPostNode()
+                        }
+                    },
+                    new TextPostNode() { Text = "sample text 5" }
+                }
+            } , (original, deserialized) =>
+            {
+                if (original?.Nodes != null)
+                {
+                    for (var i = 0; i < original.Nodes.Count; i++)
+                    {
+                        AssertNodes(original.Nodes[i], deserialized.Nodes[i], new int[] {i + 1});
+                    }
+                }
+            });
+        }
+
         private void TestMediaModelSerialization<T>(Func<T> createModel, Action<T, T> asserts)
             where T : IPostMedia
         {
@@ -460,6 +530,22 @@ namespace Imageboard10UnitTests
             CheckPostModelsSerialization(m, m3, asserts);
         }
 
+        private void TestDocumentModelSerialization<T>(Func<T> createModel, Action<T, T> asserts)
+            where T : IPostDocument
+        {
+            var m = createModel();
+            var provider = _modules.QueryModule<IObjectSerializationService>();
+            Assert.IsNotNull(provider, "Средство сериализации не найдено");
+
+            var str = provider.SerializeToString(m);
+            var m2 = provider.Deserialize(str) as IPostDocument;
+            CheckPostDocumentSerialization(m, m2, asserts);
+
+            var bytes = provider.SerializeToBytes(m);
+            var m3 = provider.Deserialize(bytes) as IPostDocument;
+            CheckPostDocumentSerialization(m, m3, asserts);
+        }
+
         private void CheckMediaModelsSerialization<T>(T original, IPostMedia deserialized, Action<T, T> asserts)
             where T : IPostMedia
         {
@@ -488,6 +574,25 @@ namespace Imageboard10UnitTests
             asserts?.Invoke(original, (T)deserialized);
         }
 
+        private void CheckPostDocumentSerialization<T>(T original, IPostDocument deserialized, Action<T, T> asserts)
+            where T : IPostDocument
+        {
+            Assert.IsNotNull(deserialized, "Десериализованный объект == null");
+            Assert.AreNotSame(original, deserialized, "Десериализация вернула тот же объект");
+            Assert.IsInstanceOfType(deserialized, typeof(T), $"Тип объекта не {typeof(T).FullName}");
+            if (original.Nodes == null)
+            {
+                Assert.IsNull(deserialized.Nodes, "deserialized.Nodes должно быть не null");
+            }
+            else
+            {
+                Assert.IsNotNull(deserialized.Nodes, "deserialized.Nodes не должно быть null");
+                Assert.AreNotSame(original.Nodes, deserialized.Nodes, "Должны быть разные объекты");
+                Assert.AreEqual(original.Nodes.Count, deserialized.Nodes.Count, "Должно быть равное количество элементов");
+            }
+            asserts?.Invoke(original, (T)deserialized);
+        }
+
         private void AssertNodes(IPostNode original, IPostNode deserialized, int[] path = null, Action<IPostNode, IPostNode> assertCallback = null)
         {
             var p = path != null ? path.Aggregate(new StringBuilder(), (sb, n) => (sb.Length > 0 ? sb.Append("/") : sb).Append(n)).ToString() : "";
@@ -499,6 +604,7 @@ namespace Imageboard10UnitTests
             {
                 Assert.IsNotNull(deserialized, $"{p} Объект не должен быть null");
                 Assert.AreEqual(original.GetType(), deserialized.GetType(), $"{p} Тип объекта не совпадает");
+                Assert.AreNotSame(original, deserialized, "Должны быть разные объекты");
                 switch (original)
                 {
                     case TextPostNode ot:
