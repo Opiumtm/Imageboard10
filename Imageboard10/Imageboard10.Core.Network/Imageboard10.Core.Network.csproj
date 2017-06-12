@@ -108,6 +108,7 @@
   <ItemGroup>
     <Compile Include="INetworkDtoParser.cs" />
     <Compile Include="INetworkDtoParsers.cs" />
+    <Compile Include="NetworkDtoParsersBase.cs" />
     <Compile Include="NetworkDtoParsersHelper.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <EmbeddedResource Include="Properties\Imageboard10.Core.Network.rd.xml" />

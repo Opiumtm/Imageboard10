@@ -16,34 +16,18 @@ namespace Imageboard10.Makaba.Network.JsonParsers
     /// <summary>
     /// Парсеры DTO макабы.
     /// </summary>
-    public class MakabaBoardReferenceDtoParsers : ModuleBase<INetworkDtoParsers>, INetworkDtoParsers,
+    public class MakabaBoardReferenceDtoParsers : NetworkDtoParsersBase,
         INetworkDtoParser<MobileBoardInfoCollection, IList<IBoardReference>>,
         INetworkDtoParser<MobileBoardInfoWithCategory, IBoardReference>
     {
         /// <summary>
-        /// Конструктор.
+        /// Получить поддерживаемые типы парсеров Dto.
         /// </summary>
-        public MakabaBoardReferenceDtoParsers()
-            :base(false, false)
-        {            
-        }
-
-        /// <summary>
-        /// Запросить представление модуля.
-        /// </summary>
-        /// <param name="viewType">Тип представления.</param>
-        /// <returns>Представление.</returns>
-        public override object QueryView(Type viewType)
+        /// <returns>Поддерживаемые типы парсеров Dto.</returns>
+        protected override IEnumerable<Type> GetDtoParsersTypes()
         {
-            if (viewType == typeof(INetworkDtoParser<MobileBoardInfoCollection, IList<IBoardReference>>))
-            {
-                return this;
-            }
-            if (viewType == typeof(INetworkDtoParser<MobileBoardInfoWithCategory, IBoardReference>))
-            {
-                return this;
-            }
-            return base.QueryView(viewType);
+            yield return typeof(INetworkDtoParser<MobileBoardInfoCollection, IList<IBoardReference>>);
+            yield return typeof(INetworkDtoParser<MobileBoardInfoWithCategory, IBoardReference>);
         }
 
         private static readonly Guid[] CommonRoles = new Guid[]
