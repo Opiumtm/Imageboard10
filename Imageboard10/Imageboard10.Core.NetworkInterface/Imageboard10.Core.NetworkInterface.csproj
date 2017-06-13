@@ -111,6 +111,7 @@
     <Compile Include="IBoardsListResult.cs" />
     <Compile Include="INetworkEngineDescription.cs" />
     <Compile Include="INetworkEngineRegistration.cs" />
+    <Compile Include="INetworkUriGetter.cs" />
     <Compile Include="NetworkEngineCapabilities.cs" />
     <Compile Include="NetworkProgress.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

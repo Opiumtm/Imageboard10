@@ -138,7 +138,12 @@
     <Compile Include="Tasks\ThreadAccessGuard.cs" />
     <Compile Include="Tasks\ThreadDisposableAccessGuard.cs" />
     <Compile Include="Utility\DataContractSerializerCache.cs" />
+    <Compile Include="Utility\DatesHelper.cs" />
+    <Compile Include="Utility\DebugHelper.cs" />
     <Compile Include="Utility\LinqHelper.cs" />
+    <Compile Include="Utility\RegexCache.cs" />
+    <Compile Include="Utility\SizeHelper.cs" />
+    <Compile Include="Utility\StreamHelper.cs" />
     <Compile Include="Utility\StringHashCache.cs" />
     <Compile Include="Utility\UniqueIdHelper.cs" />
     <EmbeddedResource Include="Properties\Imageboard10.Core.rd.xml" />
