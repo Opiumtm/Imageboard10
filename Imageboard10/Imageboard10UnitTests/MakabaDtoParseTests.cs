@@ -4,13 +4,17 @@ using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
 using Imageboard10.Core.ModelInterface.Boards;
+using Imageboard10.Core.ModelInterface.Links;
 using Imageboard10.Core.ModelInterface.Posting;
 using Imageboard10.Core.Models.Boards;
 using Imageboard10.Core.Models.Links.LinkTypes;
 using Imageboard10.Core.Modules;
 using Imageboard10.Core.Network;
+using Imageboard10.Core.NetworkInterface;
+using Imageboard10.Makaba;
 using Imageboard10.Makaba.Network.Json;
 using Imageboard10.Makaba.Network.JsonParsers;
+using Imageboard10.Makaba.Network.Uri;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Imageboard10UnitTests
@@ -27,6 +31,7 @@ namespace Imageboard10UnitTests
         {
             _collection = new ModuleCollection();
             _collection.RegisterModule<MakabaBoardReferenceDtoParsers, INetworkDtoParsers>();
+            _collection.RegisterModule<MakabaLinkParser, IEngineLinkParser>();
             await _collection.Seal();
             _provider = _collection.GetModuleProvider();
         }
@@ -145,6 +150,106 @@ namespace Imageboard10UnitTests
             var applejackLink = applejack.MediaLink as EngineMediaLink;
             Assert.IsNotNull(applejackLink, "applejack.MediaLink не EngineMediaLink");
             Assert.AreEqual(applejackLink.Uri, "/icons/logos/applejack.png", $"applejackLink.Uri = {applejackLink.Uri}");
+        }
+
+        [TestMethod]
+        public void MakabaPostUrlParse()
+        {
+            var parser = _provider.QueryEngineCapability<IEngineLinkParser>(MakabaConstants.MakabaEngineId);
+
+            var toCheck = new[]
+            {
+                "http://2ch.hk/b/res/1234.html#4321",
+                "https://2ch.hk/b/res/1234.html#4321",
+                "http://2ch.so/b/res/1234.html#4321",
+                "https://2ch.so/b/res/1234.html#4321",
+                "http://2-ch.so/b/res/1234.html#4321",
+                "https://2-ch.so/b/res/1234.html#4321"
+            };
+
+            var postLink = new PostLink()
+            {
+                Board = "b",
+                Engine = MakabaConstants.MakabaEngineId,
+                OpPostNum = 1234,
+                PostNum = 4321
+            };
+
+            ILink parsedLink;
+
+            foreach (var uri in toCheck)
+            {
+                Assert.IsTrue(parser.IsLinkForEngine(uri, false), $"{uri} - ссылка не распознана (IsLinkForEngine)");
+                parsedLink = parser.TryParseLink(uri, false);
+                Assert.IsNotNull(parsedLink, $"{uri} - ссылка не распознана");
+                Assert.AreEqual(postLink.GetLinkHash(), parsedLink.GetLinkHash(), $"{uri} - ссылка распознана неправильно");
+            }
+        }
+
+        [TestMethod]
+        public void MakabaUrlParseFail()
+        {
+            var parser = _provider.QueryEngineCapability<IEngineLinkParser>(MakabaConstants.MakabaEngineId);
+
+            var toCheck = new[]
+            {
+                "http://2chc.hk/b/res/1234.html#4321",
+                "http://2chc.hk/b/res/1234.html",
+                "http://2chc.hk/b/res/1234.html#",
+                "httpd://2ch.hk/b/res/1234.html#4321",
+                "http:/2ch.hk/b/res/1234.html#4321",
+                "http://2ch.so/b/res/123d4.html#4321",
+                "https://2ch.so/b/res/1234.htmll#4321",
+                "https://2ch.so/b/res/1234.htmll#43d21",
+                "http://2-ch.hk/b/res/1234.html#4321",
+                "https://2-ch.hk/b/res/1234.html#4321",
+                "https://4chan.org/b/res/1234.html#4321",
+                "https://4chan.org/b/res/1234.html#4321",
+                "https://4chan.org/b/res/1234.html",
+                "https://4chan.org/b/res/1234.html",
+            };
+
+            ILink parsedLink;
+
+            foreach (var uri in toCheck)
+            {
+                Assert.IsFalse(parser.IsLinkForEngine(uri, false), $"{uri} - ссылка ошибочно распознана (IsLinkForEngine)");
+                parsedLink = parser.TryParseLink(uri, false);
+                Assert.IsNull(parsedLink, $"{uri} - ссылка ошибочно распознана");
+            }
+        }
+
+        [TestMethod]
+        public void MakabaThreadUrlParse()
+        {
+            var parser = _provider.QueryEngineCapability<IEngineLinkParser>(MakabaConstants.MakabaEngineId);
+
+            var toCheck = new[]
+            {
+                "http://2ch.hk/b/res/1234.html",
+                "https://2ch.hk/b/res/1234.html",
+                "http://2ch.so/b/res/1234.html",
+                "https://2ch.so/b/res/1234.html",
+                "http://2-ch.so/b/res/1234.html",
+                "https://2-ch.so/b/res/1234.html"
+            };
+
+            var postLink = new ThreadLink()
+            {
+                Board = "b",
+                Engine = MakabaConstants.MakabaEngineId,
+                OpPostNum = 1234,
+            };
+
+            ILink parsedLink;
+
+            foreach (var uri in toCheck)
+            {
+                Assert.IsTrue(parser.IsLinkForEngine(uri, false), $"{uri} - ссылка не распознана (IsLinkForEngine)");
+                parsedLink = parser.TryParseLink(uri, false);
+                Assert.IsNotNull(parsedLink, $"{uri} - ссылка не распознана");
+                Assert.AreEqual(postLink.GetLinkHash(), parsedLink.GetLinkHash(), $"{uri} - ссылка распознана неправильно");
+            }
         }
     }
 }

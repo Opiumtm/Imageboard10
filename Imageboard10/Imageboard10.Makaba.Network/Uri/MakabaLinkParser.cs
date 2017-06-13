@@ -15,7 +15,7 @@ namespace Imageboard10.Makaba.Network.Uri
     /// </summary>
     public sealed class MakabaLinkParser : MakabaEngineModuleBase<IEngineLinkParser>, IEngineLinkParser
     {
-        private const string PostLinkRegexText = @"http[s]?://2ch\.(?:[^/]+)/(?<board>[^/]+)/res/(?<parent>\d+).html(?:#(?<post>\d+))?$";
+        private const string PostLinkRegexText = @"http[s]?://(?:2ch\.(?:[^/]+)|2-ch.so)/(?<board>[^/]+)/res/(?<parent>\d+).html(?:#(?<post>\d+))?$";
         private const string PostLinkRegex2Text = @"/?(?<board>[^/]+)/res/(?<parent>\d+).html(?:#(?<post>\d+))?$";
 
         private Regex _postLinkRegex, _postLinkRegex2;
