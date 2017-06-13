@@ -114,5 +114,10 @@ namespace Imageboard10.Core.Network.Html
         /// Родительская нода.
         /// </summary>
         public IHtmlNode ParentNode { get; internal set; }
+
+        /// <summary>
+        /// Внутренний текст.
+        /// </summary>
+        public string InnerText => _node.InnerText;
     }
 }

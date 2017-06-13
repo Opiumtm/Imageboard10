@@ -9,7 +9,7 @@ namespace Imageboard10.Core.NetworkInterface
     /// <summary>
     /// Описание сетевого движка.
     /// </summary>
-    public interface INetworkEngineDescription
+    public interface INetworkEngineDescription : INetworkEngineCapability
     {
         /// <summary>
         /// Возможности.

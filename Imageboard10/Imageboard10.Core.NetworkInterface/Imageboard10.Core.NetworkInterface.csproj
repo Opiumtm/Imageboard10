@@ -107,6 +107,7 @@
     <RestoreProjectStyle>PackageReference</RestoreProjectStyle>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="EngineCapabilityQuery.cs" />
     <Compile Include="Html\IHtmlCommentNode.cs" />
     <Compile Include="Html\IHtmlDocument.cs" />
     <Compile Include="Html\IHtmlDocumentFactory.cs" />
@@ -114,9 +115,13 @@
     <Compile Include="Html\IHtmlTextNode.cs" />
     <Compile Include="IBoardsListNetworkOperation.cs" />
     <Compile Include="IBoardsListResult.cs" />
+    <Compile Include="IEngineLinkParser.cs" />
+    <Compile Include="IHtmlParser.cs" />
+    <Compile Include="INetworkEngineCapability.cs" />
     <Compile Include="INetworkEngineDescription.cs" />
     <Compile Include="INetworkEngineRegistration.cs" />
     <Compile Include="INetworkUriGetter.cs" />
+    <Compile Include="IYoutubeIdService.cs" />
     <Compile Include="NetworkEngineCapabilities.cs" />
     <Compile Include="NetworkProgress.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

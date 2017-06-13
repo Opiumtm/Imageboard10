@@ -107,6 +107,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="MakabaConstants.cs" />
+    <Compile Include="MakabaEngineModuleBase.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <EmbeddedResource Include="Properties\Imageboard10.Makaba.Common.rd.xml" />
   </ItemGroup>
@@ -120,6 +121,20 @@
     <PackageReference Include="System.ValueTuple">
       <Version>4.3.1</Version>
     </PackageReference>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Imageboard10.Core.NetworkInterface\Imageboard10.Core.NetworkInterface.csproj">
+      <Project>{59f08002-21ba-4913-a6cd-697c982be20e}</Project>
+      <Name>Imageboard10.Core.NetworkInterface</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Imageboard10.Core\Imageboard10.Core.csproj">
+      <Project>{b9a32628-d7b6-4bda-afe6-47e4ac5af95a}</Project>
+      <Name>Imageboard10.Core</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Imageboard10.ModuleInterface\Imageboard10.ModuleInterface.csproj">
+      <Project>{62d7a5d8-0866-4199-8763-ef81096f4a71}</Project>
+      <Name>Imageboard10.ModuleInterface</Name>
+    </ProjectReference>
   </ItemGroup>
   <PropertyGroup Condition=" '$(VisualStudioVersion)' == '' or '$(VisualStudioVersion)' &lt; '14.0' ">
     <VisualStudioVersion>14.0</VisualStudioVersion>

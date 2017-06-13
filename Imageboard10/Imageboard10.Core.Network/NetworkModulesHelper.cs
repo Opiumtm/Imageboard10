@@ -1,13 +1,14 @@
 ﻿using System;
 using System.Threading.Tasks;
 using Imageboard10.Core.Modules;
+using Imageboard10.Core.NetworkInterface;
 
 namespace Imageboard10.Core.Network
 {
     /// <summary>
-    /// Класс-помощник для поиска парсеров Dto.
+    /// Класс-помощник для поиска модулей.
     /// </summary>
-    public static class NetworkDtoParsersHelper
+    public static class NetworkModulesHelper
     {
         /// <summary>
         /// Найти парсер сетевого Dto.
@@ -37,6 +38,32 @@ namespace Imageboard10.Core.Network
             var parserType = typeof(INetworkDtoParser<TIn, TOut>);
             var parsers = await provider.QueryModuleAsync<INetworkDtoParsers, Type>(parserType);
             return parsers as INetworkDtoParser<TIn, TOut> ?? parsers?.QueryView<INetworkDtoParser<TIn, TOut>>();
+        }
+
+        /// <summary>
+        /// Запросить операцию сетевого движка.
+        /// </summary>
+        /// <typeparam name="TIntf">Интерфейс операции.</typeparam>
+        /// <param name="provider">Провайдер.</param>
+        /// <param name="engineId">Движок.</param>
+        /// <returns>Операция (если найдена).</returns>
+        public static TIntf QueryEngineCapability<TIntf>(this IModuleProvider provider, string engineId)
+            where TIntf : class , INetworkEngineCapability
+        {
+            return provider.QueryModule<TIntf, EngineCapabilityQuery>(new EngineCapabilityQuery() {EngineId = engineId});
+        }
+
+        /// <summary>
+        /// Запросить операцию сетевого движка.
+        /// </summary>
+        /// <typeparam name="TIntf">Интерфейс операции.</typeparam>
+        /// <param name="provider">Провайдер.</param>
+        /// <param name="engineId">Движок.</param>
+        /// <returns>Операция (если найдена).</returns>
+        public static ValueTask<TIntf> QueryEngineCapabilityAsync<TIntf>(this IModuleProvider provider, string engineId)
+            where TIntf : class, INetworkEngineCapability
+        {
+            return provider.QueryModuleAsync<TIntf, EngineCapabilityQuery>(new EngineCapabilityQuery() { EngineId = engineId });
         }
     }
 }
