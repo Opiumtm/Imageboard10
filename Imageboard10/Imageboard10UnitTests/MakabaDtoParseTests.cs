@@ -31,6 +31,7 @@ namespace Imageboard10UnitTests
         {
             _collection = new ModuleCollection();
             _collection.RegisterModule<MakabaBoardReferenceDtoParsers, INetworkDtoParsers>();
+            _collection.RegisterModule<YoutubeIdService, IYoutubeIdService>();
             _collection.RegisterModule<MakabaLinkParser, IEngineLinkParser>();
             await _collection.Seal();
             _provider = _collection.GetModuleProvider();
@@ -249,6 +250,24 @@ namespace Imageboard10UnitTests
                 parsedLink = parser.TryParseLink(uri, false);
                 Assert.IsNotNull(parsedLink, $"{uri} - ссылка не распознана");
                 Assert.AreEqual(postLink.GetLinkHash(), parsedLink.GetLinkHash(), $"{uri} - ссылка распознана неправильно");
+            }
+        }
+
+        [TestMethod]
+        public void YoutubeUrlParse()
+        {
+            var parser = _provider.QueryModule<IYoutubeIdService>();
+
+            var toCheck = new[]
+            {
+                "https://www.youtube.com/watch?v=FBlEGuU_CqU",
+                "https://youtu.be/FBlEGuU_CqU",
+            };
+
+            var id = "FBlEGuU_CqU";
+            foreach (var uri in toCheck)
+            {
+                Assert.AreEqual(id, parser.GetYoutubeIdFromUri(uri), $"{uri} - ссылка распознана неправильно");
             }
         }
     }
