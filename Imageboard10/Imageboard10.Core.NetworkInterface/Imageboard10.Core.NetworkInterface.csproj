@@ -107,6 +107,11 @@
     <RestoreProjectStyle>PackageReference</RestoreProjectStyle>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="Html\IHtmlCommentNode.cs" />
+    <Compile Include="Html\IHtmlDocument.cs" />
+    <Compile Include="Html\IHtmlDocumentFactory.cs" />
+    <Compile Include="Html\IHtmlNode.cs" />
+    <Compile Include="Html\IHtmlTextNode.cs" />
     <Compile Include="IBoardsListNetworkOperation.cs" />
     <Compile Include="IBoardsListResult.cs" />
     <Compile Include="INetworkEngineDescription.cs" />
