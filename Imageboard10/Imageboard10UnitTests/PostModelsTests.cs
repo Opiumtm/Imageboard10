@@ -372,7 +372,7 @@ namespace Imageboard10UnitTests
                 }
             }, (original, deserialized) =>
             {
-                AssertNodes(original, deserialized);
+                AssertNodes(_modules, original, deserialized);
             });
         }
 
@@ -399,7 +399,7 @@ namespace Imageboard10UnitTests
                 }
             }, (original, deserialized) =>
             {
-                AssertNodes(original, deserialized, null, (o, d) =>
+                AssertNodes(_modules, original, deserialized, null, (o, d) =>
                 {
                     if (o is FakePostNode)
                     {
@@ -476,7 +476,7 @@ namespace Imageboard10UnitTests
                 {
                     for (var i = 0; i < original.Nodes.Count; i++)
                     {
-                        AssertNodes(original.Nodes[i], deserialized.Nodes[i], new int[] {i + 1});
+                        AssertNodes(_modules, original.Nodes[i], deserialized.Nodes[i], new int[] {i + 1});
                     }
                 }
             });
@@ -593,7 +593,32 @@ namespace Imageboard10UnitTests
             asserts?.Invoke(original, (T)deserialized);
         }
 
-        private void AssertNodes(IPostNode original, IPostNode deserialized, int[] path = null, Action<IPostNode, IPostNode> assertCallback = null)
+        public static void AssertDocuments(IModuleProvider modules, IPostDocument original, IPostDocument deserialized, int[] path = null, Action<IPostNode, IPostNode> assertCallback = null)
+        {
+            if (original == null)
+            {
+                Assert.IsNull(deserialized, "Документ должен быть null");
+            }
+            else
+            {
+                Assert.IsNotNull(deserialized, "Документ не должен быть null");
+                if (original.Nodes == null)
+                {
+                    Assert.IsNull(deserialized.Nodes, "Узлы документа должны быть null");
+                }
+                else
+                {
+                    Assert.IsNotNull(deserialized.Nodes, "Узлы документа не должны быть null");
+                    Assert.AreEqual(original.Nodes.Count, deserialized.Nodes.Count, "Количество узлов документа не совпадает");
+                    for (var i = 0; i < original.Nodes.Count; i++)
+                    {
+                        AssertNodes(modules, original.Nodes[i], deserialized.Nodes[i], new [] { i + 1 }, assertCallback);
+                    }
+                }
+            }
+        }
+
+        public static void AssertNodes(IModuleProvider modules, IPostNode original, IPostNode deserialized, int[] path = null, Action<IPostNode, IPostNode> assertCallback = null)
         {
             var p = path != null ? path.Aggregate(new StringBuilder(), (sb, n) => (sb.Length > 0 ? sb.Append("/") : sb).Append(n)).ToString() : "";
             if (original == null)
@@ -617,8 +642,8 @@ namespace Imageboard10UnitTests
                         break;
                     case CompositePostNode oc:
                         var dc = (CompositePostNode) deserialized;
-                        var oat = _modules.QueryModule<IObjectSerializationService>().SerializeToString(oc.Attribute);
-                        var dat = _modules.QueryModule<IObjectSerializationService>().SerializeToString(dc.Attribute);
+                        var oat = modules.QueryModule<IObjectSerializationService>().SerializeToString(oc.Attribute);
+                        var dat = modules.QueryModule<IObjectSerializationService>().SerializeToString(dc.Attribute);
                         Assert.AreEqual(oat, dat, $"{p} Атрибут узла не совпадает");
                         if (oc.Children == null)
                         {
@@ -630,7 +655,7 @@ namespace Imageboard10UnitTests
                             Assert.AreEqual(oc.Children.Count, dc.Children.Count, $"{p} Количество дочерних узлов не совпадает");
                             for (var i = 0; i < dc.Children.Count; i++)
                             {
-                                AssertNodes(oc.Children[i], dc.Children[i], (path ?? new int[0]).Concat(new [] { i+1 }).ToArray(), assertCallback);
+                                AssertNodes(modules, oc.Children[i], dc.Children[i], (path ?? new int[0]).Concat(new [] { i+1 }).ToArray(), assertCallback);
                             }
                         }
                         break;

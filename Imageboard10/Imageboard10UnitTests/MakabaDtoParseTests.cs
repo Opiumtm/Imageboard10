@@ -3,15 +3,24 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
+using Imageboard10.Core.ModelInterface;
 using Imageboard10.Core.ModelInterface.Boards;
 using Imageboard10.Core.ModelInterface.Links;
 using Imageboard10.Core.ModelInterface.Posting;
+using Imageboard10.Core.ModelInterface.Posts;
 using Imageboard10.Core.Models.Boards;
+using Imageboard10.Core.Models.Links;
 using Imageboard10.Core.Models.Links.LinkTypes;
+using Imageboard10.Core.Models.Posts;
+using Imageboard10.Core.Models.Posts.PostNodes;
+using Imageboard10.Core.Models.Serialization;
 using Imageboard10.Core.Modules;
 using Imageboard10.Core.Network;
+using Imageboard10.Core.Network.Html;
 using Imageboard10.Core.NetworkInterface;
+using Imageboard10.Core.NetworkInterface.Html;
 using Imageboard10.Makaba;
+using Imageboard10.Makaba.Network.Html;
 using Imageboard10.Makaba.Network.Json;
 using Imageboard10.Makaba.Network.JsonParsers;
 using Imageboard10.Makaba.Network.Uri;
@@ -30,9 +39,14 @@ namespace Imageboard10UnitTests
         public async Task InitializeTests()
         {
             _collection = new ModuleCollection();
+            _collection.RegisterModule<ObjectSerializationService, IObjectSerializationService>();
+            PostModelsRegistration.RegisterModules(_collection);
+            LinkModelsRegistration.RegisterModules(_collection);
             _collection.RegisterModule<MakabaBoardReferenceDtoParsers, INetworkDtoParsers>();
             _collection.RegisterModule<YoutubeIdService, IYoutubeIdService>();
             _collection.RegisterModule<MakabaLinkParser, IEngineLinkParser>();
+            _collection.RegisterModule<AgilityHtmlDocumentFactory, IHtmlDocumentFactory>();
+            _collection.RegisterModule<MakabaHtmlParser, IHtmlParser>();
             await _collection.Seal();
             _provider = _collection.GetModuleProvider();
         }
@@ -269,6 +283,47 @@ namespace Imageboard10UnitTests
             {
                 Assert.AreEqual(id, parser.GetYoutubeIdFromUri(uri), $"{uri} - ссылка распознана неправильно");
             }
+        }
+
+        [TestMethod]
+        public void TestParseHtmlPost()
+        {
+            var parser = _provider.QueryEngineCapability<IHtmlParser>(MakabaConstants.MakabaEngineId);
+
+            var html = "test<strong>test</strong><em><strong>test 2</strong></em>";
+            var expected = new PostDocument()
+            {
+                Nodes = new List<IPostNode>()
+                {
+                    new TextPostNode() { Text = "test"},
+                    new CompositePostNode()
+                    {
+                        Attribute = new PostBasicAttribute() { Attribute = PostBasicAttributes.Bold },
+                        Children = new List<IPostNode>()
+                        {
+                            new TextPostNode() { Text = "test" }
+                        }
+                    },
+                    new CompositePostNode()
+                    {
+                        Attribute = new PostBasicAttribute() { Attribute = PostBasicAttributes.Italic },
+                        Children = new List<IPostNode>()
+                        {
+                            new CompositePostNode()
+                            {
+                                Attribute = new PostBasicAttribute() { Attribute = PostBasicAttributes.Bold },
+                                Children = new List<IPostNode>()
+                                {
+                                    new TextPostNode() { Text = "test 2" }
+                                }
+                            }
+                        }
+                    }
+                },
+            };
+
+            var parsed = parser.ParseHtml(html, null);
+            PostModelsTests.AssertDocuments(_provider, expected, parsed);
         }
     }
 }
