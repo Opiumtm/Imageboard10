@@ -290,7 +290,7 @@ namespace Imageboard10UnitTests
         {
             var parser = _provider.QueryEngineCapability<IHtmlParser>(MakabaConstants.MakabaEngineId);
 
-            var html = "test<strong>test</strong><em><strong>test 2</strong></em>";
+            var html = "test<strong>test</strong><em><strong>test 2</strong></em><br><a href=\"http://2ch.hk/b/res/1234.html\">link text</a>";
             var expected = new PostDocument()
             {
                 Nodes = new List<IPostNode>()
@@ -317,6 +317,18 @@ namespace Imageboard10UnitTests
                                     new TextPostNode() { Text = "test 2" }
                                 }
                             }
+                        }
+                    },
+                    new LineBreakPostNode(),
+                    new CompositePostNode()
+                    {
+                        Attribute = new PostLinkAttribute()
+                        {
+                            Link = new ThreadLink() { Engine = MakabaConstants.MakabaEngineId, Board = "b", OpPostNum = 1234 }
+                        },
+                        Children = new List<IPostNode>()
+                        {
+                            new TextPostNode() { Text = "link text" }
                         }
                     }
                 },
