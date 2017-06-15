@@ -15,6 +15,31 @@ namespace Imageboard10.Core.Network
         /// <summary>
         /// Ссылка на метод JSON API.
         /// </summary>
-        public static readonly Guid JsonApiLink = new Guid("{49429FEE-45B0-4A00-822A-8003330633DA}");
+        public static readonly Guid ApiGet = new Guid("{49429FEE-45B0-4A00-822A-8003330633DA}");
+
+        /// <summary>
+        /// Превью изображения.
+        /// </summary>
+        public static readonly Guid ThumbnailLink = new Guid("{B4BFE9AD-5580-4FB9-AC03-1177AE1B5194}");
+
+        /// <summary>
+        /// Вызов приложения YouTube.
+        /// </summary>
+        public static readonly Guid YoutubeAppLink = new Guid("{AB6D0A15-2B6D-4656-A302-F1F72E94D685}");
+
+        /// <summary>
+        /// Количество постов в треде.
+        /// </summary>
+        public static readonly Guid ApiThreadPostCount = new Guid("{F919F82F-65CF-4719-B4A9-722B3C27F3C1}");
+
+        /// <summary>
+        /// Список досок.
+        /// </summary>
+        public static readonly Guid ApiBoardsList = new Guid("{DB2D7E0A-9DEA-4AF3-839E-A7D212469279}");
+
+        /// <summary>
+        /// Проверка.
+        /// </summary>
+        public static readonly Guid ApiCheck = new Guid("{68C49B20-FA44-4AC1-A78F-745C7A2BE44F}");
     }
 }

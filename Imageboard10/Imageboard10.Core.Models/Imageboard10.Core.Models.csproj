@@ -124,6 +124,7 @@
     <Compile Include="Links\LinkTypes\BoardLink.cs" />
     <Compile Include="Links\LinkTypes\BoardMediaLink.cs" />
     <Compile Include="Links\LinkTypes\BoardPageLink.cs" />
+    <Compile Include="Links\LinkTypes\CaptchaLink.cs" />
     <Compile Include="Links\LinkTypes\CatalogLink.cs" />
     <Compile Include="Links\LinkTypes\EngineLinkBase.cs" />
     <Compile Include="Links\LinkTypes\EngineMediaLink.cs" />
@@ -139,6 +140,7 @@
     <Compile Include="Links\Serialization\BoardLinkSerializer.cs" />
     <Compile Include="Links\Serialization\BoardMediLinkSerializer.cs" />
     <Compile Include="Links\Serialization\BoardPageLinkSerializer.cs" />
+    <Compile Include="Links\Serialization\CaptchaLinkSerializer.cs" />
     <Compile Include="Links\Serialization\CatalogLinkSerializer.cs" />
     <Compile Include="Links\Serialization\EngineMediaLinkSerializer.cs" />
     <Compile Include="Links\Serialization\EngineUriLinkSerializer.cs" />

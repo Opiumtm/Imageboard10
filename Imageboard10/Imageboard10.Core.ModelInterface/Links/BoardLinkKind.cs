@@ -54,6 +54,11 @@ namespace Imageboard10.Core.ModelInterface.Links
         External = 0x0100,
 
         /// <summary>
+        /// Капча.
+        /// </summary>
+        Captcha = 0x0200,
+
+        /// <summary>
         /// Прочее.
         /// </summary>
         Other = 0x8000

@@ -106,6 +106,8 @@
     <RestoreProjectStyle>PackageReference</RestoreProjectStyle>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="Config\IConfiguration.cs" />
+    <Compile Include="Config\RegistryConfigurationBase.cs" />
     <Compile Include="CoreConstants.cs" />
     <Compile Include="IDeepCloneable.cs" />
     <Compile Include="IO\SemiMemoryStream.cs" />
@@ -133,6 +135,9 @@
     <Compile Include="Modules\ModuleCollection.cs" />
     <Compile Include="Modules\ModuleHelper.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Tasks\AsyncEventHandler.cs" />
+    <Compile Include="Tasks\AsyncEventList.cs" />
+    <Compile Include="Tasks\AsyncLanguageEvent.cs" />
     <Compile Include="Tasks\SingleThreadDispatcher.cs" />
     <Compile Include="Tasks\CoreTaskHelper.cs" />
     <Compile Include="Tasks\ThreadAccessGuard.cs" />

@@ -63,6 +63,11 @@ namespace Imageboard10.Makaba
             /// двач.капча
             /// </summary>
             public static readonly Guid DvachCaptcha = new Guid("{A8B337C6-8568-4DA8-B5EB-4BD4B072CC2A}");
+
+            /// <summary>
+            /// Без капчи.
+            /// </summary>
+            public static readonly Guid NoCaptcha = new Guid("{5E382F6C-3A76-4D1A-B757-C52B26ED3265}");
         }
     }
 }

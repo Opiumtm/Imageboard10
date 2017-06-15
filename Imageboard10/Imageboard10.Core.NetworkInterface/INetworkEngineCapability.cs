@@ -1,9 +1,11 @@
-﻿namespace Imageboard10.Core.NetworkInterface
+﻿using Imageboard10.ModuleInterface;
+
+namespace Imageboard10.Core.NetworkInterface
 {
     /// <summary>
     /// Операция сетевого движка.
     /// </summary>
-    public interface INetworkEngineCapability
+    public interface INetworkEngineCapability : IModule
     {
         /// <summary>
         /// Идентификатор движка.

@@ -5,6 +5,7 @@ using Imageboard10.Core.ModelInterface.Links;
 using Imageboard10.Core.Models.Links;
 using Imageboard10.Core.Models.Links.LinkTypes;
 using Imageboard10.Core.Modules;
+using Imageboard10.Makaba;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Imageboard10UnitTests
@@ -215,5 +216,19 @@ namespace Imageboard10UnitTests
                 l.YoutubeId = "***youtube***";
             });
         }
+
+        [TestMethod]
+        [TestCategory("Links")]
+        public void SerializeCaptchaLink()
+        {
+            TestSerialize<CaptchaLink>(l =>
+            {
+                l.Engine = "makaba";
+                l.CaptchaType = MakabaConstants.CaptchaTypes.DvachCaptcha;
+                l.CaptchaContext = CaptchaLinkContext.Thread;
+                l.CaptchaId = "1234567";
+            });
+        }
+
     }
 }

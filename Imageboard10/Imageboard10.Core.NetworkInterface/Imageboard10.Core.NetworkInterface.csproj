@@ -107,6 +107,7 @@
     <RestoreProjectStyle>PackageReference</RestoreProjectStyle>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="EngineCapabilityQueries.cs" />
     <Compile Include="EngineCapabilityQuery.cs" />
     <Compile Include="Html\IHtmlCommentNode.cs" />
     <Compile Include="Html\IHtmlDocument.cs" />

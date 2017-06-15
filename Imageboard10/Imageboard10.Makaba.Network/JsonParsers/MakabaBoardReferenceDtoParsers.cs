@@ -5,7 +5,6 @@ using Imageboard10.Core.ModelInterface.Boards;
 using Imageboard10.Core.ModelInterface.Posting;
 using Imageboard10.Core.Models.Boards;
 using Imageboard10.Core.Models.Links.LinkTypes;
-using Imageboard10.Core.Modules;
 using Imageboard10.Core.Network;
 using Imageboard10.Makaba.Network.Json;
 

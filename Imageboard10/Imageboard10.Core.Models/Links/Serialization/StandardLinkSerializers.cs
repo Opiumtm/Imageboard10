@@ -29,6 +29,7 @@ namespace Imageboard10.Core.Models.Links.Serialization
             yield return new ThreadTagLinkSerializer();
             yield return new UriLinkSerializer();
             yield return new YoutubeLinkSerializer();
+            yield return new CaptchaLinkSerializer();
         }
     }
 }

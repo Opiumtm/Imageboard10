@@ -117,7 +117,9 @@
     <Compile Include="ITypeProviderForSerializer.cs" />
     <Compile Include="Links\BoardCatalogSort.cs" />
     <Compile Include="Links\BoardLinkKind.cs" />
+    <Compile Include="Links\CaptchaLinkContext.cs" />
     <Compile Include="Links\IBoardLink.cs" />
+    <Compile Include="Links\ICaptchaLink.cs" />
     <Compile Include="Links\ICatalogLink.cs" />
     <Compile Include="Links\IEngineLink.cs" />
     <Compile Include="Links\ILink.cs" />

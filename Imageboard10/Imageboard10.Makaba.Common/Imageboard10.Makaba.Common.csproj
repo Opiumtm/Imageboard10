@@ -123,6 +123,14 @@
     </PackageReference>
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\Imageboard10.Core.ModelInterface\Imageboard10.Core.ModelInterface.csproj">
+      <Project>{78fbf320-ebbd-40a9-8f16-b45bfff73af1}</Project>
+      <Name>Imageboard10.Core.ModelInterface</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Imageboard10.Core.Models\Imageboard10.Core.Models.csproj">
+      <Project>{66280a62-2409-4222-97a5-54da49f9142f}</Project>
+      <Name>Imageboard10.Core.Models</Name>
+    </ProjectReference>
     <ProjectReference Include="..\Imageboard10.Core.NetworkInterface\Imageboard10.Core.NetworkInterface.csproj">
       <Project>{59f08002-21ba-4913-a6cd-697c982be20e}</Project>
       <Name>Imageboard10.Core.NetworkInterface</Name>
@@ -135,6 +143,9 @@
       <Project>{62d7a5d8-0866-4199-8763-ef81096f4a71}</Project>
       <Name>Imageboard10.ModuleInterface</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Links\" />
   </ItemGroup>
   <PropertyGroup Condition=" '$(VisualStudioVersion)' == '' or '$(VisualStudioVersion)' &lt; '14.0' ">
     <VisualStudioVersion>14.0</VisualStudioVersion>

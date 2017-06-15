@@ -75,5 +75,11 @@ namespace Imageboard10.Core.Models.Links.LinkTypes
         /// </summary>
         /// <returns>Абсолютная ссылка.</returns>
         public string GetAbsoluteUrl() => $"http://www.youtube.com/watch?v={YoutubeId}";
+
+        /// <summary>
+        /// Получить URL для запуска приложения.
+        /// </summary>
+        /// <returns>Абсолютная ссылка.</returns>
+        public string GetAppLaunchUrl() => $"vnd.youtube:{YoutubeId}?vndapp=youtube_mobile&vndclient=mv-google&vndel=watch";
     }
 }

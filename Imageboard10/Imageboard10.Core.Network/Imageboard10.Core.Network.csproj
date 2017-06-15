@@ -106,6 +106,7 @@
     <RestoreProjectStyle>PackageReference</RestoreProjectStyle>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="CommonUriGetter.cs" />
     <Compile Include="Html\AgilityHtmlCommentNode.cs" />
     <Compile Include="Html\AgilityHtmlDocument.cs" />
     <Compile Include="Html\AgilityHtmlDocumentFactory.cs" />
@@ -118,6 +119,7 @@
     <Compile Include="NetworkModulesHelper.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="UriGetterContext.cs" />
+    <Compile Include="UriHelper.cs" />
     <Compile Include="YoutubeIdService.cs" />
     <EmbeddedResource Include="Properties\Imageboard10.Core.Network.rd.xml" />
   </ItemGroup>
@@ -142,6 +144,10 @@
     <ProjectReference Include="..\Imageboard10.Core.ModelInterface\Imageboard10.Core.ModelInterface.csproj">
       <Project>{78fbf320-ebbd-40a9-8f16-b45bfff73af1}</Project>
       <Name>Imageboard10.Core.ModelInterface</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Imageboard10.Core.Models\Imageboard10.Core.Models.csproj">
+      <Project>{66280a62-2409-4222-97a5-54da49f9142f}</Project>
+      <Name>Imageboard10.Core.Models</Name>
     </ProjectReference>
     <ProjectReference Include="..\Imageboard10.Core.NetworkInterface\Imageboard10.Core.NetworkInterface.csproj">
       <Project>{59f08002-21ba-4913-a6cd-697c982be20e}</Project>
