@@ -40,5 +40,37 @@ namespace Imageboard10.Core.Network
             }
             return null;
         }
+
+        /// <summary>
+        /// Получить URI из ссылки.
+        /// </summary>
+        /// <param name="link">Ссылка.</param>
+        /// <param name="context">Конекст получения ссылки.</param>
+        /// <param name="modules">Модули.</param>
+        /// <returns>Результат.</returns>
+        public static Uri GetUri(this ILink link, Guid context, IModuleProvider modules)
+        {
+            if (link == null || modules == null)
+            {
+                return null;
+            }
+            if (link is IEngineLink e)
+            {
+                var uriGetter = modules.QueryEngineCapability<INetworkUriGetter>(e.Engine);
+                if (uriGetter != null)
+                {
+                    return uriGetter.GetUri(link, context);
+                }
+            }
+            else
+            {
+                var uriGetter = modules.QueryEngineCapability<INetworkUriGetter>("");
+                if (uriGetter != null)
+                {
+                    return uriGetter.GetUri(link, context);
+                }
+            }
+            return null;
+        }
     }
 }

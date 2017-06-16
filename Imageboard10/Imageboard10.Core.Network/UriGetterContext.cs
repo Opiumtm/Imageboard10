@@ -25,7 +25,7 @@ namespace Imageboard10.Core.Network
         /// <summary>
         /// Вызов приложения YouTube.
         /// </summary>
-        public static readonly Guid YoutubeAppLink = new Guid("{AB6D0A15-2B6D-4656-A302-F1F72E94D685}");
+        public static readonly Guid AppLaunchLink = new Guid("{AB6D0A15-2B6D-4656-A302-F1F72E94D685}");
 
         /// <summary>
         /// Количество постов в треде.

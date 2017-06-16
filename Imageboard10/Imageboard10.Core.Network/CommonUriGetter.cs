@@ -61,7 +61,7 @@ namespace Imageboard10.Core.Network
                     {
                         return new Uri(l.GetThumbnailUri());
                     }
-                    if (context == UriGetterContext.YoutubeAppLink)
+                    if (context == UriGetterContext.AppLaunchLink)
                     {
                         return new Uri(l.GetAppLaunchUrl());
                     }

@@ -108,9 +108,9 @@ namespace Imageboard10.Makaba.Network.Uri
                         switch (l.SortMode)
                         {
                             case BoardCatalogSort.CreateDate:
-                                return new System.Uri(BaseUri, $"{l.Board}/catalog_num.json");
+                                return new System.Uri(BaseUri, $"{l.Board}/catalog_num.html");
                             default:
-                                return new System.Uri(BaseUri, $"{l.Board}/catalog.json");
+                                return new System.Uri(BaseUri, $"{l.Board}/catalog.html");
                         }
                     }
                     if (context == UriGetterContext.ApiGet)
@@ -118,9 +118,9 @@ namespace Imageboard10.Makaba.Network.Uri
                         switch (l.SortMode)
                         {
                             case BoardCatalogSort.CreateDate:
-                                return new System.Uri(BaseUri, $"{l.Board}/catalog_num.html");
+                                return new System.Uri(BaseUri, $"{l.Board}/catalog_num.json");
                             default:
-                                return new System.Uri(BaseUri, $"{l.Board}/catalog.html");
+                                return new System.Uri(BaseUri, $"{l.Board}/catalog.json");
                         }
                     }
                     break;
@@ -129,7 +129,7 @@ namespace Imageboard10.Makaba.Network.Uri
                 case BoardMediaLink l:
                     if (context == UriGetterContext.HtmlLink || context == UriGetterContext.ApiGet)
                     {
-                        return new System.Uri(BaseUri, $"{l.Board}/{l.Uri}");
+                        return new System.Uri(BaseUri, $"{l.Board}/{CleanRelative(l.Uri)}");
                     }
                     break;
                 case BoardLink l:
@@ -187,6 +187,10 @@ namespace Imageboard10.Makaba.Network.Uri
                     }
                     if (l.CaptchaType == MakabaConstants.CaptchaTypes.NoCaptcha)
                     {
+                        if (l.CaptchaContext == CaptchaLinkContext.NewThread)
+                        {
+                            return null;
+                        }
                         if (context == UriGetterContext.ApiCheck)
                         {
                             return new System.Uri(BaseUri, CaptchaUriV2 + "app/check/" + l.CaptchaId);
@@ -199,6 +203,15 @@ namespace Imageboard10.Makaba.Network.Uri
                     break;
             }
             return null;
+        }
+
+        private string CleanRelative(string uri)
+        {
+            if (uri?.StartsWith("/") ?? false)
+            {
+                return uri.Remove(0, 1);
+            }
+            return uri;
         }
     }
 }

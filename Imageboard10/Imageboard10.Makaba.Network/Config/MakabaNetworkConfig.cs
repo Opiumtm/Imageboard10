@@ -34,10 +34,16 @@ namespace Imageboard10.Makaba.Network.Config
             }
         }
 
+        private System.Uri _baseUri;
+
         /// <summary>
         /// Базовый URI.
         /// </summary>
-        public System.Uri BaseUri { get; set; }
+        public System.Uri BaseUri
+        {
+            get => _baseUri;
+            set => _baseUri = value ?? new System.Uri("https://2ch.hk/");
+        }
 
         /// <summary>
         /// Имя контейнера.
