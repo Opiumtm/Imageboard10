@@ -23,6 +23,7 @@ namespace Imageboard10.Core.Config
         {
             await base.OnInitialize(moduleProvider);
             _container = GetСontainer();
+            LoadConfiguration(_container);
             return Nothing.Value;
         }
 

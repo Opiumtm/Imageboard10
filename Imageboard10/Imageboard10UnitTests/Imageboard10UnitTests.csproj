@@ -106,6 +106,7 @@
     <Compile Include="Fakes\FakePostNodeSerializer.cs" />
     <Compile Include="LinkSerializationTests.cs" />
     <Compile Include="MakabaDtoParseTests.cs" />
+    <Compile Include="MakabaUriTests.cs" />
     <Compile Include="ModuleLifetimeTests.cs" />
     <Compile Include="PostModelsTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

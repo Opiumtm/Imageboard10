@@ -26,7 +26,7 @@ namespace Imageboard10.Makaba.Network.Config
         {
             try
             {
-                BaseUri = container.Values.ContainsKey("baseUri") ? new System.Uri((string) container.Values["baseUri"]) : new System.Uri("https://2ch.hk/");
+                BaseUri = (container.Values.ContainsKey("baseUri") ? new System.Uri((string) container.Values["baseUri"]) : null) ?? new System.Uri("https://2ch.hk/");
             }
             catch
             {
