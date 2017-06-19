@@ -111,11 +111,13 @@
     <Compile Include="Config\MakabaRegistryConfigurationBase.cs" />
     <Compile Include="Html\MakabaHtmlParser.cs" />
     <Compile Include="JsonParsers\MakabaBoardReferenceDtoParsers.cs" />
+    <Compile Include="JsonParsers\MakabaPostDtoParsers.cs" />
     <Compile Include="Json\BoardEntity2.cs" />
     <Compile Include="Json\BoardEntityNewsReference.cs" />
     <Compile Include="Json\BoardIcon2.cs" />
     <Compile Include="Json\BoardPost.cs" />
     <Compile Include="Json\BoardPost2.cs" />
+    <Compile Include="Json\BoardPost2WithParentLink.cs" />
     <Compile Include="Json\BoardPostFile2.cs" />
     <Compile Include="Json\BoardThread2.cs" />
     <Compile Include="Json\CaptchaV2IdResult.cs" />
