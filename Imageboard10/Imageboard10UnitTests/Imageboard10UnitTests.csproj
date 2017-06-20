@@ -129,6 +129,10 @@
     <None Include="Imageboard10UnitTests_TemporaryKey.pfx" />
     <Content Include="Resources\boards.json" />
     <Content Include="Resources\po_post.json" />
+    <Content Include="Resources\po_post2.json" />
+    <Content Include="Resources\int_post.json" />
+    <Content Include="Resources\mlp_post.json" />
+    <Content Include="Resources\po_post3.json" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="Properties\UnitTestApp.rd.xml" />

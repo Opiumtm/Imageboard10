@@ -29,5 +29,10 @@
         /// Хэш.
         /// </summary>
         string Hash { get; }
+
+        /// <summary>
+        /// Длительность.
+        /// </summary>
+        string Duration { get; }
     }
 }

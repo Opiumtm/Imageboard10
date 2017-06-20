@@ -1,6 +1,6 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 using System.Linq;
-using HtmlAgilityPack;
 using Imageboard10.Core.Modules;
 using Imageboard10.Core.NetworkInterface.Html;
 
@@ -42,7 +42,7 @@ namespace Imageboard10.Core.Network.Html
             IHtmlDocument doc = d.Load(html);
 
             StringWriter sw = new StringWriter();
-            ConvertHtmlToText(doc.DocumentNode, sw);
+            ConvertHtmlToText(doc.DocumentNode, sw, d);
             sw.Flush();
             return sw.ToString();
         }
@@ -52,8 +52,10 @@ namespace Imageboard10.Core.Network.Html
         /// </summary>
         /// <param name="node"></param>
         /// <param name="outText"></param>
-        public static void ConvertHtmlToText(IHtmlNode node, TextWriter outText)
+        /// <param name="documentFactory">Фабрика документов.</param>
+        public static void ConvertHtmlToText(IHtmlNode node, TextWriter outText, IHtmlDocumentFactory documentFactory)
         {
+            if (documentFactory == null) throw new ArgumentNullException(nameof(documentFactory));
             switch (node)
             {
                 case IHtmlCommentNode _:
@@ -69,13 +71,13 @@ namespace Imageboard10.Core.Network.Html
                     var html = tn.Text;
 
                     // is it in fact a special closing node output as text?
-                    if (HtmlNode.IsOverlappedClosingElement(html))
+                    if (documentFactory.IsOverlappedClosingElement(html))
                         break;
 
                     // check the text is meaningful and not a bunch of whitespaces
                     if (html.Trim().Length > 0)
                     {
-                        outText.Write(HtmlEntity.DeEntitize(html));
+                        outText.Write(documentFactory.DeEntitize(html));
                     }
                     break;
 
@@ -90,17 +92,17 @@ namespace Imageboard10.Core.Network.Html
 
                     if (node.HasChildNodes)
                     {
-                        ConvertContentTo(node, outText);
+                        ConvertContentTo(node, outText, documentFactory);
                     }
                     break;
             }
         }
 
-        private static void ConvertContentTo(IHtmlNode node, TextWriter outText)
+        private static void ConvertContentTo(IHtmlNode node, TextWriter outText, IHtmlDocumentFactory documentFactory)
         {
             foreach (var subnode in node.ChildNodes)
             {
-                ConvertHtmlToText(subnode, outText);
+                ConvertHtmlToText(subnode, outText, documentFactory);
             }
         }
     }

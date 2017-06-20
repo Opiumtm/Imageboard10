@@ -50,5 +50,11 @@ namespace Imageboard10.Core.Models.Posts.PostMedia
         /// </summary>
         [DataMember]
         public string Hash { get; set; }
+
+        /// <summary>
+        /// Длительность.
+        /// </summary>
+        [DataMember]
+        public string Duration { get; set; }
     }
 }

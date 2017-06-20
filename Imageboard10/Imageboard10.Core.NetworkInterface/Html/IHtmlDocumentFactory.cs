@@ -23,5 +23,19 @@ namespace Imageboard10.Core.NetworkInterface.Html
         /// <param name="stream">Поток.</param>
         /// <returns>Документ.</returns>
         IHtmlDocument Load(IInputStream stream);
+
+        /// <summary>
+        /// Конвертировать все html entity в unicode.
+        /// </summary>
+        /// <param name="src">Исходная строка.</param>
+        /// <returns>Результат.</returns>
+        string DeEntitize(string src);
+
+        /// <summary>
+        /// Проверка на пересечение элементов.
+        /// </summary>
+        /// <param name="text">Текст.</param>
+        /// <returns>Результат.</returns>
+        bool IsOverlappedClosingElement(string text);
     }
 }

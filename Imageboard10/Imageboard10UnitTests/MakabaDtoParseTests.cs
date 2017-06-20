@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
 using Windows.Graphics;
+using Windows.UI;
 using Imageboard10.Core.ModelInterface;
 using Imageboard10.Core.ModelInterface.Boards;
 using Imageboard10.Core.ModelInterface.Links;
@@ -375,8 +376,9 @@ namespace Imageboard10UnitTests
             Assert.AreEqual("sad.jpg", pm.FullName, "MediaFiles[0].FullName");
             Assert.AreEqual("63a7d4ad258c81dbd2f22ef5de1907c3", pm.Hash, "MediaFiles[0].Hash");
             Assert.AreEqual("14961650483170.jpg", pm.Name, "MediaFiles[0].Name");
+            Assert.IsNull(pm.Duration, "MediaFiles[0].Duration");
             Assert.AreEqual(false, pm.Nsfw, "MediaFiles[0].Nsfw");
-            Assert.AreEqual(pm.MediaType, PostMediaTypes.Image, "MediaFiles[0].MediaType");
+            Assert.AreEqual(PostMediaTypes.Image, pm.MediaType, "MediaFiles[0].MediaType");
             var pmuri = pm.MediaLink as BoardMediaLink;
             Assert.IsNotNull(pmuri, "MediaFiles[0].MediaLink is BoardMediaLink");
             Assert.AreEqual(MakabaConstants.MakabaEngineId, pmuri.Engine, "MediaFiles[0].MediaLink.Engine");
@@ -403,6 +405,156 @@ namespace Imageboard10UnitTests
             AssertPostFlag(result, BoardPostFlags.Op, true, "Op = 1");
             AssertPostFlag(result, BoardPostFlags.ThreadOpPost, true, "ThreadOpPost = 1");
             AssertPostFlag(result, BoardPostFlags.Sticky, false, "Sticky = 0");
+            Assert.IsNotNull(result.Comment, "Comment != null");
+            Assert.AreEqual("Понимаете, что это навсегда?", (result.Comment.Nodes?.FirstOrDefault() as ITextPostNode)?.Text, "Comment.Nodes.First()");
+        }
+
+        [TestMethod]
+        public async Task MakabaPostDtoModnames()
+        {
+            var jsonStr = await TestResources.ReadTestTextFile("po_post.json");
+            var dto = JsonConvert.DeserializeObject<BoardPost2>(jsonStr);
+            Assert.IsNotNull(dto, "dto != null");
+            var parser = _provider.FindNetworkDtoParser<BoardPost2WithParentLink, IBoardPost>();
+            var param = new BoardPost2WithParentLink()
+            {
+                Counter = 1,
+                IsPreview = true,
+                Post = dto,
+                ParentLink = new ThreadLink() { Engine = MakabaConstants.MakabaEngineId, Board = "po", OpPostNum = 22855542 },
+            };
+
+            IBoardPost result;
+
+            dto.Name = null;
+
+            dto.Tripcode = "!!%mod%!!";
+            result = parser.Parse(param);
+            Assert.AreEqual("## Mod ##", result?.Poster?.Name);
+
+            dto.Tripcode = "!!%adm%!!";
+            result = parser.Parse(param);
+            Assert.AreEqual("## Abu ##", result?.Poster?.Name);
+
+            dto.Tripcode = "!!%Inquisitor%!!";
+            result = parser.Parse(param);
+            Assert.AreEqual("## Applejack ##", result?.Poster?.Name);
+
+            dto.Tripcode = "!!%coder%!!";
+            result = parser.Parse(param);
+            Assert.AreEqual("## Кодер ##", result?.Poster?.Name);
+        }
+
+        [TestMethod]
+        public async Task MakabaPostDtoFlags()
+        {
+            var jsonStr = await TestResources.ReadTestTextFile("po_post2.json");
+            var dto = JsonConvert.DeserializeObject<BoardPost2>(jsonStr);
+            Assert.IsNotNull(dto, "dto != null");
+            var parser = _provider.FindNetworkDtoParser<BoardPost2WithParentLink, IBoardPost>();
+            var param = new BoardPost2WithParentLink()
+            {
+                Counter = 1,
+                IsPreview = true,
+                Post = dto,
+                ParentLink = new ThreadLink() { Engine = MakabaConstants.MakabaEngineId, Board = "po", OpPostNum = 22855542 },
+            };
+            var result = parser.Parse(param);
+            AssertPostFlag(result, BoardPostFlags.Banned, true, "Banned = 1");
+            AssertPostFlag(result, BoardPostFlags.Closed, true, "Closed = 1");
+            AssertPostFlag(result, BoardPostFlags.Endless, true, "Endless = 1");
+            AssertPostFlag(result, BoardPostFlags.Endless, true, "Endless = 1");
+            AssertPostFlag(result, BoardPostFlags.Op, false, "Op = 0");
+            AssertPostFlag(result, BoardPostFlags.Sticky, true, "Sticky = 1");
+        }
+
+        [TestMethod]
+        public async Task MakabaPostDtoCountry()
+        {
+            var jsonStr = await TestResources.ReadTestTextFile("int_post.json");
+            var dto = JsonConvert.DeserializeObject<BoardPost2>(jsonStr);
+            Assert.IsNotNull(dto, "dto != null");
+            var parser = _provider.FindNetworkDtoParser<BoardPost2WithParentLink, IBoardPost>();
+            var param = new BoardPost2WithParentLink()
+            {
+                Counter = 1,
+                IsPreview = true,
+                Post = dto,
+                ParentLink = new ThreadLink() { Engine = MakabaConstants.MakabaEngineId, Board = "int", OpPostNum = 20441 },
+            };
+            var result = parser.Parse(param);
+            Assert.IsNotNull(result.Country, "Country != null");
+            Assert.IsNotNull(result.Country.ImageLink, "Country.ImageLink != null");
+            Assert.IsInstanceOfType(result.Country.ImageLink, typeof(EngineMediaLink), "Country.ImageLink is EngineMediaLink");
+            var ml = (EngineMediaLink)result.Country.ImageLink;
+            Assert.AreEqual("/flags/RU.png", ml.Uri, "Country.ImageLink.Uri");
+        }
+
+        [TestMethod]
+        public async Task MakabaPostDtoWebmFile()
+        {
+            var jsonStr = await TestResources.ReadTestTextFile("int_post.json");
+            var dto = JsonConvert.DeserializeObject<BoardPost2>(jsonStr);
+            Assert.IsNotNull(dto, "dto != null");
+            var parser = _provider.FindNetworkDtoParser<BoardPost2WithParentLink, IBoardPost>();
+            var param = new BoardPost2WithParentLink()
+            {
+                Counter = 1,
+                IsPreview = true,
+                Post = dto,
+                ParentLink = new ThreadLink() { Engine = MakabaConstants.MakabaEngineId, Board = "int", OpPostNum = 20441 },
+            };
+            var result = parser.Parse(param);
+            Assert.IsNotNull(result.MediaFiles, "MediaFiles != null");
+            Assert.AreEqual(1, result.MediaFiles.Count, "MediaFiles.Count");
+            var mf = result.MediaFiles[0] as PostMediaWithThumbnail;
+            Assert.IsNotNull(mf, "result.MediaFiles[0] is PostMediaWithThumbnail");
+            Assert.AreEqual("00:00:20", mf.Duration, "result.MediaFiles[0].Duration");
+            Assert.AreEqual(PostMediaTypes.WebmVideo, mf.MediaType, "result.MediaFiles[0].MediaType");
+        }
+
+        [TestMethod]
+        public async Task MakabaPostDtoIcon()
+        {
+            var jsonStr = await TestResources.ReadTestTextFile("mlp_post.json");
+            var dto = JsonConvert.DeserializeObject<BoardPost2>(jsonStr);
+            Assert.IsNotNull(dto, "dto != null");
+            var parser = _provider.FindNetworkDtoParser<BoardPost2WithParentLink, IBoardPost>();
+            var param = new BoardPost2WithParentLink()
+            {
+                Counter = 1,
+                IsPreview = true,
+                Post = dto,
+                ParentLink = new ThreadLink() { Engine = MakabaConstants.MakabaEngineId, Board = "int", OpPostNum = 20441 },
+            };
+            var result = parser.Parse(param);
+            Assert.IsNotNull(result.Icon, "Icon != null");
+            Assert.IsNotNull(result.Icon.ImageLink, "Icon.ImageLink != null");
+            Assert.IsInstanceOfType(result.Icon.ImageLink, typeof(EngineMediaLink), "Icon.ImageLink is EngineMediaLink");
+            var ml = (EngineMediaLink)result.Icon.ImageLink;
+            Assert.AreEqual("/icons/logos/spike.png", ml.Uri, "Icon.ImageLink.Uri");
+            Assert.AreEqual("Spike", result.Icon.Description, "Icon.Description");
+        }
+
+        [TestMethod]
+        public async Task MakabaPostDtoNameColors()
+        {
+            var jsonStr = await TestResources.ReadTestTextFile("po_post3.json");
+            var dto = JsonConvert.DeserializeObject<BoardPost2>(jsonStr);
+            Assert.IsNotNull(dto, "dto != null");
+            var parser = _provider.FindNetworkDtoParser<BoardPost2WithParentLink, IBoardPost>();
+            var param = new BoardPost2WithParentLink()
+            {
+                Counter = 1,
+                IsPreview = true,
+                Post = dto,
+                ParentLink = new ThreadLink() { Engine = MakabaConstants.MakabaEngineId, Board = "po", OpPostNum = 22823169 },
+            };
+            var result = parser.Parse(param);
+            Assert.IsNotNull(result.Poster, "Poster != null");
+            Assert.IsNotNull(result.Poster.NameColor, "Poster.NameColor != null");
+            Assert.AreEqual(Color.FromArgb(255, 163, 13, 175), result.Poster.NameColor.Value, "Poster.NameColor");
+            Assert.AreEqual("Бенедикт\xA0Оскарович", result.Poster.Name, "Poster.Name");
         }
 
         private void AssertPostFlag(IBoardPost post, Guid flag, bool value, string msg)

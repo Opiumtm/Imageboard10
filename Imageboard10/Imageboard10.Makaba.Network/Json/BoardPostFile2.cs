@@ -90,5 +90,11 @@ namespace Imageboard10.Makaba.Network.Json
         /// </summary>
         [JsonProperty("width")]
         public int Width { get; set; }
+
+        /// <summary>
+        /// Длительность.
+        /// </summary>
+        [JsonProperty("duration")]
+        public string Duration { get; set; }
     }
 }

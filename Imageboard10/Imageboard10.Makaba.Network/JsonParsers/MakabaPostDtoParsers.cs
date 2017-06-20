@@ -274,6 +274,7 @@ namespace Imageboard10.Makaba.Network.JsonParsers
                         FullName = f.FullName,
                         Nsfw = f.NotSafeForWork != 0,
                         Hash = f.Md5,
+                        Duration = f.Duration,
                         Thumbnail = new PostMediaWithSize()
                         {                            
                             MediaLink = tnLink,

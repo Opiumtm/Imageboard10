@@ -37,5 +37,19 @@ namespace Imageboard10.Core.Network.Html
             }
             return new AgilityHtmlDocument(result);
         }
+
+        /// <summary>
+        /// Конвертировать все html entity в unicode.
+        /// </summary>
+        /// <param name="src">Исходная строка.</param>
+        /// <returns>Результат.</returns>
+        public string DeEntitize(string src) => HtmlEntity.DeEntitize(src);
+
+        /// <summary>
+        /// Проверка на пересечение элементов.
+        /// </summary>
+        /// <param name="text">Текст.</param>
+        /// <returns>Результат.</returns>
+        public bool IsOverlappedClosingElement(string text) => HtmlNode.IsOverlappedClosingElement(text);
     }
 }
