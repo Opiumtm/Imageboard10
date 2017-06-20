@@ -67,6 +67,10 @@ namespace Imageboard10.Makaba.Network.Uri
                     {
                         return new System.Uri(BaseUri, $"{l.Board}/res/{l.OpPostNum}.html#{l.PostNum}");
                     }
+                    if (context == UriGetterContext.ApiGet)
+                    {
+                        return new System.Uri(BaseUri, $"makaba/mobile.fcgi?task=get_post&board={l.Board}&post={l.PostNum}");
+                    }
                     break;
                 case ThreadPartLink l:
                     if (context == UriGetterContext.HtmlLink)
@@ -90,6 +94,10 @@ namespace Imageboard10.Makaba.Network.Uri
                     if (context == UriGetterContext.ApiThreadPostCount)
                     {
                         return new System.Uri(BaseUri, $"makaba/mobile.fcgi?task=get_thread_last_info&board={l.Board}&thread={l.OpPostNum}");
+                    }
+                    if (context == UriGetterContext.ApiPost)
+                    {
+                        return new System.Uri(BaseUri, "/makaba/posting.fcgi?json=1");
                     }
                     break;
                 case BoardPageLink l:
@@ -140,6 +148,10 @@ namespace Imageboard10.Makaba.Network.Uri
                     if (context == UriGetterContext.ApiGet)
                     {
                         return new System.Uri(BaseUri, $"{l.Board}/index.json");
+                    }
+                    if (context == UriGetterContext.ApiPost)
+                    {
+                        return new System.Uri(BaseUri, "/makaba/posting.fcgi?json=1");
                     }
                     break;
                 case EngineMediaLink l:

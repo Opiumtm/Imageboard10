@@ -112,6 +112,13 @@ namespace Imageboard10UnitTests
                 OpPostNum = 1234,
                 PostNum = 4321
             }, UriGetterContext.HtmlLink, "http://2ch.so/b/res/1234.html#4321", "http://2ch.so/");
+            await AssertUri(new PostLink()
+            {
+                Engine = "makaba",
+                Board = "b",
+                OpPostNum = 1234,
+                PostNum = 4321
+            }, UriGetterContext.ApiGet, "https://2ch.hk/makaba/mobile.fcgi?task=get_post&board=b&post=4321");
         }
 
         [TestMethod]
@@ -154,6 +161,12 @@ namespace Imageboard10UnitTests
                 Board = "b",
                 OpPostNum = 1234,
             }, UriGetterContext.ApiThreadPostCount, "https://2ch.hk/makaba/mobile.fcgi?task=get_thread_last_info&board=b&thread=1234");
+            await AssertUri(new ThreadLink()
+            {
+                Engine = "makaba",
+                Board = "b",
+                OpPostNum = 1234,
+            }, UriGetterContext.ApiPost, "https://2ch.hk/makaba/posting.fcgi?json=1");
         }
 
         [TestMethod]
@@ -198,6 +211,11 @@ namespace Imageboard10UnitTests
                 Engine = "makaba",
                 Board = "b",
             }, UriGetterContext.ApiGet, "https://2ch.hk/b/index.json");
+            await AssertUri(new BoardLink()
+            {
+                Engine = "makaba",
+                Board = "b",
+            }, UriGetterContext.ApiPost, "https://2ch.hk/makaba/posting.fcgi?json=1");
         }
 
         [TestMethod]

@@ -355,7 +355,8 @@ namespace Imageboard10UnitTests
                 Counter = 1,
                 IsPreview = true,
                 Post = dto,
-                ParentLink = new ThreadLink() { Engine  = MakabaConstants.MakabaEngineId, Board = "po", OpPostNum = 22855542 },                
+                ParentLink = new ThreadLink() { Engine  = MakabaConstants.MakabaEngineId, Board = "po", OpPostNum = 22855542 }, 
+                LoadedTime = DateTimeOffset.Now
             };
             var result = parser.Parse(param);
 
@@ -405,6 +406,7 @@ namespace Imageboard10UnitTests
             AssertPostFlag(result, BoardPostFlags.Op, true, "Op = 1");
             AssertPostFlag(result, BoardPostFlags.ThreadOpPost, true, "ThreadOpPost = 1");
             AssertPostFlag(result, BoardPostFlags.Sticky, false, "Sticky = 0");
+            Assert.AreEqual(param.LoadedTime, result.LoadedTime, "LoadedTime");
             Assert.IsNotNull(result.Comment, "Comment != null");
             Assert.AreEqual("Понимаете, что это навсегда?", (result.Comment.Nodes?.FirstOrDefault() as ITextPostNode)?.Text, "Comment.Nodes.First()");
         }

@@ -41,5 +41,10 @@ namespace Imageboard10.Core.Network
         /// Проверка.
         /// </summary>
         public static readonly Guid ApiCheck = new Guid("{68C49B20-FA44-4AC1-A78F-745C7A2BE44F}");
+
+        /// <summary>
+        /// Постинг.
+        /// </summary>
+        public static readonly Guid ApiPost = new Guid("{C800C1AA-883C-431D-8C21-DFDE336A3E01}");
     }
 }

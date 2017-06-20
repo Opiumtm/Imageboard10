@@ -1,4 +1,4 @@
-﻿using Imageboard10.Core.ModelInterface.Links;
+﻿using System;
 using Imageboard10.Core.Models.Links.LinkTypes;
 
 namespace Imageboard10.Makaba.Network.Json
@@ -27,5 +27,10 @@ namespace Imageboard10.Makaba.Network.Json
         /// Порядковый номер поста в треде.
         /// </summary>
         public int Counter;
+
+        /// <summary>
+        /// Время загрузки.
+        /// </summary>
+        public DateTimeOffset LoadedTime;
     }
 }

@@ -227,7 +227,8 @@ namespace Imageboard10.Makaba.Network.JsonParsers
                 Country = iconAndFlag.Country,
                 Tags = tags,
                 UniqueId = Guid.NewGuid().ToString(),
-                Likes = likes
+                Likes = likes,
+                LoadedTime = source.LoadedTime
             };
             if (data.Files != null)
             {

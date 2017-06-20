@@ -46,5 +46,15 @@ namespace Imageboard10.Core.NetworkInterface
         /// Каталог тредов.
         /// </summary>
         public static Guid Catalog { get; } = new Guid("{175DB178-4108-4402-8EC1-72AB844C5DF2}");
+
+        /// <summary>
+        /// Загрузить отдельный пост.
+        /// </summary>
+        public static Guid GetSinglePost { get; } = new Guid("{DE547CED-A928-4EC2-B13B-BB4F07A24F03}");
+
+        /// <summary>
+        /// Поддержка лайков.
+        /// </summary>
+        public static Guid Likes { get; } = new Guid("{6A717B23-9C72-44A1-9FB2-230F21A9861D}");
     }
 }

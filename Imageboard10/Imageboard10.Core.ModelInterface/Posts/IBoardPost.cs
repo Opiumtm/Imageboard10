@@ -98,5 +98,10 @@ namespace Imageboard10.Core.ModelInterface.Posts
         /// Лайки.
         /// </summary>
         IBoardPostLikes Likes { get; }
+
+        /// <summary>
+        /// Время, когда был загружен пост.
+        /// </summary>
+        DateTimeOffset LoadedTime { get; }
     }
 }
