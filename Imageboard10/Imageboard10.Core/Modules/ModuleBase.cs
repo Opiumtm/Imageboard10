@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -8,7 +9,7 @@ namespace Imageboard10.Core.Modules
     /// Базовый класс модулей.
     /// </summary>
     /// <typeparam name="TIntf">Тип интерфейса.</typeparam>
-    public abstract class ModuleBase<TIntf> : IModule
+    public abstract class ModuleBase<TIntf> : IModule, IBaseModuleLogicSuspendAwareCallbacks
         where TIntf: class 
     {
         private readonly BaseModuleLogic<TIntf> _moduleLifetime;
@@ -18,7 +19,8 @@ namespace Imageboard10.Core.Modules
         /// </summary>
         protected ModuleBase()
         {
-            _moduleLifetime = new BaseModuleLogic<TIntf>(this, OnInitialize, OnDispose, OnAllInitialized);
+            IBaseModuleLogicCallbacks callbacks = this;
+            _moduleLifetime = new BaseModuleLogic<TIntf>(this, callbacks);
         }
 
         /// <summary>
@@ -27,7 +29,8 @@ namespace Imageboard10.Core.Modules
         /// <param name="attachToParentDispose">Присоединить к родительскому событию по завершению работы.</param>
         protected ModuleBase(bool attachToParentDispose)
         {
-            _moduleLifetime = new BaseModuleLogic<TIntf>(this, OnInitialize, OnDispose, OnAllInitialized, attachToParentDispose);
+            IBaseModuleLogicCallbacks callbacks = this;
+            _moduleLifetime = new BaseModuleLogic<TIntf>(this, callbacks, attachToParentDispose);
         }
 
         /// <summary>
@@ -39,11 +42,13 @@ namespace Imageboard10.Core.Modules
         {
             if (suspendedAware)
             {
-                _moduleLifetime = new BaseModuleLogic<TIntf>(this, OnInitialize, OnDispose, OnAllInitialized, OnSuspended, OnResumed, OnAllResumed, attachToParentDispose);
+                IBaseModuleLogicSuspendAwareCallbacks callbacks = this;
+                _moduleLifetime = new BaseModuleLogic<TIntf>(this, callbacks, attachToParentDispose);
             }
             else
             {
-                _moduleLifetime = new BaseModuleLogic<TIntf>(this, OnInitialize, OnDispose, OnAllInitialized, attachToParentDispose);
+                IBaseModuleLogicCallbacks callbacks = this;
+                _moduleLifetime = new BaseModuleLogic<TIntf>(this, callbacks, attachToParentDispose);
             }
         }
 
@@ -125,6 +130,36 @@ namespace Imageboard10.Core.Modules
             {
                 throw new ModuleNotReadyException();
             }
+        }
+
+        ValueTask<Nothing> IBaseModuleLogicCallbacks.OnInitilizeLifetimeCallback(IModuleProvider provider)
+        {
+            return OnInitialize(provider);
+        }
+
+        ValueTask<Nothing> IBaseModuleLogicCallbacks.OnDisposeLifetimeCallback()
+        {
+            return OnDispose();
+        }
+
+        ValueTask<Nothing> IBaseModuleLogicCallbacks.OnAllInitializedLifetimeCallback()
+        {
+            return OnAllInitialized();
+        }
+
+        ValueTask<Nothing> IBaseModuleLogicSuspendAwareCallbacks.OnSuspendLifetimeCallback()
+        {
+            return OnSuspended();
+        }
+
+        ValueTask<Nothing> IBaseModuleLogicSuspendAwareCallbacks.OnResumeLifetimeCallback()
+        {
+            return OnResumed();
+        }
+
+        ValueTask<Nothing> IBaseModuleLogicSuspendAwareCallbacks.OnAllResumedLifetimeCallback()
+        {
+            return OnAllResumed();
         }
     }
 }

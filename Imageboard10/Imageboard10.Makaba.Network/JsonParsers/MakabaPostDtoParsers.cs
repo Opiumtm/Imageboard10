@@ -108,6 +108,10 @@ namespace Imageboard10.Makaba.Network.JsonParsers
             {
                 flags.Add(BoardPostFlags.IsEdited);
             }
+            if ((data.Endless ?? 0) != 0)
+            {
+                flags.Add(BoardPostFlags.Endless);
+            }
             string admName = null;
             if (data.Tripcode != null)
             {
@@ -141,7 +145,7 @@ namespace Imageboard10.Makaba.Network.JsonParsers
                 OpPostNum = link.OpPostNum,
                 PostNum = number
             };
-            var posdDocument = _htmlParser.ParseHtml(data.Comment ?? "", thisLink);
+            var postDocument = _htmlParser.ParseHtml(data.Comment ?? "", thisLink);
             var name = admName != null && string.IsNullOrWhiteSpace(data.Name) ? admName : WebUtility.HtmlDecode(data.Name ?? string.Empty).Replace("&nbsp;", " ");
             string nameColor = null;
             Color? color = null;
@@ -195,10 +199,19 @@ namespace Imageboard10.Makaba.Network.JsonParsers
                     Tags = new List<string>() { data.Tags }
                 };
             }
+            BoardPostLikes likes = null;
+            if (data.Likes != null || data.Dislikes != null)
+            {
+                likes = new BoardPostLikes()
+                {
+                    Likes = data.Likes ?? 0,
+                    Dislikes = data.Dislikes ?? 0
+                };
+            }
             var result = new Core.Models.Posts.BoardPost()
             {
                 Link = thisLink,
-                Comment = posdDocument,
+                Comment = postDocument,
                 ParentLink = link,
                 Subject = WebUtility.HtmlDecode(data.Subject ?? string.Empty),
                 BoardSpecificDate = data.Date,
@@ -212,7 +225,9 @@ namespace Imageboard10.Makaba.Network.JsonParsers
                 Poster = posterInfo,
                 Icon = iconAndFlag.Icon,
                 Country = iconAndFlag.Country,
-                Tags = tags
+                Tags = tags,
+                UniqueId = Guid.NewGuid().ToString(),
+                Likes = likes
             };
             if (data.Files != null)
             {
@@ -266,9 +281,31 @@ namespace Imageboard10.Makaba.Network.JsonParsers
                             Width = f.TnWidth,
                             FileSize = null,
                             MediaType = PostMediaTypes.Image
-                        }
+                        },
                     };
                     result.MediaFiles.Add(media);
+                }
+            }
+            if (source.Counter == 1 && string.IsNullOrWhiteSpace(result.Subject))
+            {
+                try
+                {
+                    var lines = result.Comment.ToPlainText();
+                    if (lines.Count > 0)
+                    {
+                        var s = lines.FirstOrDefault(l => !string.IsNullOrWhiteSpace(l));
+                        if (s != null)
+                        {
+                            if (s.Length >= 50)
+                            {
+                                s = s.Substring(0, 50 - 3) + "...";
+                            }
+                            result.Subject = s;
+                        }
+                    }
+                }
+                catch
+                {
                 }
             }
             return result;

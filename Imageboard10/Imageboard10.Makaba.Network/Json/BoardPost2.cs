@@ -60,5 +60,23 @@ namespace Imageboard10.Makaba.Network.Json
         /// </summary>
         [JsonProperty("tags")]
         public string Tags { get; set; }
+
+        /// <summary>
+        /// Лайки.
+        /// </summary>
+        [JsonProperty("likes")]
+        public int? Likes { get; set; }
+
+        /// <summary>
+        /// Дизлайки.
+        /// </summary>
+        [JsonProperty("dislikes")]
+        public int? Dislikes { get; set; }
+
+        /// <summary>
+        /// Бесконечный тред.
+        /// </summary>
+        [JsonProperty("endless")]
+        public int? Endless { get; set; }
     }
 }

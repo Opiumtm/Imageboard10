@@ -31,5 +31,11 @@
         /// <param name="postNumber">Номер поста.</param>
         /// <returns>Ссылка на пост в треде.</returns>
         ILink GetPostLink(int postNumber);
+
+        /// <summary>
+        /// Получить строку с номером поста.
+        /// </summary>
+        /// <returns>Строка с номером поста.</returns>
+        string GetThreadNumberString();
     }
 }

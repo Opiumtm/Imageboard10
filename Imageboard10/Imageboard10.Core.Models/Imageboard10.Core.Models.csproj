@@ -159,8 +159,10 @@
     <Compile Include="Posts\BoardPost.cs" />
     <Compile Include="Posts\BoardPostCountryFlag.cs" />
     <Compile Include="Posts\BoardPostIcon.cs" />
+    <Compile Include="Posts\BoardPostLikes.cs" />
     <Compile Include="Posts\BoardPostTags.cs" />
     <Compile Include="Posts\PostDocument.cs" />
+    <Compile Include="Posts\PostDocumentHelper.cs" />
     <Compile Include="Posts\PosterInfo.cs" />
     <Compile Include="Posts\PostMedia\PostMedia.cs" />
     <Compile Include="Posts\PostMedia\PostMediaBase.cs" />

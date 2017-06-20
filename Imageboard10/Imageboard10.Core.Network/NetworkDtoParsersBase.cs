@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Threading.Tasks;
 using Imageboard10.Core.Modules;
 
 namespace Imageboard10.Core.Network
@@ -32,7 +34,7 @@ namespace Imageboard10.Core.Network
             {
                 return this;
             }
-            return null;
+            return base.QueryView(viewType);
         }
 
         /// <summary>

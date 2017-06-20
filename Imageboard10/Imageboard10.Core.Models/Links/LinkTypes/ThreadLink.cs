@@ -119,5 +119,11 @@ namespace Imageboard10.Core.Models.Links.LinkTypes
             OpPostNum = OpPostNum,
             PostNum = postNumber
         };
+
+        /// <summary>
+        /// Получить строку с номером поста.
+        /// </summary>
+        /// <returns>Строка с номером поста.</returns>
+        public string GetThreadNumberString() => OpPostNum.ToString();
     }
 }

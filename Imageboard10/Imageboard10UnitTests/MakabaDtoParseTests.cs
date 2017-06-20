@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
+using Windows.Graphics;
 using Imageboard10.Core.ModelInterface;
 using Imageboard10.Core.ModelInterface.Boards;
 using Imageboard10.Core.ModelInterface.Links;
@@ -12,6 +13,7 @@ using Imageboard10.Core.Models.Boards;
 using Imageboard10.Core.Models.Links;
 using Imageboard10.Core.Models.Links.LinkTypes;
 using Imageboard10.Core.Models.Posts;
+using Imageboard10.Core.Models.Posts.PostMedia;
 using Imageboard10.Core.Models.Posts.PostNodes;
 using Imageboard10.Core.Models.Serialization;
 using Imageboard10.Core.Modules;
@@ -25,6 +27,7 @@ using Imageboard10.Makaba.Network.Json;
 using Imageboard10.Makaba.Network.JsonParsers;
 using Imageboard10.Makaba.Network.Uri;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Newtonsoft.Json;
 
 namespace Imageboard10UnitTests
 {
@@ -47,6 +50,7 @@ namespace Imageboard10UnitTests
             _collection.RegisterModule<MakabaLinkParser, IEngineLinkParser>();
             _collection.RegisterModule<AgilityHtmlDocumentFactory, IHtmlDocumentFactory>();
             _collection.RegisterModule<MakabaHtmlParser, IHtmlParser>();
+            _collection.RegisterModule<MakabaPostDtoParsers, INetworkDtoParsers>();
             await _collection.Seal();
             _provider = _collection.GetModuleProvider();
         }
@@ -336,6 +340,82 @@ namespace Imageboard10UnitTests
 
             var parsed = parser.ParseHtml(html, null);
             PostModelsTests.AssertDocuments(_provider, expected, parsed);
+        }
+
+        [TestMethod]
+        public async Task MakabaPostDtoParse()
+        {
+            var jsonStr = await TestResources.ReadTestTextFile("po_post.json");
+            var dto = JsonConvert.DeserializeObject<BoardPost2>(jsonStr);
+            Assert.IsNotNull(dto, "dto != null");
+            var parser = _provider.FindNetworkDtoParser<BoardPost2WithParentLink, IBoardPost>();
+            var param = new BoardPost2WithParentLink()
+            {
+                Counter = 1,
+                IsPreview = true,
+                Post = dto,
+                ParentLink = new ThreadLink() { Engine  = MakabaConstants.MakabaEngineId, Board = "po", OpPostNum = 22855542 },                
+            };
+            var result = parser.Parse(param);
+
+            AssertPostFlag(result, BoardPostFlags.Banned, false, "Banned = 0");
+            AssertPostFlag(result, BoardPostFlags.Closed, false, "Closed = 0");
+            Assert.AreEqual("30/05/17 Втр 20:24:08", result.BoardSpecificDate, "BoardSpecificDate");
+            Assert.IsNotNull(result.Likes, "Likes != null");
+            Assert.AreEqual(9, result.Likes.Dislikes, "Likes.Dislikes");
+            Assert.AreEqual(19, result.Likes.Likes, "Likes.Likes");
+            Assert.AreEqual("", result.Email, "Email");
+            AssertPostFlag(result, BoardPostFlags.Endless, false, "Endless = 0");
+            Assert.IsNotNull(result.MediaFiles, "MediaFiles != null");
+            Assert.AreEqual(3, result.MediaFiles.Count, "MediaFiles.Count = 3");
+            var pm = result.MediaFiles[0] as PostMediaWithThumbnail;
+            Assert.IsNotNull(pm, "MediaFiles[0] is PostMediaWithThumbnail");
+            Assert.AreEqual(new SizeInt32() { Width = 640, Height = 480}, pm.Size, "MediaFiles[0].Size = 640x480");
+            Assert.AreEqual("sad.jpg", pm.DisplayName, "MediaFiles[0].DisplayName");
+            Assert.AreEqual("sad.jpg", pm.FullName, "MediaFiles[0].FullName");
+            Assert.AreEqual("63a7d4ad258c81dbd2f22ef5de1907c3", pm.Hash, "MediaFiles[0].Hash");
+            Assert.AreEqual("14961650483170.jpg", pm.Name, "MediaFiles[0].Name");
+            Assert.AreEqual(false, pm.Nsfw, "MediaFiles[0].Nsfw");
+            Assert.AreEqual(pm.MediaType, PostMediaTypes.Image, "MediaFiles[0].MediaType");
+            var pmuri = pm.MediaLink as BoardMediaLink;
+            Assert.IsNotNull(pmuri, "MediaFiles[0].MediaLink is BoardMediaLink");
+            Assert.AreEqual(MakabaConstants.MakabaEngineId, pmuri.Engine, "MediaFiles[0].MediaLink.Engine");
+            Assert.AreEqual("po", pmuri.Board, "MediaFiles[0].MediaLink.Board");
+            Assert.AreEqual("/src/22855542/14961650483170.jpg", pmuri.Uri, "MediaFiles[0].MediaLink.Board");
+            var tm = pm.Thumbnail as PostMediaWithSize;
+            Assert.IsNotNull(tm, "MediaFiles[0].Thumbnail is PostMediaWithSize");
+            Assert.AreEqual(new SizeInt32() { Width = 250, Height = 187 }, tm.Size, "MediaFiles[0].Thumbnail.Size");
+            var tmuri = tm.MediaLink as BoardMediaLink;
+            Assert.IsNotNull(tmuri, "MediaFiles[0].Thumbnail.MediaLink is BoardMediaLink");
+            Assert.AreEqual(MakabaConstants.MakabaEngineId, tmuri.Engine, "MediaFiles[0].Thumbnail.MediaLink.Engine");
+            Assert.AreEqual("po", tmuri.Board, "MediaFiles[0].Thumbnail.MediaLink.Board");
+            Assert.AreEqual("/thumb/22855542/14961650483170s.jpg", tmuri.Uri, "MediaFiles[0].Thumbnail.MediaLink.Board");
+            Assert.IsNotNull(result.Poster, "Poster != null");
+            Assert.AreEqual("Аноним", result.Poster.Name, "Poster.Name");
+            Assert.AreEqual("", result.Poster.Tripcode, "Poster.Tripcode");
+            Assert.AreEqual(result.Link.GetLinkHash(), (new PostLink()
+            {
+                Engine = MakabaConstants.MakabaEngineId,
+                Board = "po",
+                OpPostNum = 22855542,
+                PostNum = 22855542
+            }).GetLinkHash(), "result.Link");
+            AssertPostFlag(result, BoardPostFlags.Op, true, "Op = 1");
+            AssertPostFlag(result, BoardPostFlags.ThreadOpPost, true, "ThreadOpPost = 1");
+            AssertPostFlag(result, BoardPostFlags.Sticky, false, "Sticky = 0");
+        }
+
+        private void AssertPostFlag(IBoardPost post, Guid flag, bool value, string msg)
+        {
+            var found = post.Flags.Any(f => f == flag);
+            if (value)
+            {
+                Assert.IsTrue(found, msg);
+            }
+            else
+            {
+                Assert.IsFalse(found, msg);
+            }
         }
     }
 }

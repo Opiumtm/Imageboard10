@@ -34,6 +34,10 @@ namespace Imageboard10.Core.Utility
         /// <returns>Целое число.</returns>
         public static int TryParseWithDefault(this string src, int def = 0)
         {
+            if (src == null)
+            {
+                return def;
+            }
             int result;
             if (int.TryParse(src, out result))
             {

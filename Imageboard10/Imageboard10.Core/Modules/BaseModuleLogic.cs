@@ -6,6 +6,49 @@ using System.Threading.Tasks;
 namespace Imageboard10.Core.Modules
 {
     /// <summary>
+    /// Обратные вызовы логики времени жизни модуля.
+    /// </summary>
+    public interface IBaseModuleLogicCallbacks
+    {
+        /// <summary>
+        /// Инициализация.
+        /// </summary>
+        /// <param name="provider">Провайдер.</param>
+        ValueTask<Nothing> OnInitilizeLifetimeCallback(IModuleProvider provider);
+
+        /// <summary>
+        /// Завершение работы.
+        /// </summary>
+        ValueTask<Nothing> OnDisposeLifetimeCallback();
+
+        /// <summary>
+        /// Все модули инициализированы.
+        /// </summary>
+        ValueTask<Nothing> OnAllInitializedLifetimeCallback();
+    }
+
+    /// <summary>
+    /// Обратные вызовы логики времени жизни модуля c поддержкой приостановки работы.
+    /// </summary>
+    public interface IBaseModuleLogicSuspendAwareCallbacks : IBaseModuleLogicCallbacks
+    {
+        /// <summary>
+        /// Приостановка.
+        /// </summary>
+        ValueTask<Nothing> OnSuspendLifetimeCallback();
+
+        /// <summary>
+        /// Возобновление.
+        /// </summary>
+        ValueTask<Nothing> OnResumeLifetimeCallback();
+
+        /// <summary>
+        /// Всё возобновлено.
+        /// </summary>
+        ValueTask<Nothing> OnAllResumedLifetimeCallback();
+    }
+
+    /// <summary>
     /// Базовая логика времени жизни модуля.
     /// </summary>
     /// <typeparam name="TIntf">Интерфейс, реализуемый модулем.</typeparam>
@@ -13,12 +56,8 @@ namespace Imageboard10.Core.Modules
         where TIntf: class 
     {
         private readonly object _host;
-        private readonly Func<IModuleProvider, ValueTask<Nothing>> _initFunc;
-        private readonly Func<ValueTask<Nothing>> _disposeFunc;
-        private readonly Func<ValueTask<Nothing>> _allInitFunc;
-        private readonly Func<ValueTask<Nothing>> _suspendFunc;
-        private readonly Func<ValueTask<Nothing>> _resumeFunc;
-        private readonly Func<ValueTask<Nothing>> _allResumedFunc;
+        private readonly IBaseModuleLogicCallbacks _callbacks;
+        private readonly IBaseModuleLogicSuspendAwareCallbacks _suspendAwareCallbacks;
         private readonly bool _attachToParentDispose;
         private int _isDisposeAttached;
         private IModuleProvider _parent;
@@ -28,20 +67,14 @@ namespace Imageboard10.Core.Modules
         /// Конструктор.
         /// </summary>
         /// <param name="host">Модуль.</param>
-        /// <param name="initFunc">Функция инициализации.</param>
-        /// <param name="disposeFunc">Функция завершения работы.</param>
-        /// <param name="allInitFunc">Функция по инициализации всех модулей.</param>
+        /// <param name="callbacks">Обратные вызовы.</param>
         /// <param name="attachToParentEvents">Присоединить к родительским событиям.</param>
-        public BaseModuleLogic(object host, 
-            Func<IModuleProvider, ValueTask<Nothing>> initFunc, 
-            Func<ValueTask<Nothing>> disposeFunc, 
-            Func<ValueTask<Nothing>> allInitFunc,
+        public BaseModuleLogic(object host,
+            IBaseModuleLogicCallbacks callbacks,
             bool attachToParentEvents = false)
         {
             _host = host ?? throw new ArgumentNullException(nameof(host));
-            _initFunc = initFunc;
-            _disposeFunc = disposeFunc;
-            _allInitFunc = allInitFunc;
+            _callbacks = callbacks;
             _attachToParentDispose = attachToParentEvents;
             _suspendedAware = false;
         }
@@ -50,29 +83,15 @@ namespace Imageboard10.Core.Modules
         /// Конструктор.
         /// </summary>
         /// <param name="host">Модуль.</param>
-        /// <param name="initFunc">Функция инициализации.</param>
-        /// <param name="disposeFunc">Функция завершения работы.</param>
-        /// <param name="allInitFunc">Функция по инициализации всех модулей.</param>
-        /// <param name="suspendFunc">Функция по приостановке.</param>
-        /// <param name="resumeFunc">Функция по возобновлению.</param>
-        /// <param name="allResumedFunc">Функция по возобновлению всех модулей.</param>
+        /// <param name="callbacks">Обратные вызовы.</param>
         /// <param name="attachToParentEvents">Присоединить к родительским событиям.</param>
         public BaseModuleLogic(object host,
-            Func<IModuleProvider, ValueTask<Nothing>> initFunc,
-            Func<ValueTask<Nothing>> disposeFunc,
-            Func<ValueTask<Nothing>> allInitFunc,
-            Func<ValueTask<Nothing>> suspendFunc,
-            Func<ValueTask<Nothing>> resumeFunc,
-            Func<ValueTask<Nothing>> allResumedFunc,
+            IBaseModuleLogicSuspendAwareCallbacks callbacks,
             bool attachToParentEvents = false)
         {
             _host = host ?? throw new ArgumentNullException(nameof(host));
-            _initFunc = initFunc;
-            _disposeFunc = disposeFunc;
-            _allInitFunc = allInitFunc;
-            _suspendFunc = suspendFunc;
-            _resumeFunc = resumeFunc;
-            _allResumedFunc = allResumedFunc;
+            _suspendAwareCallbacks = callbacks;
+            _callbacks = callbacks;
             _attachToParentDispose = attachToParentEvents;
             _suspendedAware = true;
         }
@@ -120,9 +139,9 @@ namespace Imageboard10.Core.Modules
             if (Interlocked.Exchange(ref _isInitialized, 1) == 0)
             {
                 Interlocked.Exchange(ref _parent, provider);
-                if (_initFunc != null)
+                if (_callbacks != null)
                 {
-                    await _initFunc(provider);
+                    await _callbacks.OnInitilizeLifetimeCallback(provider);
                     Interlocked.Exchange(ref _isDoneInitialize, 1);
                 }
                 if (_attachToParentDispose)
@@ -224,9 +243,9 @@ namespace Imageboard10.Core.Modules
         {
             if (Interlocked.Exchange(ref _isDisposed, 1) == 0)
             {
-                if (_disposeFunc != null)
+                if (_callbacks != null)
                 {
-                    await _disposeFunc();
+                    await _callbacks.OnDisposeLifetimeCallback();
                 }
                 Disposed?.Invoke(null);
                 if (Interlocked.Exchange(ref _isDisposeAttached, 0) != 0)
@@ -253,9 +272,9 @@ namespace Imageboard10.Core.Modules
         {
             if (_suspendedAware && Interlocked.Exchange(ref _isSuspended, 1) == 0)
             {
-                if (_suspendFunc != null)
+                if (_suspendAwareCallbacks != null)
                 {
-                    await _suspendFunc();
+                    await _suspendAwareCallbacks.OnSuspendLifetimeCallback();
                 }
                 Suspended?.Invoke(null);
             }
@@ -269,9 +288,9 @@ namespace Imageboard10.Core.Modules
         {
             if (_suspendedAware && Interlocked.Exchange(ref _isSuspended, 0) != 0)
             {
-                if (_resumeFunc != null)
+                if (_suspendAwareCallbacks != null)
                 {
-                    await _resumeFunc();
+                    await _suspendAwareCallbacks.OnResumeLifetimeCallback();
                 }
                 Resumed?.Invoke(null);
             }
@@ -283,9 +302,9 @@ namespace Imageboard10.Core.Modules
         /// </summary>
         public async ValueTask<Nothing> AllModulesResumed()
         {
-            if (_suspendedAware && _allResumedFunc != null)
+            if (_suspendedAware && _suspendAwareCallbacks != null)
             {
-                await _allResumedFunc();
+                await _suspendAwareCallbacks.OnAllResumedLifetimeCallback();
             }
             AllResumed?.Invoke(null);
             return Nothing.Value;
@@ -296,9 +315,9 @@ namespace Imageboard10.Core.Modules
         /// </summary>
         public async ValueTask<Nothing> AllModulesInitialized()
         {
-            if (_allInitFunc != null)
+            if (_callbacks != null)
             {
-                await _allInitFunc();
+                await _callbacks.OnAllInitializedLifetimeCallback();
             }
             AllInitialized?.Invoke(null);
             return Nothing.Value;

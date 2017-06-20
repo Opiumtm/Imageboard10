@@ -94,5 +94,10 @@ namespace Imageboard10.Core.Models.Posts
         /// Тэги.
         /// </summary>
         public IBoardPostTags Tags { get; set; }
+
+        /// <summary>
+        /// Лайки.
+        /// </summary>
+        public IBoardPostLikes Likes { get; set; }
     }
 }

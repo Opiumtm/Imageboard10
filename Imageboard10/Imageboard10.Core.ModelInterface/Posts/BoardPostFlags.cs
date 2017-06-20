@@ -52,5 +52,9 @@ namespace Imageboard10.Core.ModelInterface.Posts
         /// </summary>
         public static Guid ThreadOpPost { get; } = new Guid("{E80DD784-CABD-48A8-BF6A-A2321E3ECC27}");
 
+        /// <summary>
+        /// Бесконечный тред.
+        /// </summary>
+        public static Guid Endless { get; } = new Guid("{91062F04-6A63-428E-AFF7-4E40F9C074E1}");
     }
 }

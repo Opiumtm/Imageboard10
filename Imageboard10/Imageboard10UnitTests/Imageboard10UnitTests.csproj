@@ -128,6 +128,7 @@
     <Content Include="Resources\planet.jpg" />
     <None Include="Imageboard10UnitTests_TemporaryKey.pfx" />
     <Content Include="Resources\boards.json" />
+    <Content Include="Resources\po_post.json" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="Properties\UnitTestApp.rd.xml" />
