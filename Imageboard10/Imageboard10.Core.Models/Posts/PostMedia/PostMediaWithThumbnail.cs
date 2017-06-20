@@ -22,6 +22,12 @@ namespace Imageboard10.Core.Models.Posts.PostMedia
         public PostMediaBase ThumbnailContract { get; set; }
 
         /// <summary>
+        /// Имя.
+        /// </summary>
+        [DataMember]
+        public string Name { get; set; }
+
+        /// <summary>
         /// Отображаемое имя.
         /// </summary>
         [DataMember]
@@ -38,5 +44,11 @@ namespace Imageboard10.Core.Models.Posts.PostMedia
         /// </summary>
         [DataMember]
         public bool Nsfw { get; set; }
+
+        /// <summary>
+        /// Хэш.
+        /// </summary>
+        [DataMember]
+        public string Hash { get; set; }
     }
 }

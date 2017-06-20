@@ -1,4 +1,5 @@
 ﻿using Imageboard10.Core.ModelInterface.Links;
+using Imageboard10.Core.Models.Links.LinkTypes;
 
 namespace Imageboard10.Makaba.Network.Json
 {
@@ -15,11 +16,16 @@ namespace Imageboard10.Makaba.Network.Json
         /// <summary>
         /// Ссылка на тред.
         /// </summary>
-        public IThreadLink ParentLink;
+        public ThreadLink ParentLink;
 
         /// <summary>
         /// Предварительный просмотр треда.
         /// </summary>
         public bool IsPreview;
+
+        /// <summary>
+        /// Порядковый номер поста в треде.
+        /// </summary>
+        public int Counter;
     }
 }

@@ -6,6 +6,11 @@
     public interface IPostMediaWithInfo : IPostMedia
     {
         /// <summary>
+        /// Имя.
+        /// </summary>
+        string Name { get; }
+
+        /// <summary>
         /// Отображаемое имя.
         /// </summary>
         string DisplayName { get; }
@@ -19,5 +24,10 @@
         /// Not safe for work.
         /// </summary>
         bool Nsfw { get; }
+
+        /// <summary>
+        /// Хэш.
+        /// </summary>
+        string Hash { get; }
     }
 }

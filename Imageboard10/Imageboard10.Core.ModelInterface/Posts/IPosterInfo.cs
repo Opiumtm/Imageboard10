@@ -25,6 +25,6 @@ namespace Imageboard10.Core.ModelInterface.Posts
         /// <summary>
         /// Цвет имени.
         /// </summary>
-        Color NameColor { get; }
+        Color? NameColor { get; }
     }
 }

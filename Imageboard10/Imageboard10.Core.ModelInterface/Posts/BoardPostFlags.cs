@@ -48,9 +48,9 @@ namespace Imageboard10.Core.ModelInterface.Posts
         public static Guid AdminTrip { get; } = new Guid("{D8C106E6-F45B-42BC-967B-ED4FA96771AC}");
 
         /// <summary>
-        /// ОП-пост превью треда.
+        /// ОП-пост.
         /// </summary>
-        public static Guid ThreadPreviewOpPost { get; } = new Guid("{E80DD784-CABD-48A8-BF6A-A2321E3ECC27}");
+        public static Guid ThreadOpPost { get; } = new Guid("{E80DD784-CABD-48A8-BF6A-A2321E3ECC27}");
 
     }
 }
