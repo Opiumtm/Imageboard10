@@ -139,10 +139,11 @@ namespace Imageboard10.Core.Utility
         /// </summary>
         /// <typeparam name="T">Тип элемента.</typeparam>
         /// <param name="src">Источник.</param>
+        /// <param name="start">С какого номера начать.</param>
         /// <returns>Последовательность со счётчиком.</returns>
-        public static IEnumerable<KeyValuePair<int, T>> WithCounter<T>(this IEnumerable<T> src)
+        public static IEnumerable<KeyValuePair<int, T>> WithCounter<T>(this IEnumerable<T> src, int start = 0)
         {
-            int i = 0;
+            int i = start;
             foreach (var t in src)
             {
                 yield return new KeyValuePair<int, T>(i, t);

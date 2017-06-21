@@ -128,6 +128,7 @@
     <Compile Include="Json\MobileBoardInfo.cs" />
     <Compile Include="Json\MobileBoardInfoCollection.cs" />
     <Compile Include="Json\MobileBoardInfoWithCategory.cs" />
+    <Compile Include="Json\PartialThreadData.cs" />
     <Compile Include="Json\PostingJsonResult.cs" />
     <Compile Include="Json\ThreadPartialError.cs" />
     <Compile Include="Json\ThreadPartialResponse.cs" />

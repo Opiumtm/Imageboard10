@@ -27,10 +27,12 @@ namespace Imageboard10.Makaba.Network.JsonParsers
     /// Парсер данных поста.
     /// </summary>
     public class MakabaPostDtoParsers : NetworkDtoParsersBase, 
-        INetworkDtoParser<BoardPost2WithParentLink, IBoardPost>
+        INetworkDtoParser<BoardPost2WithParentLink, IBoardPost>,
+        INetworkDtoParser<PartialThreadData, IBoardPostCollectionEtag>
     {
         private IHtmlParser _htmlParser;
         private IHtmlDocumentFactory _htmlDocumentFactory;
+        private INetworkDtoParser<BoardPost2WithParentLink, IBoardPost> _postsParser;
 
         /// <summary>
         /// Действие по инициализации.
@@ -41,6 +43,7 @@ namespace Imageboard10.Makaba.Network.JsonParsers
             await base.OnInitialize(moduleProvider);
             _htmlParser = await moduleProvider.QueryEngineCapabilityAsync<IHtmlParser>(MakabaConstants.MakabaEngineId) ?? throw new ModuleNotFoundException(typeof(IHtmlParser));
             _htmlDocumentFactory = await moduleProvider.QueryModuleAsync<IHtmlDocumentFactory>() ?? throw new ModuleNotFoundException(typeof(IHtmlDocumentFactory));
+            _postsParser = await moduleProvider.FindNetworkDtoParserAsync<BoardPost2WithParentLink, IBoardPost>() ?? throw new ModuleNotFoundException(typeof(INetworkDtoParser<BoardPost2WithParentLink, IBoardPost>));
             return Nothing.Value;
         }
 
@@ -51,6 +54,7 @@ namespace Imageboard10.Makaba.Network.JsonParsers
         protected override IEnumerable<Type> GetDtoParsersTypes()
         {
             yield return typeof(INetworkDtoParser<BoardPost2WithParentLink, IBoardPost>);
+            yield return typeof(INetworkDtoParser<PartialThreadData, IBoardPostCollectionEtag>);
         }
 
         private const string IpIdRegexText = @"(?:.*)\s+ID:\s+<span\s+class=""postertripid"">(?<id>.*)</span>.*$";
@@ -406,6 +410,32 @@ namespace Imageboard10.Makaba.Network.JsonParsers
             }
             parts = parts.Where(p => p != "").ToArray();
             return parts.Skip(1).Aggregate(new StringBuilder(), (sb, s) => sb.Append("/").Append(s)).ToString();
+        }
+
+        /// <summary>
+        /// Распарсить.
+        /// </summary>
+        /// <param name="source">Источник.</param>
+        /// <returns>Результат.</returns>
+        public IBoardPostCollectionEtag Parse(PartialThreadData source)
+        {
+            var posts = source.Posts.OrderBy(p => p.Number.TryParseWithDefault());
+            var result = new BoardPostCollection()
+            {
+                Etag = source.Etag,
+                Info = null,
+                Link = source.Link,
+                ParentLink = source.Link?.GetBoardLink(),
+                Posts = posts.WithCounter(1).Select(p => _postsParser.Parse(new BoardPost2WithParentLink()
+                {
+                    Counter = p.Key,
+                    ParentLink = new ThreadLink() { Board = source.Link.Board, Engine = source.Link.Engine, OpPostNum = source.Link.OpPostNum },
+                    Post = p.Value,
+                    IsPreview = false,
+                    LoadedTime = source.LoadedTime,                    
+                })).ToList()
+            };
+            return result;
         }
     }
 }
