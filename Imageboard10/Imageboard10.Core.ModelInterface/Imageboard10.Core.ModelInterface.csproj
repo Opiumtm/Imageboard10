@@ -142,6 +142,9 @@
     <Compile Include="Posts\BoardPostFlags.cs" />
     <Compile Include="Posts\IBoardLinkPostNode.cs" />
     <Compile Include="Posts\IBoardPost.cs" />
+    <Compile Include="Posts\IBoardPostCollection.cs" />
+    <Compile Include="Posts\IBoardPostCollectionEtag.cs" />
+    <Compile Include="Posts\IBoardPostCollectionInfo.cs" />
     <Compile Include="Posts\IBoardPostCountryFlag.cs" />
     <Compile Include="Posts\IBoardPostIcon.cs" />
     <Compile Include="Posts\IBoardPostTags.cs" />
@@ -160,6 +163,7 @@
     <Compile Include="Posts\IPostMediaWithThumbnail.cs" />
     <Compile Include="Posts\IPostNode.cs" />
     <Compile Include="Posts\ITextPostNode.cs" />
+    <Compile Include="Posts\IThreadPreviewPosts.cs" />
     <Compile Include="Posts\PostBasicAttributes.cs" />
     <Compile Include="Posts\PostMediaTypes.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
