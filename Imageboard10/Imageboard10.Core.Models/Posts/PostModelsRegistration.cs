@@ -1,6 +1,5 @@
 ﻿using Imageboard10.Core.ModelInterface;
 using Imageboard10.Core.Models.Posts.Serialization;
-using Imageboard10.Core.Models.Serialization;
 using Imageboard10.Core.Modules;
 
 namespace Imageboard10.Core.Models.Posts

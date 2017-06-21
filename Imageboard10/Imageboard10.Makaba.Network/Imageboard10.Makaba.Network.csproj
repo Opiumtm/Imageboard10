@@ -144,7 +144,7 @@
       <Version>5.3.3</Version>
     </PackageReference>
     <PackageReference Include="Newtonsoft.Json">
-      <Version>10.0.2</Version>
+      <Version>10.0.3</Version>
     </PackageReference>
     <PackageReference Include="System.Threading.Tasks.Extensions">
       <Version>4.3.0</Version>
@@ -177,6 +177,10 @@
     <ProjectReference Include="..\Imageboard10.Makaba.Common\Imageboard10.Makaba.Common.csproj">
       <Project>{89829e34-005c-462d-8969-041fba3aacf0}</Project>
       <Name>Imageboard10.Makaba.Common</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Imageboard10.Makaba.Models\Imageboard10.Makaba.Models.csproj">
+      <Project>{8932f030-917a-462d-b9aa-e2abba5be892}</Project>
+      <Name>Imageboard10.Makaba.Models</Name>
     </ProjectReference>
     <ProjectReference Include="..\Imageboard10.ModuleInterface\Imageboard10.ModuleInterface.csproj">
       <Project>{62d7a5d8-0866-4199-8763-ef81096f4a71}</Project>

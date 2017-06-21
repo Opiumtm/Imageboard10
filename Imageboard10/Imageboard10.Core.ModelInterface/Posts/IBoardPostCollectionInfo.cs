@@ -14,7 +14,7 @@ namespace Imageboard10.Core.ModelInterface.Posts
         /// <summary>
         /// Элементы.
         /// </summary>
-        IList<IBoardPostCollectionInfo> Items { get; }
+        IReadOnlyList<IBoardPostCollectionInfo> Items { get; }
     }
 
     /// <summary>
@@ -26,7 +26,7 @@ namespace Imageboard10.Core.ModelInterface.Posts
         /// Получить типs интерфейсов дополнительной информации.
         /// </summary>
         /// <returns>Типы интерфейса дополнительной информации.</returns>
-        IList<Type> GetInfoInterfaceTypes();
+        IReadOnlyList<Type> GetInfoInterfaceTypes();
     }
 
     /// <summary>
@@ -75,12 +75,12 @@ namespace Imageboard10.Core.ModelInterface.Posts
         /// <summary>
         /// Ссылка на изображение.
         /// </summary>
-        ILink ImageLink { get; }
+        ILink BannerImageLink { get; }
 
         /// <summary>
         /// Доска.
         /// </summary>
-        ILink BoardLink { get; }
+        ILink BannerBoardLink { get; }
     }
 
     /// <summary>
@@ -131,6 +131,9 @@ namespace Imageboard10.Core.ModelInterface.Posts
     /// </summary>
     public interface IBoardPostCollectionInfoFlags : IBoardPostCollectionInfo
     {
+        /// <summary>
+        /// Флаги.
+        /// </summary>
         IList<Guid> Flags { get; }
     }
 
@@ -168,7 +171,7 @@ namespace Imageboard10.Core.ModelInterface.Posts
         /// <summary>
         /// Новости.
         /// </summary>
-        IList<IBoardPostCollectionInfoNewsItem> Items { get; }
+        IList<IBoardPostCollectionInfoNewsItem> NewsItems { get; }
     }
 
     /// <summary>
@@ -200,7 +203,7 @@ namespace Imageboard10.Core.ModelInterface.Posts
         /// <summary>
         /// Доски.
         /// </summary>
-        IList<IBoardPostCollectionInfoNewsItem> Items { get; }
+        IList<IBoardPostCollectionInfoBoardsAdvertisementItem> AdvertisementItems { get; }
     }
 
     /// <summary>
@@ -232,11 +235,11 @@ namespace Imageboard10.Core.ModelInterface.Posts
         /// <summary>
         /// Ссылка на баннер.
         /// </summary>
-        ILink BannerLink { get; }
+        ILink AdvertisementBannerLink { get; }
 
         /// <summary>
         /// Ссылка для перехода.
         /// </summary>
-        ILink ClickLink { get; }
+        ILink AdvertisementClickLink { get; }
     }
 }

@@ -23,6 +23,7 @@ namespace Imageboard10.Core.Models.Posts.Serialization
             yield return new ExternContractObjectSerializer<PostNodeExternalContract, PostNodeBase>("postnode:std:extern");
             
             yield return new StandardObjectSerializer<PostDocument, PostDocument>(new PostDocumentSerializerCustomization(), "postdocument:std");
+            yield return new ExternContractObjectSerializer<PostDocumentExternalContract, PostDocument>("postdocument:std:extern");
         }
     }
 }

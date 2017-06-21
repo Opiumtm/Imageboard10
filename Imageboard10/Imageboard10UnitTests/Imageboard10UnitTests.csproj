@@ -158,7 +158,7 @@
       <Version>1.1.18</Version>
     </PackageReference>
     <PackageReference Include="Newtonsoft.Json">
-      <Version>10.0.2</Version>
+      <Version>10.0.3</Version>
     </PackageReference>
     <PackageReference Include="Newtonsoft.Json.Bson">
       <Version>1.0.1</Version>
@@ -202,6 +202,10 @@
     <ProjectReference Include="..\Imageboard10.Makaba.Common\Imageboard10.Makaba.Common.csproj">
       <Project>{89829e34-005c-462d-8969-041fba3aacf0}</Project>
       <Name>Imageboard10.Makaba.Common</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Imageboard10.Makaba.Models\Imageboard10.Makaba.Models.csproj">
+      <Project>{8932f030-917a-462d-b9aa-e2abba5be892}</Project>
+      <Name>Imageboard10.Makaba.Models</Name>
     </ProjectReference>
     <ProjectReference Include="..\Imageboard10.Makaba.Network\Imageboard10.Makaba.Network.csproj">
       <Project>{7b5ff96b-051a-41bb-9a95-ff08ac1aa88c}</Project>
