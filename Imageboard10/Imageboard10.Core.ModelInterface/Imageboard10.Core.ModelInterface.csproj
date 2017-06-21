@@ -163,8 +163,9 @@
     <Compile Include="Posts\IPostMediaWithThumbnail.cs" />
     <Compile Include="Posts\IPostNode.cs" />
     <Compile Include="Posts\ITextPostNode.cs" />
-    <Compile Include="Posts\IThreadPreviewPosts.cs" />
+    <Compile Include="Posts\IThreadPreviewPostCollection.cs" />
     <Compile Include="Posts\PostBasicAttributes.cs" />
+    <Compile Include="Posts\PostCollectionFlags.cs" />
     <Compile Include="Posts\PostMediaTypes.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

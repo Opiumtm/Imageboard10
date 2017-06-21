@@ -1,31 +1,37 @@
 ﻿using System.Collections.Generic;
 using Imageboard10.Core.ModelInterface.Links;
+using Imageboard10.Core.ModelInterface.Posts;
 
-namespace Imageboard10.Core.ModelInterface.Posts
+namespace Imageboard10.Core.Models.Posts
 {
     /// <summary>
     /// Коллекция постов.
     /// </summary>
-    public interface IBoardPostCollection
+    public class BoardPostCollection : IBoardPostCollection, IBoardPostCollectionEtag
     {
         /// <summary>
         /// Ссылка.
         /// </summary>
-        ILink Link { get; }
+        public ILink Link { get; set; }
 
         /// <summary>
         /// Родительская ссылка.
         /// </summary>
-        ILink ParentLink { get; }
+        public ILink ParentLink { get; set; }
 
         /// <summary>
         /// Посты.
         /// </summary>
-        IList<IBoardPost> Posts { get; }
+        public IList<IBoardPost> Posts { get; set; }
 
         /// <summary>
         /// Дополнительная информация.
         /// </summary>
-        IBoardPostCollectionInfoSet Info { get; }
+        public IBoardPostCollectionInfoSet Info { get; set; }
+
+        /// <summary>
+        /// Штамп изменений.
+        /// </summary>
+        public string Etag { get; set; }
     }
 }

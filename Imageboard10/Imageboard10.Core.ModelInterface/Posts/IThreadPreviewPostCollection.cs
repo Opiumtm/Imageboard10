@@ -3,7 +3,7 @@
     /// <summary>
     /// Превью постов.
     /// </summary>
-    public interface IThreadPreviewPosts : IBoardPostCollection
+    public interface IThreadPreviewPostCollection : IBoardPostCollection
     {
         /// <summary>
         /// Количество изображений.

@@ -161,6 +161,7 @@
     <Compile Include="Posts\BoardPostIcon.cs" />
     <Compile Include="Posts\BoardPostLikes.cs" />
     <Compile Include="Posts\BoardPostTags.cs" />
+    <Compile Include="Posts\BoardPostCollection.cs" />
     <Compile Include="Posts\PostDocument.cs" />
     <Compile Include="Posts\PostDocumentExternalContract.cs" />
     <Compile Include="Posts\PostDocumentHelper.cs" />
@@ -189,6 +190,7 @@
     <Compile Include="Posts\Serialization\PostMediaWithThumbnailSerializerCustomization.cs" />
     <Compile Include="Posts\Serialization\StandardPostAttributeSerializers.cs" />
     <Compile Include="Posts\Serialization\StandardPostNodeSerializers.cs" />
+    <Compile Include="Posts\ThreadPreviewPostCollection.cs" />
     <Compile Include="Serialization\ExternContractObjectSerializer.cs" />
     <Compile Include="Serialization\ObjectSerializationService.cs" />
     <Compile Include="Serialization\CommonSerializationRegistration.cs" />
