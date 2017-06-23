@@ -156,6 +156,7 @@
     <Compile Include="Links\Serialization\UriLinkSerializer.cs" />
     <Compile Include="Links\Serialization\YoutubeLinkSerializer.cs" />
     <Compile Include="ModelsRegistration.cs" />
+    <Compile Include="Posts\BoardPageThreadCollection.cs" />
     <Compile Include="Posts\BoardPost.cs" />
     <Compile Include="Posts\BoardPostCountryFlag.cs" />
     <Compile Include="Posts\BoardPostIcon.cs" />

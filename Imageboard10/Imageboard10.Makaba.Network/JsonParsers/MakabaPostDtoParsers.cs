@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Net;
-using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 using Windows.Graphics;
@@ -34,11 +33,15 @@ namespace Imageboard10.Makaba.Network.JsonParsers
     public class MakabaPostDtoParsers : NetworkDtoParsersBase, 
         INetworkDtoParser<BoardPost2WithParentLink, IBoardPost>,
         INetworkDtoParser<PartialThreadData, IBoardPostCollectionEtag>,
-        INetworkDtoParser<ThreadData, IBoardPostCollectionEtag>
+        INetworkDtoParser<ThreadData, IBoardPostCollectionEtag>,
+        INetworkDtoParser<BoardPageData, IBoardPageThreadCollection>,
+        INetworkDtoParser<ThreadPreviewData, IThreadPreviewPostCollection>,
+        INetworkDtoParser<CatalogData, IBoardPostCollectionEtag>
     {
         private IHtmlParser _htmlParser;
         private IHtmlDocumentFactory _htmlDocumentFactory;
         private INetworkDtoParser<BoardPost2WithParentLink, IBoardPost> _postsParser;
+        private INetworkDtoParser<ThreadPreviewData, IThreadPreviewPostCollection> _threadPreviewParser;
 
         /// <summary>
         /// Действие по инициализации.
@@ -50,6 +53,7 @@ namespace Imageboard10.Makaba.Network.JsonParsers
             _htmlParser = await moduleProvider.QueryEngineCapabilityAsync<IHtmlParser>(MakabaConstants.MakabaEngineId) ?? throw new ModuleNotFoundException(typeof(IHtmlParser));
             _htmlDocumentFactory = await moduleProvider.QueryModuleAsync<IHtmlDocumentFactory>() ?? throw new ModuleNotFoundException(typeof(IHtmlDocumentFactory));
             _postsParser = await moduleProvider.FindNetworkDtoParserAsync<BoardPost2WithParentLink, IBoardPost>() ?? throw new ModuleNotFoundException(typeof(INetworkDtoParser<BoardPost2WithParentLink, IBoardPost>));
+            _threadPreviewParser = await moduleProvider.FindNetworkDtoParserAsync<ThreadPreviewData, IThreadPreviewPostCollection>() ?? throw new ModuleNotFoundException(typeof(INetworkDtoParser<ThreadPreviewData, IThreadPreviewPostCollection>));
             return Nothing.Value;
         }
 
@@ -61,6 +65,10 @@ namespace Imageboard10.Makaba.Network.JsonParsers
         {
             yield return typeof(INetworkDtoParser<BoardPost2WithParentLink, IBoardPost>);
             yield return typeof(INetworkDtoParser<PartialThreadData, IBoardPostCollectionEtag>);
+            yield return typeof(INetworkDtoParser<ThreadData, IBoardPostCollectionEtag>);
+            yield return typeof(INetworkDtoParser<BoardPageData, IBoardPostCollectionEtag>);
+            yield return typeof(INetworkDtoParser<ThreadPreviewData, IThreadPreviewPostCollection>);
+            yield return typeof(INetworkDtoParser<CatalogData, IBoardPostCollectionEtag>);
         }
 
         private const string IpIdRegexText = @"(?:.*)\s+ID:\s+<span\s+class=""postertripid"">(?<id>.*)</span>.*$";
@@ -477,7 +485,7 @@ namespace Imageboard10.Makaba.Network.JsonParsers
         /// <param name="entity2">Makaba entity.</param>
         /// <param name="baseLink">Базовая ссылка.</param>
         /// <returns>Информация.</returns>
-        private MakabaEntityInfoModel GetEntityModel(BoardEntity2 entity2, ILink baseLink)
+        private MakabaEntityInfoModel GetEntityModel(BoardEntity2Base entity2, ILink baseLink)
         {
             var flags = new HashSet<Guid>();
 
@@ -554,6 +562,90 @@ namespace Imageboard10.Makaba.Network.JsonParsers
                     MediaLink = i.Url != null ? new EngineMediaLink() { Engine = MakabaConstants.MakabaEngineId, Uri = i.Url } : null
                 })?.OfType<IBoardIcon>()?.ToList()
             };
+        }
+
+        /// <summary>
+        /// Распарсить.
+        /// </summary>
+        /// <param name="source">Источник.</param>
+        /// <returns>Результат.</returns>
+        public IBoardPageThreadCollection Parse(BoardPageData source)
+        {
+            return new BoardPageThreadCollection()
+            {
+                Link = source.Link,
+                ParentLink = source.Link.GetRootLink(),
+                Info = GetEntityModel(source.Entity, source.Link),
+                Etag = source.Etag,
+                Threads = source.Entity.Threads.Select(t => _threadPreviewParser.Parse(new ThreadPreviewData()
+                {
+                    Link = new ThreadLink()
+                    {
+                        Engine = source.Link.Engine,
+                        Board = source.Link.Board,
+                        OpPostNum = t.ThreadNumber.TryParseWithDefault()
+                    },
+                    Thread = t,
+                    Etag = source.Etag,
+                    LoadedTime = source.LoadedTime
+                })).ToList()
+            };
+        }
+
+        /// <summary>
+        /// Распарсить.
+        /// </summary>
+        /// <param name="source">Источник.</param>
+        /// <returns>Результат.</returns>
+        public IThreadPreviewPostCollection Parse(ThreadPreviewData source)
+        {
+            var posts = source.Thread.Posts.OrderBy(p => p.Number.TryParseWithDefault());
+            var result = new ThreadPreviewPostCollection()
+            {
+                Info = null,
+                Link = source.Link,
+                ParentLink = source.Link?.GetBoardLink(),
+                Posts = posts.WithCounter(1).Select(p => _postsParser.Parse(new BoardPost2WithParentLink()
+                {
+                    Counter = p.Key,
+                    ParentLink = new ThreadLink() { Board = source.Link.Board, Engine = source.Link.Engine, OpPostNum = source.Link.OpPostNum },
+                    Post = p.Value,
+                    IsPreview = true,
+                    LoadedTime = source.LoadedTime,
+                })).ToList(),
+                Etag = source.Etag,
+                ImageCount = source.Thread.ImagesCount.TryParseWithDefault() + source.Thread.Posts.Sum(p => (p.Files ?? new BoardPostFile2[0]).Length),
+                Omit = source.Thread.PostsCount.TryParseWithDefault(),
+                OmitImages = source.Thread.ImagesCount.TryParseWithDefault(),
+                ReplyCount = Math.Max(source.Thread.PostsCount.TryParseWithDefault() + source.Thread.Posts.Count(), 0)                
+            };
+            return result;
+        }
+
+        /// <summary>
+        /// Распарсить.
+        /// </summary>
+        /// <param name="source">Источник.</param>
+        /// <returns>Результат.</returns>
+        public IBoardPostCollectionEtag Parse(CatalogData source)
+        {
+            var posts = source.Thread.Threads.OrderBy(p => p.Number.TryParseWithDefault());
+            var result = new BoardPostCollection()
+            {
+                Etag = source.Etag,
+                Info = null,
+                Link = source.Link,
+                ParentLink = source.Link?.GetBoardLink(),
+                Posts = posts.WithCounter(1).Select(p => _postsParser.Parse(new BoardPost2WithParentLink()
+                {
+                    Counter = p.Key,
+                    ParentLink = new ThreadLink() { Board = source.Link.Board, Engine = source.Link.Engine, OpPostNum = p.Value.Number.TryParseWithDefault() },
+                    Post = p.Value,
+                    IsPreview = true,
+                    LoadedTime = source.LoadedTime,
+                })).ToList()                
+            };
+            return result;
         }
     }
 }

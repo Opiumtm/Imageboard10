@@ -1,4 +1,5 @@
 ﻿using Imageboard10.Core.ModelInterface.Links;
+using Imageboard10.Core.Utility;
 
 namespace Imageboard10.Core.Models.Links.LinkTypes
 {
@@ -99,5 +100,20 @@ namespace Imageboard10.Core.Models.Links.LinkTypes
             Board = Board,
             Tag = tag
         };
+
+        /// <summary>
+        /// Получить ссылку на тред.
+        /// </summary>
+        /// <param name="threadId">Идентификатор треда.</param>
+        /// <returns>Ссылка на тэг тредов.</returns>
+        public ILink GetThreadLink(string threadId)
+        {
+            return new ThreadLink()
+            {
+                Engine = Engine,
+                Board = Board,
+                OpPostNum = threadId.TryParseWithDefault()
+            };
+        }
     }
 }

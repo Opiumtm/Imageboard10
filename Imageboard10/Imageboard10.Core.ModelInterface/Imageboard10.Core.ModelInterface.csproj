@@ -141,6 +141,7 @@
     <Compile Include="Posting\PostingFieldSemanticRole.cs" />
     <Compile Include="Posts\BoardPostFlags.cs" />
     <Compile Include="Posts\IBoardLinkPostNode.cs" />
+    <Compile Include="Posts\IBoardPageThreadCollection.cs" />
     <Compile Include="Posts\IBoardPost.cs" />
     <Compile Include="Posts\IBoardPostCollection.cs" />
     <Compile Include="Posts\IBoardPostCollectionEtag.cs" />

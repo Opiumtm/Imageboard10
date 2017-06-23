@@ -31,5 +31,12 @@
         /// <param name="tag">Тэг.</param>
         /// <returns>Ссылка на тэг тредов.</returns>
         ILink GetTagLink(string tag);
+
+        /// <summary>
+        /// Получить ссылку на тред.
+        /// </summary>
+        /// <param name="threadId">Идентификатор треда.</param>
+        /// <returns>Ссылка на тэг тредов.</returns>
+        ILink GetThreadLink(string threadId);
     }
 }
