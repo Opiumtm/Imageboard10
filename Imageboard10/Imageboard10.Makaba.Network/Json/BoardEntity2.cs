@@ -32,6 +32,18 @@ namespace Imageboard10.Makaba.Network.Json
         public string BoardName { get; set; }
 
         /// <summary>
+        /// Реклама.
+        /// </summary>
+        [JsonProperty("advert_bottom_image")]
+        public string AdvertBottomImage { get; set; }
+
+        /// <summary>
+        /// Реклама.
+        /// </summary>
+        [JsonProperty("advert_bottom_link")]
+        public string AdvertBottomLink { get; set; }
+
+        /// <summary>
         /// Баннер.
         /// </summary>
         [JsonProperty("board_banner_image")]
@@ -47,25 +59,25 @@ namespace Imageboard10.Makaba.Network.Json
         /// Скорость борды.
         /// </summary>
         [JsonProperty("board_speed")]
-        public string BoardSpeed { get; set; }
+        public int? BoardSpeed { get; set; }
 
         /// <summary>
         /// Бамп лимит.
         /// </summary>
         [JsonProperty("bump_limit")]
-        public string BumpLimit { get; set; }
+        public int? BumpLimit { get; set; }
 
         /// <summary>
         /// Текущая страница.
         /// </summary>
         [JsonProperty("current_page")]
-        public string CurrentPage { get; set; }
+        public int? CurrentPage { get; set; }
 
         /// <summary>
         /// Текущий тред.
         /// </summary>
         [JsonProperty("current_thread")]
-        public string CurrentThread { get; set; }
+        public int? CurrentThread { get; set; }
 
         /// <summary>
         /// Имя по умолчанию.
@@ -77,85 +89,91 @@ namespace Imageboard10.Makaba.Network.Json
         /// Разрешить аудио.
         /// </summary>
         [JsonProperty("enable_audio")]
-        public string EnableAudio { get; set; }
+        public int? EnableAudio { get; set; }
 
         /// <summary>
         /// Разрешить кубики (?)
         /// </summary>
         [JsonProperty("enable_dices")]
-        public string EnableDices { get; set; }
-
-        /// <summary>
-        /// Разрешить иконки.
-        /// </summary>
-        [JsonProperty("enable_icons")]
-        public string EnableIcons { get; set; }
+        public int? EnableDices { get; set; }
 
         /// <summary>
         /// Разрешить иконки.
         /// </summary>
         [JsonProperty("enable_flags")]
-        public string EnableFlags { get; set; }
+        public int? EnableFlags { get; set; }
+
+        /// <summary>
+        /// Разрешить иконки.
+        /// </summary>
+        [JsonProperty("enable_icons")]
+        public int? EnableIcons { get; set; }
 
         /// <summary>
         /// Разрешить изображения.
         /// </summary>
         [JsonProperty("enable_images")]
-        public string EnableImages { get; set; }
+        public int? EnableImages { get; set; }
 
         /// <summary>
         /// Разрешить лайки.
         /// </summary>
         [JsonProperty("enable_likes")]
-        public string EnableLikes { get; set; }
+        public int? EnableLikes { get; set; }
 
         /// <summary>
         /// Разрешить имена.
         /// </summary>
         [JsonProperty("enable_names")]
-        public string EnableNames { get; set; }
+        public int? EnableNames { get; set; }
+
+        /// <summary>
+        /// Разрешить Oekaki (?).
+        /// </summary>
+        [JsonProperty("enable_oekaki")]
+        public int? EnableOekaki { get; set; }
 
         /// <summary>
         /// Разрешить постинг.
         /// </summary>
         [JsonProperty("enable_posting")]
-        public string EnablePosting { get; set; }
+        public int? EnablePosting { get; set; }
 
         /// <summary>
         /// Разрешить сажу.
         /// </summary>
         [JsonProperty("enable_sage")]
-        public string EnableSage { get; set; }
+        public int? EnableSage { get; set; }
 
         /// <summary>
         /// Разрешить щит (?).
         /// </summary>
         [JsonProperty("enable_shield")]
-        public string EnableShield { get; set; }
+        public int? EnableShield { get; set; }
 
         /// <summary>
         /// Разрешить заголовок.
         /// </summary>
         [JsonProperty("enable_subject")]
-        public string EnableSubject { get; set; }
+        public int? EnableSubject { get; set; }
 
         /// <summary>
         /// Разрешить тэги тредов.
         /// </summary>
         [JsonProperty("enable_thread_tags")]
-        public string EnableThreadTags { get; set; }
+        public int? EnableThreadTags { get; set; }
 
         /// <summary>
         /// Разрешить трипкоды.
         /// </summary>
         [JsonProperty("enable_trips")]
-        public string EnableTrips { get; set; }
+        public int? EnableTrips { get; set; }
 
         /// <summary>
         /// Разрешить видео.
         /// </summary>
         [JsonProperty("enable_video")]
-        public string EnableVideo { get; set; }
+        public int? EnableVideo { get; set; }
 
         /// <summary>
         /// Иконки.
@@ -167,31 +185,37 @@ namespace Imageboard10.Makaba.Network.Json
         /// Объект является бордой.
         /// </summary>
         [JsonProperty("is_board")]
-        public string IsBoard { get; set; }
+        public int? IsBoard { get; set; }
 
         /// <summary>
         /// Объект является индексом.
         /// </summary>
         [JsonProperty("is_index")]
-        public string IsIndex { get; set; }
+        public int? IsIndex { get; set; }
 
         /// <summary>
         /// Максимальный комментарий.
         /// </summary>
         [JsonProperty("max_comment")]
-        public string MaxComment { get; set; }
+        public int? MaxComment { get; set; }
+
+        /// <summary>
+        /// Максимальный размер файла.
+        /// </summary>
+        [JsonProperty("max_files_size")]
+        public int? MaxFilesSize { get; set; }
 
         /// <summary>
         /// Новости.
         /// </summary>
-        [JsonProperty("news")]
-        public BoardEntityNewsReference[] News { get; set; }
+        [JsonProperty("news_abu")]
+        public BoardEntityNewsReference[] NewsAbu { get; set; }
 
         /// <summary>
         /// Страницы.
         /// </summary>
         [JsonProperty("pages")]
-        public string[] Pages { get; set; }
+        public int[] Pages { get; set; }
 
         /// <summary>
         /// Тэги.
@@ -210,5 +234,11 @@ namespace Imageboard10.Makaba.Network.Json
         /// </summary>
         [JsonProperty("title")]
         public string Title { get; set; }
+
+        /// <summary>
+        /// Верхняя реклама досок.
+        /// </summary>
+        [JsonProperty("top")]
+        public BoardEntity2TopAdvert[] TopAdvert { get; set; }
     }
 }

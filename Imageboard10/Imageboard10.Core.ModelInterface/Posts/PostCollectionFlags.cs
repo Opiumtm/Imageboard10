@@ -8,6 +8,11 @@ namespace Imageboard10.Core.ModelInterface.Posts
     public static class PostCollectionFlags
     {
         /// <summary>
+        /// Разрешить аудио.
+        /// </summary>
+        public static Guid EnableAudio { get; } = new Guid("{6EB8C97A-D87F-4A39-892C-683931D23C6D}");
+
+        /// <summary>
         /// Разрешить dices.
         /// </summary>
         public static Guid EnableDices { get; } = new Guid("{E217378E-D667-4F4F-B3C5-38CD90531D4E}");

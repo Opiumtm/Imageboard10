@@ -17,7 +17,7 @@ namespace Imageboard10.Makaba.Network.Json
         /// Номер.
         /// </summary>
         [JsonProperty("num")]
-        public string Number { get; set; }
+        public int Number { get; set; }
 
         /// <summary>
         /// Заголовок.

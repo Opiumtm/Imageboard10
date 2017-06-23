@@ -3,12 +3,16 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Net;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
+using Windows.Graphics;
 using Windows.UI;
 using Imageboard10.Core;
+using Imageboard10.Core.ModelInterface.Boards;
 using Imageboard10.Core.ModelInterface.Links;
 using Imageboard10.Core.ModelInterface.Posts;
+using Imageboard10.Core.Models.Boards;
 using Imageboard10.Core.Models.Links;
 using Imageboard10.Core.Models.Links.LinkTypes;
 using Imageboard10.Core.Models.Posts;
@@ -19,6 +23,7 @@ using Imageboard10.Core.Network.Html;
 using Imageboard10.Core.NetworkInterface;
 using Imageboard10.Core.NetworkInterface.Html;
 using Imageboard10.Core.Utility;
+using Imageboard10.Makaba.Models.Posts;
 using Imageboard10.Makaba.Network.Json;
 
 namespace Imageboard10.Makaba.Network.JsonParsers
@@ -28,7 +33,8 @@ namespace Imageboard10.Makaba.Network.JsonParsers
     /// </summary>
     public class MakabaPostDtoParsers : NetworkDtoParsersBase, 
         INetworkDtoParser<BoardPost2WithParentLink, IBoardPost>,
-        INetworkDtoParser<PartialThreadData, IBoardPostCollectionEtag>
+        INetworkDtoParser<PartialThreadData, IBoardPostCollectionEtag>,
+        INetworkDtoParser<ThreadData, IBoardPostCollectionEtag>
     {
         private IHtmlParser _htmlParser;
         private IHtmlDocumentFactory _htmlDocumentFactory;
@@ -436,6 +442,118 @@ namespace Imageboard10.Makaba.Network.JsonParsers
                 })).ToList()
             };
             return result;
+        }
+
+        /// <summary>
+        /// Распарсить.
+        /// </summary>
+        /// <param name="source">Источник.</param>
+        /// <returns>Результат.</returns>
+        public IBoardPostCollectionEtag Parse(ThreadData source)
+        {
+            var entity = GetEntityModel(source.Entity, source.Link);
+            var posts = source.Entity.Threads.SelectMany(p => p.Posts).OrderBy(p => p.Number.TryParseWithDefault());
+            var parsedPosts = posts.WithCounter(1).Select(c => _postsParser.Parse(new BoardPost2WithParentLink()
+            {
+                ParentLink = source.Link,
+                Counter = c.Key,
+                Post = c.Value,
+                IsPreview = false,
+                LoadedTime = source.LoadedTime
+            })).ToArray();
+            return new BoardPostCollection()
+            {
+                Link = source.Link,
+                ParentLink = source.Link.GetBoardLink(),
+                Etag = source.Etag,
+                Info = entity,
+                Posts = parsedPosts
+            };
+        }
+
+        /// <summary>
+        /// Получить информацию о makaba entity.
+        /// </summary>
+        /// <param name="entity2">Makaba entity.</param>
+        /// <param name="baseLink">Базовая ссылка.</param>
+        /// <returns>Информация.</returns>
+        private MakabaEntityInfoModel GetEntityModel(BoardEntity2 entity2, ILink baseLink)
+        {
+            var flags = new HashSet<Guid>();
+
+            void AddFlag(int? flag, Guid flagId)
+            {
+                if (flag != null && flag != 0)
+                {
+                    flags.Add(flagId);
+                }
+            }
+
+            AddFlag(entity2.EnableAudio, PostCollectionFlags.EnableAudio);
+            AddFlag(entity2.EnableDices, PostCollectionFlags.EnableDices);
+            AddFlag(entity2.EnableFlags, PostCollectionFlags.EnableCountryFlags);
+            AddFlag(entity2.EnableIcons, PostCollectionFlags.EnableIcons);
+            AddFlag(entity2.EnableImages, PostCollectionFlags.EnableImages);
+            AddFlag(entity2.EnableLikes, PostCollectionFlags.EnableLikes);
+            AddFlag(entity2.EnableNames, PostCollectionFlags.EnableNames);
+            AddFlag(entity2.EnableOekaki, PostCollectionFlags.EnableOekaki);
+            AddFlag(entity2.EnablePosting, PostCollectionFlags.EnablePosting);
+            AddFlag(entity2.EnableSage, PostCollectionFlags.EnableSage);
+            AddFlag(entity2.EnableShield, PostCollectionFlags.EnableShield);
+            AddFlag(entity2.EnableSubject, PostCollectionFlags.EnableSubject);
+            AddFlag(entity2.EnableThreadTags, PostCollectionFlags.EnableThreadTags);
+            AddFlag(entity2.EnableTrips, PostCollectionFlags.EnableTripcodes);
+            AddFlag(entity2.EnableVideo, PostCollectionFlags.EnableVideo);
+            AddFlag(entity2.IsIndex, PostCollectionFlags.IsIndex);
+            AddFlag(entity2.IsBoard, PostCollectionFlags.IsBoard);
+
+            return new MakabaEntityInfoModel()
+            {
+                AdvertisementBannerLink = !string.IsNullOrWhiteSpace(entity2.AdvertBottomImage) ? 
+                    new EngineMediaLink() { Engine = MakabaConstants.MakabaEngineId, Uri = entity2.AdvertBottomImage} : null,
+                AdvertisementClickLink = !string.IsNullOrWhiteSpace(entity2.AdvertBottomLink) ?
+                    new EngineUriLink() { Engine = MakabaConstants.MakabaEngineId, Uri = entity2.AdvertBottomLink } : null,
+                AdvertisementItems = entity2.TopAdvert?.Select(a => new MakabaBoardPostCollectionInfoBoardsAdvertisementItem()
+                {
+                    Name = a.Name,
+                    BoardLink = new BoardLink() {  Engine = MakabaConstants.MakabaEngineId, Board = a.Board },
+                    Info = a.Info
+                })?.OfType<IBoardPostCollectionInfoBoardsAdvertisementItem>()?.ToList(),
+                Board = entity2.Board,
+                BannerImageLink = !string.IsNullOrWhiteSpace(entity2.BoardBannerImage) ?
+                    new EngineMediaLink() { Engine = MakabaConstants.MakabaEngineId, Uri = entity2.BoardBannerImage } : null,
+                BannerBoardLink = !string.IsNullOrWhiteSpace(entity2.BoardBannerLink) ?
+                    new BoardLink() { Engine = MakabaConstants.MakabaEngineId, Board = entity2.BoardBannerLink} : null,
+                BannerSize = new SizeInt32() {  Width = 300, Height = 100 },
+                BoardInfo = entity2.BoardInfo != null ? _htmlParser.ParseHtml(entity2.BoardInfo, baseLink) : null,
+                BoardInfoOuter = entity2.BoardInfoOuter,
+                BoardName = entity2.BoardName,
+                CurrentPage = entity2.CurrentPage,
+                CurrentThread = entity2.CurrentThread,
+                DefaultName = entity2.DefaultName,
+                MaxComment = entity2.MaxComment,
+                MaxFilesSize = entity2.MaxFilesSize != null ? new ulong?(((ulong)entity2.MaxFilesSize) * 1024) : null,
+                Pages = entity2.Pages?.ToList(),
+                Speed = entity2.BoardSpeed ?? 0,
+                NewsItems = entity2.NewsAbu?.Select(n => new MakabaBoardPostCollectionInfoNewsItem()
+                {
+                    Date = n.Date,
+                    Title = n.Subject,
+                    NewsLink = new ThreadLink()
+                    {
+                        Engine = MakabaConstants.MakabaEngineId,
+                        Board = "abu",
+                        OpPostNum = n.Number
+                    }
+                })?.OfType<IBoardPostCollectionInfoNewsItem>()?.ToList(),
+                Flags = flags.ToList(),
+                Icons = entity2.Icons?.Select(i => new BoardIcon()
+                {
+                    Id = i.Number,
+                    Name = i.Name,
+                    MediaLink = i.Url != null ? new EngineMediaLink() { Engine = MakabaConstants.MakabaEngineId, Uri = i.Url } : null
+                })?.OfType<IBoardIcon>()?.ToList()
+            };
         }
     }
 }
