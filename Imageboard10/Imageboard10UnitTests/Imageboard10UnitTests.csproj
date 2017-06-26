@@ -133,6 +133,7 @@
     <Content Include="Resources\int_post.json" />
     <Content Include="Resources\mlp_post.json" />
     <Content Include="Resources\po_post3.json" />
+    <Content Include="Resources\mlp_index.json" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="Properties\UnitTestApp.rd.xml" />

@@ -66,7 +66,7 @@ namespace Imageboard10.Makaba.Network.JsonParsers
             yield return typeof(INetworkDtoParser<BoardPost2WithParentLink, IBoardPost>);
             yield return typeof(INetworkDtoParser<PartialThreadData, IBoardPostCollectionEtag>);
             yield return typeof(INetworkDtoParser<ThreadData, IBoardPostCollectionEtag>);
-            yield return typeof(INetworkDtoParser<BoardPageData, IBoardPostCollectionEtag>);
+            yield return typeof(INetworkDtoParser<BoardPageData, IBoardPageThreadCollection>);
             yield return typeof(INetworkDtoParser<ThreadPreviewData, IThreadPreviewPostCollection>);
             yield return typeof(INetworkDtoParser<CatalogData, IBoardPostCollectionEtag>);
         }

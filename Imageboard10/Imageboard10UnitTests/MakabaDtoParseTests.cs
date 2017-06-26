@@ -1,7 +1,9 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.ServiceModel.Channels;
 using System.Threading.Tasks;
 using Windows.Graphics;
 using Windows.UI;
@@ -359,7 +361,7 @@ namespace Imageboard10UnitTests
                 LoadedTime = DateTimeOffset.Now
             };
             var result = parser.Parse(param);
-
+            Assert.IsNotNull(result);
             AssertPostFlag(result, BoardPostFlags.Banned, false, "Banned = 0");
             AssertPostFlag(result, BoardPostFlags.Closed, false, "Closed = 0");
             Assert.AreEqual("30/05/17 Втр 20:24:08", result.BoardSpecificDate, "BoardSpecificDate");
@@ -557,6 +559,77 @@ namespace Imageboard10UnitTests
             Assert.IsNotNull(result.Poster.NameColor, "Poster.NameColor != null");
             Assert.AreEqual(Color.FromArgb(255, 163, 13, 175), result.Poster.NameColor.Value, "Poster.NameColor");
             Assert.AreEqual("Бенедикт\xA0Оскарович", result.Poster.Name, "Poster.Name");
+        }
+
+        [TestMethod]
+        public async Task MakabaIndexParse()
+        {
+            var jsonStr = await TestResources.ReadTestTextFile("mlp_index.json");
+            var dto = JsonConvert.DeserializeObject<BoardEntity2>(jsonStr);
+            Assert.IsNotNull(dto, "dto != null");
+            var parser = _provider.FindNetworkDtoParser<BoardPageData, IBoardPageThreadCollection>();
+            Assert.IsNotNull(parser, "parser != null");
+            var param = new BoardPageData()
+            {
+                Link = new BoardPageLink() {Board = "mlp", Engine = MakabaConstants.MakabaEngineId, Page = 0},
+                Etag = "##etag##",
+                LoadedTime = DateTimeOffset.Now,
+                Entity = dto
+            };
+            var result = parser.Parse(param);
+            Assert.IsNotNull(result, "result != null");
+            Assert.AreEqual(param.Etag, result.Etag, "Etag");
+            Assert.AreEqual(param.Link.GetLinkHash(), result.Link?.GetLinkHash(), "Link");
+            Assert.AreEqual(param.Link.GetRootLink().GetLinkHash(), result.ParentLink?.GetLinkHash(), "ParentLink");
+            Assert.AreEqual(dto.Threads.Length, result.Threads.Count, "Threads.Count");
+
+            AssertCollectionInfo<IBoardPostCollectionInfoBoard>(result.Info, info =>
+            {
+                Assert.AreEqual("mlp", info.Board, "info,Board->Board");
+                Assert.AreEqual("My Little Pony", info.BoardName, "info, Board->BoardName");
+            });
+
+            AssertCollectionInfo<IBoardPostCollectionInfoBoardLimits>(result.Info, info =>
+            {
+                Assert.AreEqual("Pony", info.DefaultName, "info,Limits->DefaultName");
+                Assert.AreEqual((ulong)(40960 * 1024), info.MaxFilesSize, "info,Limits->MaxFilesSize");
+                Assert.AreEqual(15000, info.MaxComment, "info,Limits->MaxComment");
+                Assert.IsNotNull(info.Pages, "info,Limits->Pages != null");
+                CollectionAssert.AreEquivalent(new List<int>()
+                {
+                    0, 1, 2, 3, 4, 5, 6, 7
+                } as ICollection, info.Pages as ICollection, "Limits->Pages != null");
+            });
+
+            AssertCollectionInfo<IBoardPostCollectionInfoBoardBanner>(result.Info, info =>
+            {
+                Assert.AreEqual(new SizeInt32() { Width = 300, Height = 100 }, info.BannerSize, "info,BoardBanner->BannerSize");
+                Assert.AreEqual((new EngineMediaLink() { Engine = MakabaConstants.MakabaEngineId, Uri = "/ololo/fet_1.jpg" }).GetLinkHash(), info.BannerImageLink?.GetLinkHash());
+                Assert.AreEqual((new BoardLink() { Engine = MakabaConstants.MakabaEngineId, Board = "fet"}).GetLinkHash(), info.BannerBoardLink?.GetLinkHash());
+            });
+
+            AssertCollectionInfo<IBoardPostCollectionInfoBoardDesc>(result.Info, info =>
+            {
+                var doc = new PostDocument()
+                {
+                    Nodes = new List<IPostNode>()
+                    {
+                        new TextPostNode() { Text = "Правило 34 только в соответствующих тредах. Настоящие кони скачут в /ne/, фурри – в /fur/. Гуро и флаффи запрещены." }
+                    }
+                };
+                PostModelsTests.AssertDocuments(_provider, doc, info.BoardInfo);
+                Assert.AreEqual("Мои маленькие пони, дружба, магия", info.BoardInfoOuter, "info,BoardDesc->BoardInfoOuter");
+            });
+        }
+
+        private void AssertCollectionInfo<T>(IBoardPostCollectionInfoSet infoSet, Action<T> asserts)
+            where T : class, IBoardPostCollectionInfo
+        {
+            Assert.IsNotNull(infoSet, $"{typeof(T).Name}: infoSet != null");
+            Assert.IsNotNull(infoSet.Items, $"{typeof(T).Name}: infoSet.Items != null");
+            var info = infoSet.Items.FirstOrDefault(i => i.GetInfoInterfaceTypes().Any(it => it == typeof(T))) as T;
+            Assert.IsNotNull(info, $"info is {typeof(T).Name}");
+            asserts?.Invoke(info);
         }
 
         private void AssertPostFlag(IBoardPost post, Guid flag, bool value, string msg)
