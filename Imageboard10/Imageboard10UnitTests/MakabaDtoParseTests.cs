@@ -592,20 +592,27 @@ namespace Imageboard10UnitTests
             AssertCollectionInfo<IBoardPostCollectionInfoBoardLimits>(result.Info, info =>
             {
                 Assert.AreEqual("Pony", info.DefaultName, "info,Limits->DefaultName");
-                Assert.AreEqual((ulong)(40960 * 1024), info.MaxFilesSize, "info,Limits->MaxFilesSize");
+                Assert.AreEqual((ulong) (40960 * 1024), info.MaxFilesSize, "info,Limits->MaxFilesSize");
                 Assert.AreEqual(15000, info.MaxComment, "info,Limits->MaxComment");
                 Assert.IsNotNull(info.Pages, "info,Limits->Pages != null");
                 CollectionAssert.AreEquivalent(new List<int>()
                 {
-                    0, 1, 2, 3, 4, 5, 6, 7
+                    0,
+                    1,
+                    2,
+                    3,
+                    4,
+                    5,
+                    6,
+                    7
                 } as ICollection, info.Pages as ICollection, "Limits->Pages != null");
             });
 
             AssertCollectionInfo<IBoardPostCollectionInfoBoardBanner>(result.Info, info =>
             {
-                Assert.AreEqual(new SizeInt32() { Width = 300, Height = 100 }, info.BannerSize, "info,BoardBanner->BannerSize");
-                Assert.AreEqual((new EngineMediaLink() { Engine = MakabaConstants.MakabaEngineId, Uri = "/ololo/fet_1.jpg" }).GetLinkHash(), info.BannerImageLink?.GetLinkHash());
-                Assert.AreEqual((new BoardLink() { Engine = MakabaConstants.MakabaEngineId, Board = "fet"}).GetLinkHash(), info.BannerBoardLink?.GetLinkHash());
+                Assert.AreEqual(new SizeInt32() {Width = 300, Height = 100}, info.BannerSize, "info,BoardBanner->BannerSize");
+                Assert.AreEqual((new EngineMediaLink() {Engine = MakabaConstants.MakabaEngineId, Uri = "/ololo/fet_1.jpg"}).GetLinkHash(), info.BannerImageLink?.GetLinkHash());
+                Assert.AreEqual((new BoardLink() {Engine = MakabaConstants.MakabaEngineId, Board = "fet"}).GetLinkHash(), info.BannerBoardLink?.GetLinkHash());
             });
 
             AssertCollectionInfo<IBoardPostCollectionInfoBoardDesc>(result.Info, info =>
@@ -614,12 +621,81 @@ namespace Imageboard10UnitTests
                 {
                     Nodes = new List<IPostNode>()
                     {
-                        new TextPostNode() { Text = "Правило 34 только в соответствующих тредах. Настоящие кони скачут в /ne/, фурри – в /fur/. Гуро и флаффи запрещены." }
+                        new TextPostNode() {Text = "Правило 34 только в соответствующих тредах. Настоящие кони скачут в /ne/, фурри – в /fur/. Гуро и флаффи запрещены."}
                     }
                 };
                 PostModelsTests.AssertDocuments(_provider, doc, info.BoardInfo);
                 Assert.AreEqual("Мои маленькие пони, дружба, магия", info.BoardInfoOuter, "info,BoardDesc->BoardInfoOuter");
             });
+
+            AssertCollectionInfo<IBoardPostCollectionInfoBoardsAdvertisement>(result.Info, info =>
+            {
+                Assert.IsNotNull(info.AdvertisementItems, "info,BoardsAdvertisement->AdvertisementItems != null");
+                Assert.AreEqual(6, info.AdvertisementItems.Count, "info,BoardsAdvertisement->AdvertisementItems.Count");
+                var expBoards = new ILink[]
+                {
+                    new BoardLink() {Engine = MakabaConstants.MakabaEngineId, Board = "2d"},
+                    new BoardLink() {Engine = MakabaConstants.MakabaEngineId, Board = "wwe"},
+                    new BoardLink() {Engine = MakabaConstants.MakabaEngineId, Board = "ch"},
+                    new BoardLink() {Engine = MakabaConstants.MakabaEngineId, Board = "int"},
+                    new BoardLink() {Engine = MakabaConstants.MakabaEngineId, Board = "ruvn"},
+                    new BoardLink() {Engine = MakabaConstants.MakabaEngineId, Board = "math"},
+                };
+                CollectionAssert.AreEqual(expBoards, info.AdvertisementItems.Select(i => i.BoardLink).ToList(), BoardLinkComparer.Instance as IComparer);
+                var eb = info.AdvertisementItems[0];
+                Assert.AreEqual("Щитпостинг, обсуждение вайфу, аватарки и прочее. Анимешный /b/, постинг 3d не приветствуется.", eb.Info);
+                Assert.AreEqual("Аниме/Беседка", eb.Name);
+            });
+
+            AssertCollectionInfo<IBoardPostCollectionInfoBottomAdvertisement>(result.Info, info =>
+            {
+                var l1 = new EngineMediaLink() { Engine = MakabaConstants.MakabaEngineId, Uri = "/banners/kPptGmThLL7w9tz1.png" };
+                var l2 = new EngineUriLink() { Engine = MakabaConstants.MakabaEngineId, Uri = "/banners/kPptGmThLL7w9tz1/" };
+                Assert.AreEqual(l1.GetLinkHash(), info.AdvertisementBannerLink?.GetLinkHash());
+                Assert.AreEqual(l2.GetLinkHash(), info.AdvertisementClickLink?.GetLinkHash());
+            });
+
+            AssertCollectionInfo<IBoardPostCollectionInfoPostingSpeed>(result.Info, info =>
+            {
+                Assert.AreEqual(20, info.Speed);
+            });
+
+            AssertCollectionInfo<IBoardPostCollectionInfoIcons>(result.Info, info =>
+            {
+                Assert.IsNotNull(info.Icons, "info.Icons != null");
+                Assert.AreEqual(46, info.Icons.Count, "info.Icons.Count");
+                var i1 = info.Icons[0];
+                Assert.IsNotNull(i1, "info.Icons[0] != null");
+                Assert.AreEqual("1", i1.Id, "info.Icons[0].Id");
+                Assert.AreEqual("Twilight Sparkle", i1.Name, "info.Icons[0].Name");
+                var i2 = info.Icons[1];
+                Assert.IsNotNull(i1, "info.Icons[1] != null");
+                Assert.AreEqual("2", i2.Id, "info.Icons[1].Id");
+                Assert.AreEqual("Applejack", i2.Name, "info.Icons[1].Name");
+            });
+
+            AssertCollectionInfo<IBoardPostCollectionInfoNews>(result.Info, info =>
+            {
+                Assert.IsNotNull(info.NewsItems, "info.NewsItems != null");
+                Assert.AreEqual(3, info.NewsItems.Count, "info.NewsItems.Count");
+                var n = info.NewsItems[0];
+                Assert.IsNotNull(n, "info.NewsItems[0] != null");
+                Assert.AreEqual("02/12/16", n.Date, "info.NewsItems[0].Date");
+                Assert.AreEqual("Конкурс визуальных новелл доски /ruvn/", n.Title, "info.NewsItems[0].Title");
+                Assert.AreEqual((new ThreadLink()
+                {
+                    Engine = MakabaConstants.MakabaEngineId,
+                    Board = "abu",
+                    OpPostNum = 54946
+                }).GetLinkHash(), n.NewsLink.GetLinkHash(), "info.NewsItems[0].NewsLink");
+            });
+
+            var t1 = result.Threads[1];
+            Assert.IsNotNull(t1, "t1 != null");
+            Assert.IsNotNull(t1.ImageCount, "t1.ImageCount");
+            Assert.IsNotNull(t1.ReplyCount, "t1.ReplyCount");
+            Assert.IsNotNull(t1.Omit, "t1.Omit");
+            Assert.IsNotNull(t1.OmitImages, "t1.OmitImages");
         }
 
         private void AssertCollectionInfo<T>(IBoardPostCollectionInfoSet infoSet, Action<T> asserts)
