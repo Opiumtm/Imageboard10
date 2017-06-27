@@ -1,0 +1,36 @@
+[
+    {
+        "banned": 0,
+        "closed": 0,
+        "comment": "\u003ca href=\"/mobi/res/1153568.html#1155200\" class=\"post-reply-link\" data-thread=\"1153568\" data-num=\"1155200\"\u003e\u003e\u003e1155200\u003c/a\u003e\u003cbr\u003eАй не пизди, я сам с китайца, больше 5ти часов экрана хуй получишь, только на минимальной яркости.",
+        "date": "27/06/17 Втр 20:56:16",
+        "email": "",
+        "files": [
+            {
+                "displayname": "IMG201706271936[...].jpg",
+                "fullname": "IMG20170627193602.jpg",
+                "height": 1273,
+                "md5": "9017a8128d945401222fde87b24f58f1",
+                "name": "14985861768920.jpg",
+                "nsfw": 0,
+                "path": "/mobi/src/1153568/14985861768920.jpg",
+                "size": 125,
+                "thumbnail": "/mobi/thumb/1153568/14985861768920s.jpg",
+                "tn_height": 250,
+                "tn_width": 212,
+                "type": 1,
+                "width": 1080
+            }
+        ],
+        "lasthit": 1498599757,
+        "name": "Аноним",
+        "num": "1155204",
+        "op": 0,
+        "parent": "1153568",
+        "sticky": 0,
+        "subject": "",
+        "timestamp": 1498586176,
+        "trip": "",
+        "trip_type": "normal"
+    }
+]
