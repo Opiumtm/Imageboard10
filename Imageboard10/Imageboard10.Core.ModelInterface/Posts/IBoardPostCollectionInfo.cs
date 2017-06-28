@@ -269,4 +269,16 @@ namespace Imageboard10.Core.ModelInterface.Posts
         /// </summary>
         string Title { get; }
     }
+
+    /// <summary>
+    /// Фильтр каталога.
+    /// </summary>
+    public interface IBoardPostCollectionInfoCatalogFilter : IBoardPostCollectionInfo
+    {
+        /// <summary>
+        /// Фильтр каталога.
+        /// </summary>
+        string CatalogFilter { get; }
+    }
+
 }

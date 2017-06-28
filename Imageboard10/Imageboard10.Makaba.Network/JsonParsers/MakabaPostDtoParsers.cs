@@ -575,7 +575,8 @@ namespace Imageboard10.Makaba.Network.JsonParsers
                 })?.OfType<IBoardIcon>()?.ToList(),
                 UniquePosters = entity2.UniquePosters.TryParseWithNull(),
                 MaxPostNumber = entity2.MaxNum,
-                Title = entity2.Title
+                Title = entity2.Title,
+                CatalogFilter = entity2.Filter
             };
         }
 
@@ -644,11 +645,11 @@ namespace Imageboard10.Makaba.Network.JsonParsers
         /// <returns>Результат.</returns>
         public IBoardPostCollectionEtag Parse(CatalogData source)
         {
-            var posts = source.Thread.Threads.OrderBy(p => p.Number.TryParseWithDefault());
+            var posts = source.Entity.Threads.OrderBy(p => p.Number.TryParseWithDefault());
             var result = new BoardPostCollection()
             {
                 Etag = source.Etag,
-                Info = null,
+                Info = GetEntityModel(source.Entity, source.Link),
                 Link = source.Link,
                 ParentLink = source.Link?.GetBoardLink(),
                 Posts = posts.WithCounter(1).Select(p => _postsParser.Parse(new BoardPost2WithParentLink()

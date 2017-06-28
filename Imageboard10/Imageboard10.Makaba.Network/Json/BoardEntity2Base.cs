@@ -252,5 +252,11 @@ namespace Imageboard10.Makaba.Network.Json
         /// </summary>
         [JsonProperty("unique_posters")]
         public string UniquePosters { get; set; }
+
+        /// <summary>
+        /// Фильтр.
+        /// </summary>
+        [JsonProperty("filter")]
+        public string Filter { get; set; }
     }
 }

@@ -32,7 +32,8 @@ namespace Imageboard10.Makaba.Models.Posts
         IBoardPostCollectionInfoBottomAdvertisement,
         IBoardPostCollectionInfoFlags,
         IBoardPostCollectionInfoUniquePosters,
-        IBoardPostCollectionInfoTitle
+        IBoardPostCollectionInfoTitle,
+        IBoardPostCollectionInfoCatalogFilter
     {
         private static readonly List<Type> InterfaceTypes = new List<Type>()
         {
@@ -48,7 +49,8 @@ namespace Imageboard10.Makaba.Models.Posts
             typeof(IBoardPostCollectionInfoBottomAdvertisement),
             typeof(IBoardPostCollectionInfoFlags),
             typeof(IBoardPostCollectionInfoUniquePosters),
-            typeof(IBoardPostCollectionInfoTitle)
+            typeof(IBoardPostCollectionInfoTitle),
+            typeof(IBoardPostCollectionInfoCatalogFilter)
         };
 
         /// <summary>
@@ -217,6 +219,12 @@ namespace Imageboard10.Makaba.Models.Posts
         /// </summary>
         [DataMember]
         public string Title { get; set; }
+
+        /// <summary>
+        /// Фильтр каталога.
+        /// </summary>
+        [DataMember]
+        public string CatalogFilter { get; set; }
 
         internal void BeforeSerialize(IModuleProvider moduleProvider)
         {

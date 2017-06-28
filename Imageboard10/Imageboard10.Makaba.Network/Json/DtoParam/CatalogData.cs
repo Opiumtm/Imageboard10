@@ -11,7 +11,7 @@ namespace Imageboard10.Makaba.Network.Json
         /// <summary>
         /// Посты.
         /// </summary>
-        public CatalogEntity Thread;
+        public CatalogEntity Entity;
 
         /// <summary>
         /// Ссылка.
