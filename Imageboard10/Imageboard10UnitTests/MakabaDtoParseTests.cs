@@ -698,6 +698,16 @@ namespace Imageboard10UnitTests
                 Assert.IsNull(info.MaxPostNumber, "info,Location->MaxPostNumber");
             });
 
+            AssertCollectionInfo<IBoardPostCollectionInfoUniquePosters>(result.Info, info =>
+            {
+                Assert.IsNull(info.UniquePosters, "info,UniquePosters->UniquePosters");
+            });
+
+            AssertCollectionInfo<IBoardPostCollectionInfoTitle>(result.Info, info =>
+            {
+                Assert.IsNull(info.Title, "info,Title->Title");
+            });
+
             AssertPostCollectionFlags(result.Info, new []
             {
                 (PostCollectionFlags.EnableDices, true, "EnableDices"),
@@ -836,6 +846,16 @@ namespace Imageboard10UnitTests
                 Assert.IsNull(info.CurrentPage, "info,Location->CurrentPage");
                 Assert.AreEqual(1153568, info.CurrentThread, "info,Location->CurrentThread");
                 Assert.AreEqual(1155354, info.MaxPostNumber, "info,Location->MaxPostNumber");
+            });
+
+            AssertCollectionInfo<IBoardPostCollectionInfoUniquePosters>(result.Info, info =>
+            {
+                Assert.AreEqual(81, info.UniquePosters, "info,UniquePosters->UniquePosters");
+            });
+
+            AssertCollectionInfo<IBoardPostCollectionInfoTitle>(result.Info, info =>
+            {
+                Assert.AreEqual("Windows 10 Mobile #263 каникулярный", info.Title, "info,Title->Title");
             });
 
             AssertPostCollectionFlags(result.Info, new[]

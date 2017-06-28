@@ -213,7 +213,7 @@ namespace Imageboard10.Makaba.Models.Posts
         public int? UniquePosters { get; set; }
 
         /// <summary>
-        /// Уникальный постеров.
+        /// Заголовок.
         /// </summary>
         [DataMember]
         public string Title { get; set; }

@@ -265,9 +265,8 @@ namespace Imageboard10.Core.ModelInterface.Posts
     public interface IBoardPostCollectionInfoTitle : IBoardPostCollectionInfo
     {
         /// <summary>
-        /// Уникальный постеров.
+        /// Заголовок.
         /// </summary>
         string Title { get; }
     }
-
 }
