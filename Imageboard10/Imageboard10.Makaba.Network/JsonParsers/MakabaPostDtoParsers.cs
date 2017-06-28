@@ -563,7 +563,8 @@ namespace Imageboard10.Makaba.Network.JsonParsers
                     MediaLink = i.Url != null ? new EngineMediaLink() { Engine = MakabaConstants.MakabaEngineId, Uri = i.Url } : null
                 })?.OfType<IBoardIcon>()?.ToList(),
                 UniquePosters = entity2.UniquePosters.TryParseWithNull(),
-                MaxPostNumber = entity2.MaxNum
+                MaxPostNumber = entity2.MaxNum,
+                Title = entity2.Title
             };
         }
 
@@ -620,7 +621,7 @@ namespace Imageboard10.Makaba.Network.JsonParsers
                 ImageCount = source.Thread.ImagesCount.TryParseWithDefault() + source.Thread.Posts.Sum(p => (p.Files ?? new BoardPostFile2[0]).Length),
                 Omit = source.Thread.PostsCount.TryParseWithDefault(),
                 OmitImages = source.Thread.ImagesCount.TryParseWithDefault(),
-                ReplyCount = Math.Max(source.Thread.PostsCount.TryParseWithDefault() + source.Thread.Posts.Count(), 0)                
+                ReplyCount = Math.Max(source.Thread.PostsCount.TryParseWithDefault() + source.Thread.Posts.Count(), 0)
             };
             return result;
         }

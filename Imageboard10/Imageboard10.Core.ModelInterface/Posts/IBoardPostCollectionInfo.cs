@@ -258,4 +258,16 @@ namespace Imageboard10.Core.ModelInterface.Posts
         /// </summary>
         int? UniquePosters { get; }
     }
+
+    /// <summary>
+    /// Заголовок.
+    /// </summary>
+    public interface IBoardPostCollectionInfoTitle : IBoardPostCollectionInfo
+    {
+        /// <summary>
+        /// Уникальный постеров.
+        /// </summary>
+        string Title { get; }
+    }
+
 }

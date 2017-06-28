@@ -690,12 +690,177 @@ namespace Imageboard10UnitTests
                 }).GetLinkHash(), n.NewsLink.GetLinkHash(), "info.NewsItems[0].NewsLink");
             });
 
+            AssertCollectionInfo<IBoardPostCollectionInfoLocation>(result.Info, info =>
+            {
+                Assert.AreEqual("mlp", info.Board, "info,Location->Board");
+                Assert.AreEqual(0, info.CurrentPage, "info,Location->CurrentPage");
+                Assert.AreEqual(0, info.CurrentThread, "info,Location->CurrentThread");
+                Assert.IsNull(info.MaxPostNumber, "info,Location->MaxPostNumber");
+            });
+
+            AssertPostCollectionFlags(result.Info, new []
+            {
+                (PostCollectionFlags.EnableDices, true, "EnableDices"),
+                (PostCollectionFlags.EnableCountryFlags, false, "EnableCountryFlags"),
+                (PostCollectionFlags.EnableIcons, true, "EnableIcons"),
+                (PostCollectionFlags.EnableImages, true, "EnableImages"),
+                (PostCollectionFlags.EnableLikes, false, "EnableLikes"),
+                (PostCollectionFlags.EnableNames, true, "EnableNames"),
+                (PostCollectionFlags.EnableOekaki, false, "EnableOekaki"),
+                (PostCollectionFlags.EnablePosting, true, "EnablePosting"),
+                (PostCollectionFlags.EnableSage, true, "EnableSage"),
+                (PostCollectionFlags.EnableShield, false, "EnableShield"),
+                (PostCollectionFlags.EnableSubject, true, "EnableSubject"),
+                (PostCollectionFlags.EnableThreadTags, false, "EnableThreadTags"),
+                (PostCollectionFlags.EnableTripcodes, true, "EnableTripcodes"),
+                (PostCollectionFlags.EnableVideo, true, "EnableVideo"),
+                (PostCollectionFlags.IsBoard, true, "IsBoard"),
+                (PostCollectionFlags.IsIndex, false, "IsIndex"),
+            });
+
             var t1 = result.Threads[1];
             Assert.IsNotNull(t1, "t1 != null");
             Assert.IsNotNull(t1.ImageCount, "t1.ImageCount");
             Assert.IsNotNull(t1.ReplyCount, "t1.ReplyCount");
             Assert.IsNotNull(t1.Omit, "t1.Omit");
             Assert.IsNotNull(t1.OmitImages, "t1.OmitImages");
+        }
+
+        [TestMethod]
+        public async Task MakabaThreadParse()
+        {
+            var jsonStr = await TestResources.ReadTestTextFile("mobi_thread.json");
+            var dto = JsonConvert.DeserializeObject<BoardEntity2>(jsonStr);
+            Assert.IsNotNull(dto, "dto != null");
+            var parser = _provider.FindNetworkDtoParser<ThreadData, IBoardPostCollectionEtag>();
+            Assert.IsNotNull(parser, "parser != null");
+            var param = new ThreadData()
+            {
+                Link = new ThreadLink() { Board = "mobi", Engine = MakabaConstants.MakabaEngineId, OpPostNum = 1153568 },
+                Etag = "##etag##",
+                LoadedTime = DateTimeOffset.Now,
+                Entity = dto
+            };
+            var result = parser.Parse(param);
+            Assert.IsNotNull(result, "result != null");
+            Assert.AreEqual(param.Etag, result.Etag, "Etag");
+            Assert.AreEqual(param.Link.GetLinkHash(), result.Link?.GetLinkHash(), "Link");
+            Assert.AreEqual(param.Link.GetBoardLink().GetLinkHash(), result.ParentLink?.GetLinkHash(), "ParentLink");
+
+            Assert.AreEqual(287, result.Posts.Count, "Posts.Count");
+
+            AssertCollectionInfo<IBoardPostCollectionInfoBoard>(result.Info, info =>
+            {
+                Assert.AreEqual("mobi", info.Board, "info,Board->Board");
+                Assert.AreEqual("Мобильные устройства и приложения", info.BoardName, "info, Board->BoardName");
+            });
+
+            AssertCollectionInfo<IBoardPostCollectionInfoBoardLimits>(result.Info, info =>
+            {
+                Assert.AreEqual("Аноним", info.DefaultName, "info,Limits->DefaultName");
+                Assert.AreEqual((ulong)(40960 * 1024), info.MaxFilesSize, "info,Limits->MaxFilesSize");
+                Assert.AreEqual(15000, info.MaxComment, "info,Limits->MaxComment");
+                Assert.IsNull(info.Pages, "info,Limits->Pages != null");
+            });
+
+            AssertCollectionInfo<IBoardPostCollectionInfoBoardDesc>(result.Info, info =>
+            {
+                var doc = new PostDocument()
+                {
+                    Nodes = new List<IPostNode>()
+                    {
+                        new TextPostNode() {Text = "Доска для мобильных анонов. О покупке и мелких вопросах спрашивают прикрепленном треде. Читалки - в /bo/, наушники и плееры - в /t/."}
+                    }
+                };
+                PostModelsTests.AssertDocuments(_provider, doc, info.BoardInfo);
+                Assert.AreEqual("мобильные телефоны, приложения, iphone, android, winphone, 2ch browser", info.BoardInfoOuter, "info,BoardDesc->BoardInfoOuter");
+            });
+
+            AssertCollectionInfo<IBoardPostCollectionInfoBoardBanner>(result.Info, info =>
+            {
+                Assert.AreEqual((new EngineMediaLink() { Engine = MakabaConstants.MakabaEngineId, Uri = "/ololo/t_1.jpg" }).GetLinkHash(), info.BannerImageLink?.GetLinkHash());
+                Assert.AreEqual((new BoardLink() { Engine = MakabaConstants.MakabaEngineId, Board = "t" }).GetLinkHash(), info.BannerBoardLink?.GetLinkHash());
+            });
+
+            AssertCollectionInfo<IBoardPostCollectionInfoBoardsAdvertisement>(result.Info, info =>
+            {
+                Assert.IsNotNull(info.AdvertisementItems, "info,BoardsAdvertisement->AdvertisementItems != null");
+                Assert.AreEqual(6, info.AdvertisementItems.Count, "info,BoardsAdvertisement->AdvertisementItems.Count");
+                var expBoards = new ILink[]
+                {
+                    new BoardLink() {Engine = MakabaConstants.MakabaEngineId, Board = "2d"},
+                    new BoardLink() {Engine = MakabaConstants.MakabaEngineId, Board = "wwe"},
+                    new BoardLink() {Engine = MakabaConstants.MakabaEngineId, Board = "ch"},
+                    new BoardLink() {Engine = MakabaConstants.MakabaEngineId, Board = "int"},
+                    new BoardLink() {Engine = MakabaConstants.MakabaEngineId, Board = "ruvn"},
+                    new BoardLink() {Engine = MakabaConstants.MakabaEngineId, Board = "math"},
+                };
+                CollectionAssert.AreEqual(expBoards, info.AdvertisementItems.Select(i => i.BoardLink).ToList(), BoardLinkComparer.Instance as IComparer);
+                var eb = info.AdvertisementItems[0];
+                Assert.AreEqual("Щитпостинг, обсуждение вайфу, аватарки и прочее. Анимешный /b/, постинг 3d не приветствуется.", eb.Info);
+                Assert.AreEqual("Аниме/Беседка", eb.Name);
+            });
+
+            AssertCollectionInfo<IBoardPostCollectionInfoBottomAdvertisement>(result.Info, info =>
+            {
+                var l1 = new EngineMediaLink() { Engine = MakabaConstants.MakabaEngineId, Uri = "/banners/kPptGmThLL7w9tz1.png" };
+                var l2 = new EngineUriLink() { Engine = MakabaConstants.MakabaEngineId, Uri = "/banners/kPptGmThLL7w9tz1/" };
+                Assert.AreEqual(l1.GetLinkHash(), info.AdvertisementBannerLink?.GetLinkHash());
+                Assert.AreEqual(l2.GetLinkHash(), info.AdvertisementClickLink?.GetLinkHash());
+            });
+
+            AssertCollectionInfo<IBoardPostCollectionInfoPostingSpeed>(result.Info, info =>
+            {
+                Assert.AreEqual(0, info.Speed, "info.Speed");
+            });
+
+            AssertCollectionInfo<IBoardPostCollectionInfoNews>(result.Info, info =>
+            {
+                Assert.IsNotNull(info.NewsItems, "info.NewsItems != null");
+                Assert.AreEqual(3, info.NewsItems.Count, "info.NewsItems.Count");
+                var n = info.NewsItems[0];
+                Assert.IsNotNull(n, "info.NewsItems[0] != null");
+                Assert.AreEqual("02/12/16", n.Date, "info.NewsItems[0].Date");
+                Assert.AreEqual("Конкурс визуальных новелл доски /ruvn/", n.Title, "info.NewsItems[0].Title");
+                Assert.AreEqual((new ThreadLink()
+                {
+                    Engine = MakabaConstants.MakabaEngineId,
+                    Board = "abu",
+                    OpPostNum = 54946
+                }).GetLinkHash(), n.NewsLink.GetLinkHash(), "info.NewsItems[0].NewsLink");
+            });
+
+            AssertCollectionInfo<IBoardPostCollectionInfoLocation>(result.Info, info =>
+            {
+                Assert.AreEqual("mobi", info.Board, "info,Location->Board");
+                Assert.IsNull(info.CurrentPage, "info,Location->CurrentPage");
+                Assert.AreEqual(1153568, info.CurrentThread, "info,Location->CurrentThread");
+                Assert.AreEqual(1155354, info.MaxPostNumber, "info,Location->MaxPostNumber");
+            });
+
+            AssertPostCollectionFlags(result.Info, new[]
+            {
+                (PostCollectionFlags.EnableDices, false, "EnableDices"),
+                (PostCollectionFlags.EnableCountryFlags, false, "EnableCountryFlags"),
+                (PostCollectionFlags.EnableIcons, false, "EnableIcons"),
+                (PostCollectionFlags.EnableImages, true, "EnableImages"),
+                (PostCollectionFlags.EnableLikes, false, "EnableLikes"),
+                (PostCollectionFlags.EnableNames, true, "EnableNames"),
+                (PostCollectionFlags.EnableOekaki, false, "EnableOekaki"),
+                (PostCollectionFlags.EnablePosting, true, "EnablePosting"),
+                (PostCollectionFlags.EnableSage, true, "EnableSage"),
+                (PostCollectionFlags.EnableShield, false, "EnableShield"),
+                (PostCollectionFlags.EnableSubject, true, "EnableSubject"),
+                (PostCollectionFlags.EnableThreadTags, true, "EnableThreadTags"),
+                (PostCollectionFlags.EnableTripcodes, false, "EnableTripcodes"),
+                (PostCollectionFlags.EnableVideo, true, "EnableVideo"),
+                (PostCollectionFlags.IsBoard, false, "IsBoard"),
+                (PostCollectionFlags.IsIndex, false, "IsIndex"),
+            });
+
+            var p15 = result.Posts[14];
+            Assert.IsNotNull(p15, "p15 != null");
+            AssertPostFlag(p15, BoardPostFlags.Sage, true, "BoardPostFlags.Sage");
         }
 
         private void AssertCollectionInfo<T>(IBoardPostCollectionInfoSet infoSet, Action<T> asserts)
@@ -706,6 +871,30 @@ namespace Imageboard10UnitTests
             var info = infoSet.Items.FirstOrDefault(i => i.GetInfoInterfaceTypes().Any(it => it == typeof(T))) as T;
             Assert.IsNotNull(info, $"info is {typeof(T).Name}");
             asserts?.Invoke(info);
+        }
+
+        private void AssertPostCollectionFlags(IBoardPostCollectionInfoSet set, (Guid flag, bool isSet, string flagName)[] flags)
+        {
+            AssertCollectionInfo<IBoardPostCollectionInfoFlags>(set, info =>
+            {
+                foreach (var f in flags)
+                {
+                    AssertPostCollectionFlag(info, f.flag, f.isSet, "Info, Flags:" + f.flagName);
+                }
+            });
+        }
+
+        private void AssertPostCollectionFlag(IBoardPostCollectionInfoFlags flags, Guid flag, bool value, string msg)
+        {
+            var found = flags.Flags.Any(f => f == flag);
+            if (value)
+            {
+                Assert.IsTrue(found, msg);
+            }
+            else
+            {
+                Assert.IsFalse(found, msg);
+            }
         }
 
         private void AssertPostFlag(IBoardPost post, Guid flag, bool value, string msg)

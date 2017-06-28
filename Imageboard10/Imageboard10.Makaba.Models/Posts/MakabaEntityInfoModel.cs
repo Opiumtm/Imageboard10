@@ -31,7 +31,8 @@ namespace Imageboard10.Makaba.Models.Posts
         IBoardPostCollectionInfoBoardsAdvertisement,
         IBoardPostCollectionInfoBottomAdvertisement,
         IBoardPostCollectionInfoFlags,
-        IBoardPostCollectionInfoUniquePosters
+        IBoardPostCollectionInfoUniquePosters,
+        IBoardPostCollectionInfoTitle
     {
         private static readonly List<Type> InterfaceTypes = new List<Type>()
         {
@@ -45,7 +46,9 @@ namespace Imageboard10.Makaba.Models.Posts
             typeof(IBoardPostCollectionInfoNews),
             typeof(IBoardPostCollectionInfoBoardsAdvertisement),
             typeof(IBoardPostCollectionInfoBottomAdvertisement),
-            typeof(IBoardPostCollectionInfoFlags)
+            typeof(IBoardPostCollectionInfoFlags),
+            typeof(IBoardPostCollectionInfoUniquePosters),
+            typeof(IBoardPostCollectionInfoTitle)
         };
 
         /// <summary>
@@ -208,6 +211,12 @@ namespace Imageboard10.Makaba.Models.Posts
         /// </summary>
         [DataMember]
         public int? UniquePosters { get; set; }
+
+        /// <summary>
+        /// Уникальный постеров.
+        /// </summary>
+        [DataMember]
+        public string Title { get; set; }
 
         internal void BeforeSerialize(IModuleProvider moduleProvider)
         {

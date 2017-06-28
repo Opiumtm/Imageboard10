@@ -78,5 +78,11 @@ namespace Imageboard10.Makaba.Network.Json
         /// </summary>
         [JsonProperty("endless")]
         public int? Endless { get; set; }
+
+        /// <summary>
+        /// Номер поста в треде.
+        /// </summary>
+        [JsonProperty("number")]
+        public int? CountNumber { get; set; }
     }
 }
