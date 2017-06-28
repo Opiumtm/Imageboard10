@@ -881,6 +881,102 @@ namespace Imageboard10UnitTests
             var p15 = result.Posts[14];
             Assert.IsNotNull(p15, "p15 != null");
             AssertPostFlag(p15, BoardPostFlags.Sage, true, "BoardPostFlags.Sage");
+            // ReSharper disable once InconsistentNaming
+            var p15c = p15 as IBoardPostOnServerCounter;
+            Assert.IsNotNull(p15c, "p15 is IBoardPostOnServerCounter");
+            Assert.AreEqual(15, p15c.OnServerCounter, "p15.OnServerCounter");
+        }
+
+        [TestMethod]
+        public async Task MakabaThreadPartParse()
+        {
+            var jsonStr = await TestResources.ReadTestTextFile("mobi_thread_part.json");
+            var dto = JsonConvert.DeserializeObject<ThreadPartialResponse>(jsonStr);
+            Assert.IsNotNull(dto, "dto != null");
+            Assert.IsNotNull(dto.Posts, "dto.Posts != null");
+            var parser = _provider.FindNetworkDtoParser<PartialThreadData, IBoardPostCollectionEtag>();
+            Assert.IsNotNull(parser, "parser != null");
+            var param = new PartialThreadData()
+            {
+                Link = new ThreadPartLink() { Board = "mobi", Engine = MakabaConstants.MakabaEngineId, OpPostNum = 1153568, FromPost = 1155204 },
+                Etag = "##etag##",
+                LoadedTime = DateTimeOffset.Now,
+                Posts = dto.Posts
+            };
+            var result = parser.Parse(param);
+            Assert.IsNotNull(result, "result != null");
+            Assert.AreEqual(param.Etag, result.Etag, "Etag");
+            Assert.AreEqual(param.Link.GetLinkHash(), result.Link?.GetLinkHash(), "Link");
+            Assert.AreEqual(param.Link.GetBoardLink().GetLinkHash(), result.ParentLink?.GetLinkHash(), "ParentLink");
+
+            Assert.AreEqual(dto.Posts.Length, result.Posts.Count, "Posts.Count");
+            Assert.IsNull(result.Info, "result.Info != null");
+            var p1 = result.Posts[0];
+            Assert.IsNotNull(p1, "p1 != null");
+            Assert.AreEqual((new PostLink()
+            {
+                Engine = MakabaConstants.MakabaEngineId,
+                Board = "mobi",
+                OpPostNum = 1153568,
+                PostNum = 1155204
+            }).GetLinkHash(), p1.Link?.GetLinkHash(), "p1.Link");
+            Assert.AreEqual((new ThreadLink()
+            {
+                Engine = MakabaConstants.MakabaEngineId,
+                Board = "mobi",
+                OpPostNum = 1153568,
+            }).GetLinkHash(), p1.ParentLink?.GetLinkHash(), "p1.Link");
+            Assert.AreEqual("27/06/17 Втр 20:56:16", p1.BoardSpecificDate, "p1.BoardSpecificDate");
+            Assert.IsNotNull(p1.Poster);
+            Assert.AreEqual(p1.Poster.Name, "Аноним");
+            Assert.IsNotNull(p1.MediaFiles, "p1.MediaFiles != null");
+            Assert.AreEqual(1, p1.MediaFiles.Count, "p1.MediaFiles.Count");
+        }
+
+        [TestMethod]
+        public async Task MakabaSinglePostResultParse()
+        {
+            var jsonStr = await TestResources.ReadTestTextFile("mobi_post.json");
+            var dto = JsonConvert.DeserializeObject<ThreadPartialResponse>(jsonStr);
+            Assert.IsNotNull(dto, "dto != null");
+            Assert.IsNotNull(dto.Posts, "dto.Posts != null");
+            var parser = _provider.FindNetworkDtoParser<PartialThreadData, IBoardPostCollectionEtag>();
+            Assert.IsNotNull(parser, "parser != null");
+            var param = new PartialThreadData()
+            {
+                Link = new PostLink() { Board = "mobi", Engine = MakabaConstants.MakabaEngineId, OpPostNum = 1153568, PostNum = 1155204 },
+                Etag = "##etag##",
+                LoadedTime = DateTimeOffset.Now,
+                Posts = dto.Posts
+            };
+            var result = parser.Parse(param);
+            Assert.IsNotNull(result, "result != null");
+            Assert.AreEqual(param.Etag, result.Etag, "Etag");
+            Assert.AreEqual(param.Link.GetLinkHash(), result.Link?.GetLinkHash(), "Link");
+            Assert.AreEqual(param.Link.GetThreadLink().GetLinkHash(), result.ParentLink?.GetLinkHash(), "ParentLink");
+
+            Assert.AreEqual(1, result.Posts.Count, "Posts.Count");
+            Assert.IsNull(result.Info, "result.Info != null");
+            var p1 = result.Posts[0];
+            Assert.IsNotNull(p1, "p1 != null");
+            Assert.AreEqual((new PostLink()
+            {
+                Engine = MakabaConstants.MakabaEngineId,
+                Board = "mobi",
+                OpPostNum = 1153568,
+                PostNum = 1155204
+            }).GetLinkHash(), p1.Link?.GetLinkHash(), "p1.Link");
+            Assert.AreEqual((new ThreadLink()
+            {
+                Engine = MakabaConstants.MakabaEngineId,
+                Board = "mobi",
+                OpPostNum = 1153568,
+            }).GetLinkHash(), p1.ParentLink?.GetLinkHash(), "p1.ParentLink");
+            Assert.AreEqual("27/06/17 Втр 20:56:16", p1.BoardSpecificDate, "p1.BoardSpecificDate");
+            Assert.IsNotNull(p1.Poster);
+            Assert.AreEqual(p1.Poster.Name, "Аноним");
+            Assert.IsNotNull(p1.MediaFiles, "p1.MediaFiles != null");
+            Assert.AreEqual(1, p1.MediaFiles.Count, "p1.MediaFiles.Count");
         }
 
         private void AssertCollectionInfo<T>(IBoardPostCollectionInfoSet infoSet, Action<T> asserts)

@@ -129,6 +129,12 @@
     <Content Include="..\ExampleJson\mobi_thread.json">
       <Link>Resources\mobi_thread.json</Link>
     </Content>
+    <Content Include="..\ExampleJson\mobi_thread_part.json">
+      <Link>Resources\mobi_thread_part.json</Link>
+    </Content>
+    <Content Include="..\ExampleJson\mobi_post.json">
+      <Link>Resources\mobi_post.json</Link>
+    </Content>
     <None Include="Imageboard10UnitTests_TemporaryKey.pfx" />
     <Content Include="Resources\boards.json" />
     <Content Include="Resources\po_post.json" />

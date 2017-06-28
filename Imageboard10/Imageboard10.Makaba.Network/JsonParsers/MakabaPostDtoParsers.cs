@@ -246,7 +246,8 @@ namespace Imageboard10.Makaba.Network.JsonParsers
                 Tags = tags,
                 UniqueId = Guid.NewGuid().ToString(),
                 Likes = likes,
-                LoadedTime = source.LoadedTime
+                LoadedTime = source.LoadedTime,
+                OnServerCounter = source.Post.CountNumber
             };
             if (data.Files != null)
             {
@@ -434,12 +435,22 @@ namespace Imageboard10.Makaba.Network.JsonParsers
         public IBoardPostCollectionEtag Parse(PartialThreadData source)
         {
             var posts = source.Posts.OrderBy(p => p.Number.TryParseWithDefault());
+            ILink parentLink;
+            switch (source.Link)
+            {
+                case PostLink pl:
+                    parentLink = pl.GetThreadLink();
+                    break;
+                default:
+                    parentLink = source.Link?.GetBoardLink();
+                    break;
+            }
             var result = new BoardPostCollection()
             {
                 Etag = source.Etag,
                 Info = null,
                 Link = source.Link,
-                ParentLink = source.Link?.GetBoardLink(),
+                ParentLink = parentLink,
                 Posts = posts.WithCounter(1).Select(p => _postsParser.Parse(new BoardPost2WithParentLink()
                 {
                     Counter = p.Key,

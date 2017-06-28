@@ -8,7 +8,7 @@ namespace Imageboard10.Core.Models.Posts
     /// <summary>
     /// Пост борды.
     /// </summary>
-    public class BoardPost : IBoardPost
+    public class BoardPost : IBoardPost, IBoardPostOnServerCounter
     {
         /// <summary>
         /// Ссылка на пост.
@@ -104,5 +104,10 @@ namespace Imageboard10.Core.Models.Posts
         /// Время загрузки.
         /// </summary>
         public DateTimeOffset LoadedTime { get; set; }
+
+        /// <summary>
+        /// Нумерация на сервере в треде.
+        /// </summary>
+        public int? OnServerCounter { get; set; }
     }
 }

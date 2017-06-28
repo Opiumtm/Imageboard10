@@ -148,6 +148,7 @@
     <Compile Include="Posts\IBoardPostCollectionInfo.cs" />
     <Compile Include="Posts\IBoardPostCountryFlag.cs" />
     <Compile Include="Posts\IBoardPostIcon.cs" />
+    <Compile Include="Posts\IBoardPostOnServerCounter.cs" />
     <Compile Include="Posts\IBoardPostTags.cs" />
     <Compile Include="Posts\IBoardPostLikes.cs" />
     <Compile Include="Posts\ICompositePostNode.cs" />

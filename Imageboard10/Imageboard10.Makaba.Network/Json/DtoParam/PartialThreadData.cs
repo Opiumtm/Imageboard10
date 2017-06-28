@@ -16,7 +16,7 @@ namespace Imageboard10.Makaba.Network.Json
         /// <summary>
         /// Ссылка.
         /// </summary>
-        public ThreadPartLink Link;
+        public ThreadLink Link;
 
         /// <summary>
         /// ETag.
