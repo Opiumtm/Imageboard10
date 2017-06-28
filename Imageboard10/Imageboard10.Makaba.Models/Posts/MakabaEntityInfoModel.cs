@@ -30,7 +30,8 @@ namespace Imageboard10.Makaba.Models.Posts
         IBoardPostCollectionInfoNews,
         IBoardPostCollectionInfoBoardsAdvertisement,
         IBoardPostCollectionInfoBottomAdvertisement,
-        IBoardPostCollectionInfoFlags
+        IBoardPostCollectionInfoFlags,
+        IBoardPostCollectionInfoUniquePosters
     {
         private static readonly List<Type> InterfaceTypes = new List<Type>()
         {
@@ -93,6 +94,12 @@ namespace Imageboard10.Makaba.Models.Posts
         /// </summary>
         [DataMember]
         public int? CurrentThread { get; set; }
+
+        /// <summary>
+        /// Максимальный номер поста.
+        /// </summary>
+        [DataMember]
+        public int? MaxPostNumber { get; set; }
 
         /// <summary>
         /// Имя доски.
@@ -195,6 +202,12 @@ namespace Imageboard10.Makaba.Models.Posts
         /// </summary>
         [IgnoreDataMember]
         public IList<Guid> Flags { get; set; }
+
+        /// <summary>
+        /// Уникальный постеров.
+        /// </summary>
+        [DataMember]
+        public int? UniquePosters { get; set; }
 
         internal void BeforeSerialize(IModuleProvider moduleProvider)
         {

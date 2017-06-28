@@ -91,5 +91,10 @@ namespace Imageboard10.Core.ModelInterface.Posts
         /// Индекс.
         /// </summary>
         public static Guid IsIndex { get; } = new Guid("{D5421C60-77C6-4938-AFF3-C3FCC76E0BAC}");
+
+        /// <summary>
+        /// Тред закрыт.
+        /// </summary>
+        public static Guid IsClosed { get; } = new Guid("{D00DA93C-4FD3-4146-BB2B-DEFABA8DDA3D}");
     }
 }

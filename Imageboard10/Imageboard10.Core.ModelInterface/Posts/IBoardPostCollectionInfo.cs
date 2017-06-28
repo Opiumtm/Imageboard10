@@ -113,6 +113,11 @@ namespace Imageboard10.Core.ModelInterface.Posts
         /// Текущий тред.
         /// </summary>
         int? CurrentThread { get; }
+
+        /// <summary>
+        /// Максимальный номер поста.
+        /// </summary>
+        int? MaxPostNumber { get; }
     }
 
     /// <summary>
@@ -241,5 +246,16 @@ namespace Imageboard10.Core.ModelInterface.Posts
         /// Ссылка для перехода.
         /// </summary>
         ILink AdvertisementClickLink { get; }
+    }
+
+    /// <summary>
+    /// Уникальных постеров.
+    /// </summary>
+    public interface IBoardPostCollectionInfoUniquePosters : IBoardPostCollectionInfo
+    {
+        /// <summary>
+        /// Уникальный постеров.
+        /// </summary>
+        int? UniquePosters { get; }
     }
 }

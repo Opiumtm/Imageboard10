@@ -234,5 +234,23 @@ namespace Imageboard10.Makaba.Network.Json
         /// </summary>
         [JsonProperty("top")]
         public BoardEntity2TopAdvert[] TopAdvert { get; set; }
+
+        /// <summary>
+        /// Тред закрыт.
+        /// </summary>
+        [JsonProperty("is_closed")]
+        public int? IsClosed { get; set; }
+
+        /// <summary>
+        /// Максимальный номер.
+        /// </summary>
+        [JsonProperty("max_num")]
+        public int? MaxNum { get; set; }
+
+        /// <summary>
+        /// Уникальных постеров.
+        /// </summary>
+        [JsonProperty("unique_posters")]
+        public string UniquePosters { get; set; }
     }
 }

@@ -514,6 +514,7 @@ namespace Imageboard10.Makaba.Network.JsonParsers
             AddFlag(entity2.EnableVideo, PostCollectionFlags.EnableVideo);
             AddFlag(entity2.IsIndex, PostCollectionFlags.IsIndex);
             AddFlag(entity2.IsBoard, PostCollectionFlags.IsBoard);
+            AddFlag(entity2.IsClosed, PostCollectionFlags.IsClosed);
 
             return new MakabaEntityInfoModel()
             {
@@ -560,7 +561,9 @@ namespace Imageboard10.Makaba.Network.JsonParsers
                     Id = i.Number,
                     Name = i.Name,
                     MediaLink = i.Url != null ? new EngineMediaLink() { Engine = MakabaConstants.MakabaEngineId, Uri = i.Url } : null
-                })?.OfType<IBoardIcon>()?.ToList()
+                })?.OfType<IBoardIcon>()?.ToList(),
+                UniquePosters = entity2.UniquePosters.TryParseWithNull(),
+                MaxPostNumber = entity2.MaxNum
             };
         }
 

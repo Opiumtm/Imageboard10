@@ -47,6 +47,26 @@ namespace Imageboard10.Core.Utility
         }
 
         /// <summary>
+        /// Попробовать отпарсить цифровое значение.
+        /// </summary>
+        /// <param name="src">Строка.</param>
+        /// <param name="def">Значение по умолчанию.</param>
+        /// <returns>Целое число.</returns>
+        public static int? TryParseWithNull(this string src)
+        {
+            if (src == null)
+            {
+                return null;
+            }
+            int result;
+            if (int.TryParse(src, out result))
+            {
+                return result;
+            }
+            return null;
+        }
+
+        /// <summary>
         /// Удалить слэш в начале.
         /// </summary>
         /// <param name="src">Исходная строка.</param>
