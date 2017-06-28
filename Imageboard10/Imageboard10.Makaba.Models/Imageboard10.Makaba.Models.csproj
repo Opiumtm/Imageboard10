@@ -110,6 +110,7 @@
     <Compile Include="Posts\MakabaBoardPostCollectionInfoBoardsAdvertisementItem.cs" />
     <Compile Include="Posts\MakabaBoardPostCollectionInfoNewsItem.cs" />
     <Compile Include="Posts\MakabaEntityInfoModel.cs" />
+    <Compile Include="Posts\MakabaThreadUpdatesInfo.cs" />
     <Compile Include="Posts\Serialization\BoardIconContract.cs" />
     <Compile Include="Posts\Serialization\MakabaBoardPostCollectionInfoBoardsAdvertisementItemContract.cs" />
     <Compile Include="Posts\Serialization\MakabaBoardPostCollectionInfoNewsItem.cs" />
@@ -138,6 +139,10 @@
     <ProjectReference Include="..\Imageboard10.Core.Models\Imageboard10.Core.Models.csproj">
       <Project>{66280a62-2409-4222-97a5-54da49f9142f}</Project>
       <Name>Imageboard10.Core.Models</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Imageboard10.Core.NetworkInterface\Imageboard10.Core.NetworkInterface.csproj">
+      <Project>{59f08002-21ba-4913-a6cd-697c982be20e}</Project>
+      <Name>Imageboard10.Core.NetworkInterface</Name>
     </ProjectReference>
     <ProjectReference Include="..\Imageboard10.Core\Imageboard10.Core.csproj">
       <Project>{b9a32628-d7b6-4bda-afe6-47e4ac5af95a}</Project>

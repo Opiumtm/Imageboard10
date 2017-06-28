@@ -36,7 +36,8 @@ namespace Imageboard10.Makaba.Network.JsonParsers
         INetworkDtoParser<ThreadData, IBoardPostCollectionEtag>,
         INetworkDtoParser<BoardPageData, IBoardPageThreadCollection>,
         INetworkDtoParser<ThreadPreviewData, IThreadPreviewPostCollection>,
-        INetworkDtoParser<CatalogData, IBoardPostCollectionEtag>
+        INetworkDtoParser<CatalogData, IBoardPostCollectionEtag>,
+        INetworkDtoParser<CheckUpdatesDataWithLink, IThreadUpdatesInfo>
     {
         private IHtmlParser _htmlParser;
         private IHtmlDocumentFactory _htmlDocumentFactory;
@@ -69,6 +70,7 @@ namespace Imageboard10.Makaba.Network.JsonParsers
             yield return typeof(INetworkDtoParser<BoardPageData, IBoardPageThreadCollection>);
             yield return typeof(INetworkDtoParser<ThreadPreviewData, IThreadPreviewPostCollection>);
             yield return typeof(INetworkDtoParser<CatalogData, IBoardPostCollectionEtag>);
+            yield return typeof(INetworkDtoParser<CheckUpdatesDataWithLink, IThreadUpdatesInfo>);
         }
 
         private const string IpIdRegexText = @"(?:.*)\s+ID:\s+<span\s+class=""postertripid"">(?<id>.*)</span>.*$";
@@ -662,6 +664,22 @@ namespace Imageboard10.Makaba.Network.JsonParsers
                 })).ToList()                
             };
             return result;
+        }
+
+        /// <summary>
+        /// Распарсить.
+        /// </summary>
+        /// <param name="source">Источник.</param>
+        /// <returns>Результат.</returns>
+        public IThreadUpdatesInfo Parse(CheckUpdatesDataWithLink source)
+        {
+            return new MakabaThreadUpdatesInfo()
+            {
+                Link = source.Link,
+                LastPost = source.Link.GetPostLink(source.Data.LastNum),
+                LastUpdate = DatesHelper.FromUnixTime(source.Data.TimeStamp),
+                NumberOfPosts = source.Data.Posts
+            };
         }
     }
 }

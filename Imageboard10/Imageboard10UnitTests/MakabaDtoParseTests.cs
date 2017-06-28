@@ -1148,6 +1148,35 @@ namespace Imageboard10UnitTests
             }
         }
 
+        [TestMethod]
+        public async Task MakabaThreadUpdateInfoParse()
+        {
+            var jsonStr = await TestResources.ReadTestTextFile("mobi_thread_info.json");
+            var dto = JsonConvert.DeserializeObject<CheckUpdatesData>(jsonStr);
+            Assert.IsNotNull(dto, "dto != null");
+            var parser = _provider.FindNetworkDtoParser<CheckUpdatesDataWithLink, IThreadUpdatesInfo>();
+            Assert.IsNotNull(parser, "parser != null");
+            var param = new CheckUpdatesDataWithLink()
+            {
+                Link = new ThreadLink() { Board = "mobi", Engine = MakabaConstants.MakabaEngineId, OpPostNum = 1153568 },
+                Data = dto
+            };
+            var result = parser.Parse(param);
+            Assert.IsNotNull(result, "result != null");
+            Assert.AreEqual(param.Link.GetLinkHash(), result?.Link.GetLinkHash(), "result.Link");
+            Assert.AreEqual((new PostLink()
+            {
+                Engine = MakabaConstants.MakabaEngineId,
+                Board = "mobi",
+                PostNum = 1155354,
+                OpPostNum = 1153568
+            }).GetLinkHash(), result.LastPost?.GetLinkHash(), "result.LastPost");
+            Assert.AreEqual(286, result.NumberOfPosts);
+            var expectedDate = new DateTime(2017, 6, 27, 21, 42, 37, DateTimeKind.Utc).ToLocalTime();
+            DateTimeOffset expectedDateOffset = expectedDate;
+            Assert.AreEqual(expectedDateOffset, result.LastUpdate, "result.LastUpdate");
+        }
+
         private void AssertCollectionInfo<T>(IBoardPostCollectionInfoSet infoSet, Action<T> asserts)
             where T : class, IBoardPostCollectionInfo
         {

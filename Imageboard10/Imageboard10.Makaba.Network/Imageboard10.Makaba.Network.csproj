@@ -127,6 +127,7 @@
     <Compile Include="Json\CatalogEntity.cs" />
     <Compile Include="Json\CheckUpdatesData.cs" />
     <Compile Include="Json\DtoParam\CatalogData.cs" />
+    <Compile Include="Json\DtoParam\CheckUpdatesDataWithLink.cs" />
     <Compile Include="Json\DtoParam\ThreadData.cs" />
     <Compile Include="Json\DtoParam\ThreadPreviewData.cs" />
     <Compile Include="Json\MakabaMediaTypes.cs" />

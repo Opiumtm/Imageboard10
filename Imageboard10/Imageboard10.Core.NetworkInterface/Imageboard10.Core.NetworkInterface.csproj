@@ -122,6 +122,7 @@
     <Compile Include="INetworkEngineDescription.cs" />
     <Compile Include="INetworkEngineRegistration.cs" />
     <Compile Include="INetworkUriGetter.cs" />
+    <Compile Include="IThreadUpdatesInfo.cs" />
     <Compile Include="IYoutubeIdService.cs" />
     <Compile Include="NetworkEngineCapabilities.cs" />
     <Compile Include="NetworkProgress.cs" />
