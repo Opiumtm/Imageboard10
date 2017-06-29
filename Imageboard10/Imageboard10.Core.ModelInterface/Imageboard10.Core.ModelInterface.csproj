@@ -140,6 +140,7 @@
     <Compile Include="Posting\IPostingMediaFileCapability.cs" />
     <Compile Include="Posting\PostingFieldSemanticRole.cs" />
     <Compile Include="Posts\BoardPostFlags.cs" />
+    <Compile Include="Posts\IArchiveCollection.cs" />
     <Compile Include="Posts\IBoardLinkPostNode.cs" />
     <Compile Include="Posts\IBoardPageThreadCollection.cs" />
     <Compile Include="Posts\IBoardPost.cs" />
@@ -177,6 +178,7 @@
     <Compile Include="Posts\Store\IBoardPostStoreAccessInfo.cs" />
     <Compile Include="Posts\Store\IFlagUpdateAction.cs" />
     <Compile Include="Posts\Store\IPostStoreEntityIdSearchResult.cs" />
+    <Compile Include="Posts\Store\IArchiveExportService.cs" />
     <Compile Include="Posts\Store\PostStoreEntityType.cs" />
     <Compile Include="Posts\Store\PostStoreLoadMode.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
