@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using Imageboard10.Core.ModelInterface.Links;
 using Imageboard10.Core.ModelInterface.Posts;
+using Imageboard10.Core.ModelInterface.Posts.Store;
 
 namespace Imageboard10.Core.Models.Posts
 {
@@ -10,6 +12,21 @@ namespace Imageboard10.Core.Models.Posts
     /// </summary>
     public class BoardPost : IBoardPost, IBoardPostOnServerCounter
     {
+        /// <summary>
+        /// Тип сущности.
+        /// </summary>
+        public PostStoreEntityType EntityType => PostStoreEntityType.Post;
+
+        /// <summary>
+        /// Идентификатор в хранилище.
+        /// </summary>
+        public Guid? StoreId { get; set; }
+
+        /// <summary>
+        /// Родительская сущность.
+        /// </summary>
+        public Guid? StoreParentId { get; set; }
+
         /// <summary>
         /// Ссылка на пост.
         /// </summary>
@@ -76,6 +93,11 @@ namespace Imageboard10.Core.Models.Posts
         public string UniqueId { get; set; }
 
         /// <summary>
+        /// Последнее время доступа.
+        /// </summary>
+        public DateTimeOffset LastAccess { get; set; }
+
+        /// <summary>
         /// Постер.
         /// </summary>
         public IPosterInfo Poster { get; set; }
@@ -99,6 +121,11 @@ namespace Imageboard10.Core.Models.Posts
         /// Лайки.
         /// </summary>
         public IBoardPostLikes Likes { get; set; }
+
+        /// <summary>
+        /// Превью поста.
+        /// </summary>
+        public IPostMediaWithSize Thumbnail => MediaFiles?.OfType<IPostMediaWithThumbnail>()?.Select(m => m.Thumbnail)?.FirstOrDefault(m => m != null);
 
         /// <summary>
         /// Время загрузки.

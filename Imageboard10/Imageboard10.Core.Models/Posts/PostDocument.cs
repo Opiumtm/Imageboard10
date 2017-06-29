@@ -19,6 +19,12 @@ namespace Imageboard10.Core.Models.Posts
         public Type GetTypeForSerializer() => GetType();
 
         /// <summary>
+        /// Уникальный идентификатор документа.
+        /// </summary>
+        [DataMember]
+        public Guid UniqueId { get; set; }
+
+        /// <summary>
         /// Узлы.
         /// </summary>
         [IgnoreDataMember]

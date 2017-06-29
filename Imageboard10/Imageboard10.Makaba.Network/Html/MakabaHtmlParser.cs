@@ -74,7 +74,7 @@ namespace Imageboard10.Makaba.Network.Html
                 .Run()
                 .Nodes;
 
-            return new PostDocument() { Nodes = result };
+            return new PostDocument() { Nodes = result, UniqueId = Guid.NewGuid() };
         }
 
         private ParseContext CreateLinkAttrNode(IHtmlNode node, ParseContext res)

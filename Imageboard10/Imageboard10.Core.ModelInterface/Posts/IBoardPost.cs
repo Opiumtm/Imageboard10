@@ -7,18 +7,8 @@ namespace Imageboard10.Core.ModelInterface.Posts
     /// <summary>
     /// Пост на доске.
     /// </summary>
-    public interface IBoardPost
+    public interface IBoardPost : IBoardPostLight
     {
-        /// <summary>
-        /// Ссылка на пост.
-        /// </summary>
-        ILink Link { get; }
-
-        /// <summary>
-        /// Родительская ссылка.
-        /// </summary>
-        ILink ParentLink { get; }
-
         /// <summary>
         /// Комментарий.
         /// </summary>
@@ -35,31 +25,6 @@ namespace Imageboard10.Core.ModelInterface.Posts
         IList<IPostMedia> MediaFiles { get; }
 
         /// <summary>
-        /// Заголовок.
-        /// </summary>
-        string Subject { get; }
-
-        /// <summary>
-        /// Дата, как она отображается на доске.
-        /// </summary>
-        string BoardSpecificDate { get; }
-
-        /// <summary>
-        /// Дата поста.
-        /// </summary>
-        DateTimeOffset Date { get; }
-
-        /// <summary>
-        /// Порядковый номер поста.
-        /// </summary>
-        int Counter { get; }
-
-        /// <summary>
-        /// Флаги поста.
-        /// </summary>
-        IList<Guid> Flags { get; }
-
-        /// <summary>
         /// MD5-хэш, если есть.
         /// </summary>
         string Hash { get; }
@@ -70,14 +35,14 @@ namespace Imageboard10.Core.ModelInterface.Posts
         string Email { get; }
 
         /// <summary>
-        /// Уникальный идентификатор.
-        /// </summary>
-        string UniqueId { get; }
-
-        /// <summary>
         /// Постер.
         /// </summary>
         IPosterInfo Poster { get; }
+
+        /// <summary>
+        /// Время, когда был загружен пост.
+        /// </summary>
+        DateTimeOffset LoadedTime { get; }
 
         /// <summary>
         /// Иконка.
@@ -90,18 +55,13 @@ namespace Imageboard10.Core.ModelInterface.Posts
         IBoardPostCountryFlag Country { get; }
 
         /// <summary>
-        /// Тэги.
+        /// Уникальный идентификатор.
         /// </summary>
-        IBoardPostTags Tags { get; }
+        string UniqueId { get; }
 
         /// <summary>
-        /// Лайки.
+        /// Последнее время доступа.
         /// </summary>
-        IBoardPostLikes Likes { get; }
-
-        /// <summary>
-        /// Время, когда был загружен пост.
-        /// </summary>
-        DateTimeOffset LoadedTime { get; }
+        DateTimeOffset LastAccess { get; set; }
     }
 }

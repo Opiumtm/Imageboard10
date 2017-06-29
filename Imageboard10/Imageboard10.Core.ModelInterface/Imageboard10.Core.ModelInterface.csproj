@@ -146,9 +146,13 @@
     <Compile Include="Posts\IBoardPostCollection.cs" />
     <Compile Include="Posts\IBoardPostCollectionEtag.cs" />
     <Compile Include="Posts\IBoardPostCollectionInfo.cs" />
+    <Compile Include="Posts\IBoardPostCollectionUpdateInfo.cs" />
     <Compile Include="Posts\IBoardPostCountryFlag.cs" />
+    <Compile Include="Posts\IBoardPostEntity.cs" />
     <Compile Include="Posts\IBoardPostIcon.cs" />
+    <Compile Include="Posts\IBoardPostLight.cs" />
     <Compile Include="Posts\IBoardPostOnServerCounter.cs" />
+    <Compile Include="Posts\Store\IBoardPostLikesStoreInfo.cs" />
     <Compile Include="Posts\Store\IBoardPostStore.cs" />
     <Compile Include="Posts\IBoardPostTags.cs" />
     <Compile Include="Posts\IBoardPostLikes.cs" />
@@ -170,6 +174,11 @@
     <Compile Include="Posts\PostBasicAttributes.cs" />
     <Compile Include="Posts\PostCollectionFlags.cs" />
     <Compile Include="Posts\PostMediaTypes.cs" />
+    <Compile Include="Posts\Store\IBoardPostStoreAccessInfo.cs" />
+    <Compile Include="Posts\Store\IFlagUpdateAction.cs" />
+    <Compile Include="Posts\Store\IPostStoreEntityIdSearchResult.cs" />
+    <Compile Include="Posts\Store\PostStoreEntityType.cs" />
+    <Compile Include="Posts\Store\PostStoreLoadMode.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

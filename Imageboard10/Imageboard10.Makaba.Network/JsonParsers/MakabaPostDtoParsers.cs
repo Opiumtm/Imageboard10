@@ -11,6 +11,7 @@ using Imageboard10.Core;
 using Imageboard10.Core.ModelInterface.Boards;
 using Imageboard10.Core.ModelInterface.Links;
 using Imageboard10.Core.ModelInterface.Posts;
+using Imageboard10.Core.ModelInterface.Posts.Store;
 using Imageboard10.Core.Models.Boards;
 using Imageboard10.Core.Models.Links;
 using Imageboard10.Core.Models.Links.LinkTypes;
@@ -249,7 +250,8 @@ namespace Imageboard10.Makaba.Network.JsonParsers
                 UniqueId = Guid.NewGuid().ToString(),
                 Likes = likes,
                 LoadedTime = source.LoadedTime,
-                OnServerCounter = source.Post.CountNumber
+                OnServerCounter = source.Post.CountNumber,
+                LastAccess = DateTimeOffset.Now
             };
             if (data.Files != null)
             {
@@ -449,6 +451,7 @@ namespace Imageboard10.Makaba.Network.JsonParsers
             }
             var result = new BoardPostCollection()
             {
+                EntityType = PostStoreEntityType.Thread,
                 Etag = source.Etag,
                 Info = null,
                 Link = source.Link,
@@ -484,6 +487,7 @@ namespace Imageboard10.Makaba.Network.JsonParsers
             })).ToArray();
             return new BoardPostCollection()
             {
+                EntityType = PostStoreEntityType.Thread,
                 Link = source.Link,
                 ParentLink = source.Link.GetBoardLink(),
                 Etag = source.Etag,
@@ -591,6 +595,7 @@ namespace Imageboard10.Makaba.Network.JsonParsers
         {
             return new BoardPageThreadCollection()
             {
+                EntityType = PostStoreEntityType.BoardPage,
                 Link = source.Link,
                 ParentLink = source.Link.GetRootLink(),
                 Info = GetEntityModel(source.Entity, source.Link),
@@ -620,6 +625,7 @@ namespace Imageboard10.Makaba.Network.JsonParsers
             var posts = source.Thread.Posts.OrderBy(p => p.Number.TryParseWithDefault());
             var result = new ThreadPreviewPostCollection()
             {
+                EntityType = PostStoreEntityType.ThreadPreview,
                 Info = null,
                 Link = source.Link,
                 ParentLink = source.Link?.GetBoardLink(),
@@ -650,6 +656,7 @@ namespace Imageboard10.Makaba.Network.JsonParsers
             var posts = source.Entity.Threads.OrderBy(p => p.Number.TryParseWithDefault());
             var result = new BoardPostCollection()
             {
+                EntityType = PostStoreEntityType.Catalog,
                 Etag = source.Etag,
                 Info = GetEntityModel(source.Entity, source.Link),
                 Link = source.Link,

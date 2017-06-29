@@ -69,6 +69,6 @@ namespace Imageboard10.Core.Models.Links.LinkTypes
         /// Получить идентификатор, "дружественный" файловой системе.
         /// </summary>
         /// <returns>Идентификатор.</returns>
-        public override string GetFilesystemFriendlyId() => $"media-{Engine}-{Utility.StringHashCache.GetHashId((Uri ?? "").ToLowerInvariant())}";
+        public override string GetFilesystemFriendlyId() => $"enginemedia-{Engine}-{Utility.StringHashCache.GetHashId((Uri ?? "").ToLowerInvariant())}";
     }
 }

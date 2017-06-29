@@ -6,18 +6,8 @@ namespace Imageboard10.Core.ModelInterface.Posts
     /// <summary>
     /// Коллекция тредов.
     /// </summary>
-    public interface IBoardPageThreadCollection
+    public interface IBoardPageThreadCollection : IBoardPostEntity
     {
-        /// <summary>
-        /// Ссылка.
-        /// </summary>
-        ILink Link { get; }
-
-        /// <summary>
-        /// Родительская ссылка.
-        /// </summary>
-        ILink ParentLink { get; }
-
         /// <summary>
         /// Посты.
         /// </summary>

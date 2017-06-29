@@ -1,18 +1,17 @@
 ﻿using System;
 using Imageboard10.Core.ModelInterface.Links;
-using Imageboard10.Core.ModelInterface.Posts;
 
-namespace Imageboard10.Core.NetworkInterface
+namespace Imageboard10.Core.ModelInterface.Posts
 {
     /// <summary>
     /// Информация об обновлениях треда.
     /// </summary>
-    public interface IThreadUpdatesInfo
+    public interface IBoardPostCollectionUpdateInfo
     {
         /// <summary>
         /// Идентификатор.
         /// </summary>
-        ILink Link { get; }
+        Guid Id { get; }
 
         /// <summary>
         /// Последний пост.

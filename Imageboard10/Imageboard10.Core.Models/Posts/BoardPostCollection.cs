@@ -1,6 +1,9 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using Imageboard10.Core.ModelInterface.Links;
 using Imageboard10.Core.ModelInterface.Posts;
+using Imageboard10.Core.ModelInterface.Posts.Store;
 
 namespace Imageboard10.Core.Models.Posts
 {
@@ -10,6 +13,21 @@ namespace Imageboard10.Core.Models.Posts
     public class BoardPostCollection : IBoardPostCollection, IBoardPostCollectionEtag
     {
         /// <summary>
+        /// Тип сущности.
+        /// </summary>
+        public PostStoreEntityType EntityType { get; set; }
+
+        /// <summary>
+        /// Идентификатор в хранилище.
+        /// </summary>
+        public Guid? StoreId { get; set; }
+
+        /// <summary>
+        /// Родительская сущность.
+        /// </summary>
+        public Guid? StoreParentId { get; set; }
+
+        /// <summary>
         /// Ссылка.
         /// </summary>
         public ILink Link { get; set; }
@@ -18,6 +36,26 @@ namespace Imageboard10.Core.Models.Posts
         /// Родительская ссылка.
         /// </summary>
         public ILink ParentLink { get; set; }
+
+        /// <summary>
+        /// Предварительно загруженный заголовок.
+        /// </summary>
+        public string SubjectPreload { get; set; }
+
+        /// <summary>
+        /// Заголовок.
+        /// </summary>
+        public string Subject => SubjectPreload ?? Posts?.FirstOrDefault()?.Subject;
+
+        /// <summary>
+        /// Предварительно загруженное превью.
+        /// </summary>
+        public IPostMediaWithSize ThumbnailPreload { get; set; }
+
+        /// <summary>
+        /// Превью поста.
+        /// </summary>
+        public IPostMediaWithSize Thumbnail => ThumbnailPreload ?? Posts?.FirstOrDefault()?.Thumbnail;
 
         /// <summary>
         /// Посты.
