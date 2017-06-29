@@ -96,5 +96,10 @@ namespace Imageboard10.Core.ModelInterface.Posts
         /// Тред закрыт.
         /// </summary>
         public static Guid IsClosed { get; } = new Guid("{D00DA93C-4FD3-4146-BB2B-DEFABA8DDA3D}");
+
+        /// <summary>
+        /// Мой тред.
+        /// </summary>
+        public static Guid MyThread { get; } = new Guid("{E35C75E3-F8CA-4B7D-AB4E-653AC63BEEA6}");
     }
 }
