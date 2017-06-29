@@ -67,5 +67,10 @@ namespace Imageboard10.Core.ModelInterface.Posts.Store
         /// ETAG.
         /// </summary>
         string Etag { get; }
+
+        /// <summary>
+        /// Занесено в архив.
+        /// </summary>
+        bool IsArchived { get; }
     }
 }

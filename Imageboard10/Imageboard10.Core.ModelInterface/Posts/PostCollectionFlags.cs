@@ -101,5 +101,10 @@ namespace Imageboard10.Core.ModelInterface.Posts
         /// Мой тред.
         /// </summary>
         public static Guid MyThread { get; } = new Guid("{E35C75E3-F8CA-4B7D-AB4E-653AC63BEEA6}");
+
+        /// <summary>
+        /// Занесено в архив.
+        /// </summary>
+        public static Guid IsArchived { get; } = new Guid("{3591FB68-0E96-4425-999C-ED035825CBB2}");
     }
 }
