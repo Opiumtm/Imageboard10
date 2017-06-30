@@ -176,11 +176,14 @@
     <Compile Include="Posts\PostCollectionFlags.cs" />
     <Compile Include="Posts\PostMediaTypes.cs" />
     <Compile Include="Posts\Store\IBoardPostStoreAccessInfo.cs" />
+    <Compile Include="Posts\Store\IBoardPostStoreAccessLogItem.cs" />
     <Compile Include="Posts\Store\IFlagUpdateAction.cs" />
+    <Compile Include="Posts\Store\PostStoreAccessLogQuery.cs" />
     <Compile Include="Posts\Store\IPostStoreEntityIdSearchResult.cs" />
     <Compile Include="Posts\Store\IArchiveExportService.cs" />
     <Compile Include="Posts\Store\PostStoreEntityType.cs" />
     <Compile Include="Posts\Store\PostStoreLoadMode.cs" />
+    <Compile Include="Posts\Store\IPostStoreStaleDataClearPolicy.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
@@ -188,7 +191,12 @@
       <Version>5.3.3</Version>
     </PackageReference>
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <ProjectReference Include="..\Imageboard10.ModuleInterface\Imageboard10.ModuleInterface.csproj">
+      <Project>{62d7a5d8-0866-4199-8763-ef81096f4a71}</Project>
+      <Name>Imageboard10.ModuleInterface</Name>
+    </ProjectReference>
+  </ItemGroup>
   <PropertyGroup Condition=" '$(VisualStudioVersion)' == '' or '$(VisualStudioVersion)' &lt; '14.0' ">
     <VisualStudioVersion>14.0</VisualStudioVersion>
   </PropertyGroup>

@@ -1,5 +1,6 @@
 ﻿using System.Threading;
 using Windows.Foundation;
+using Imageboard10.ModuleInterface;
 
 namespace Imageboard10.Core.NetworkInterface
 {
@@ -12,6 +13,6 @@ namespace Imageboard10.Core.NetworkInterface
         /// Выполнить операцию.
         /// </summary>
         /// <returns>Результат.</returns>
-        IAsyncOperationWithProgress<IBoardsListResult, NetworkProgress> Run();
+        IAsyncOperationWithProgress<IBoardsListResult, OperationProgress> Run();
     }
 }

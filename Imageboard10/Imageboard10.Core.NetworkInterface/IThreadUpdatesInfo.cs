@@ -1,6 +1,5 @@
 ﻿using System;
 using Imageboard10.Core.ModelInterface.Links;
-using Imageboard10.Core.ModelInterface.Posts;
 
 namespace Imageboard10.Core.NetworkInterface
 {

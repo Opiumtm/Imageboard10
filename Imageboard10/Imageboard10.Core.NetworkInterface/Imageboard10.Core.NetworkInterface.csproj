@@ -125,7 +125,6 @@
     <Compile Include="IThreadUpdatesInfo.cs" />
     <Compile Include="IYoutubeIdService.cs" />
     <Compile Include="NetworkEngineCapabilities.cs" />
-    <Compile Include="NetworkProgress.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

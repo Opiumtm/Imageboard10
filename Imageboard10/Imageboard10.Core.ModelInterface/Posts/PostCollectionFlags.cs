@@ -106,5 +106,10 @@ namespace Imageboard10.Core.ModelInterface.Posts
         /// Занесено в архив.
         /// </summary>
         public static Guid IsArchived { get; } = new Guid("{3591FB68-0E96-4425-999C-ED035825CBB2}");
+
+        /// <summary>
+        /// Находится в избранном.
+        /// </summary>
+        public static Guid IsFavorite { get; } = new Guid("{864FA04B-CD3B-44CD-87F1-9B5848FB6865}");
     }
 }

@@ -114,6 +114,7 @@
     <Compile Include="IModuleLifetimeEvents.cs" />
     <Compile Include="IModuleProvider.cs" />
     <Compile Include="ModuleLifetimeEventHandler.cs" />
+    <Compile Include="OperationProgress.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

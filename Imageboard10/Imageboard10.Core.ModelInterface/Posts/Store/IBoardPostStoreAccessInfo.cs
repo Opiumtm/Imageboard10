@@ -6,23 +6,8 @@ namespace Imageboard10.Core.ModelInterface.Posts.Store
     /// <summary>
     /// Информация о доступе.
     /// </summary>
-    public interface IBoardPostStoreAccessInfo
+    public interface IBoardPostStoreAccessInfo : IBoardPostStoreAccessLogItem
     {
-        /// <summary>
-        /// Ссылка на коллекцию.
-        /// </summary>
-        ILink Link { get; }
-
-        /// <summary>
-        /// Идентификатор.
-        /// </summary>
-        Guid Id { get; }
-
-        /// <summary>
-        /// Тип сущности.
-        /// </summary>
-        PostStoreEntityType EntityType { get; }
-
         /// <summary>
         /// Последнее обновление.
         /// </summary>
@@ -32,11 +17,6 @@ namespace Imageboard10.Core.ModelInterface.Posts.Store
         /// Последняя загрузка.
         /// </summary>
         DateTimeOffset LastDownload { get; }
-
-        /// <summary>
-        /// Время доступа.
-        /// </summary>
-        DateTimeOffset AccessTime { get; }
 
         /// <summary>
         /// Количество постов.
@@ -72,5 +52,10 @@ namespace Imageboard10.Core.ModelInterface.Posts.Store
         /// Занесено в архив.
         /// </summary>
         bool IsArchived { get; }
+
+        /// <summary>
+        /// Находится в избранном.
+        /// </summary>
+        bool IsFavorite { get; }
     }
 }

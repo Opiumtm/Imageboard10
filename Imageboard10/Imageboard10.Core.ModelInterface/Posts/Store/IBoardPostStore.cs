@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Windows.Foundation;
 using Windows.Foundation.Metadata;
 using Imageboard10.Core.ModelInterface.Links;
+using Imageboard10.ModuleInterface;
 
 namespace Imageboard10.Core.ModelInterface.Posts.Store
 {
@@ -98,7 +99,7 @@ namespace Imageboard10.Core.ModelInterface.Posts.Store
         IAsyncOperation<IList<IBoardPostStoreAccessInfo>> GetAllAccessInfos();
 
         /// <summary>
-        /// Обновить информация об использовании.
+        /// Обновить информация об использовании. Вызов этого метода производит запись в лог доступа.
         /// </summary>
         /// <param name="id">Идентификатор.</param>
         /// <param name="accessTime">Время использования (null - текущее).</param>
@@ -136,16 +137,9 @@ namespace Imageboard10.Core.ModelInterface.Posts.Store
         /// </summary>
         /// <param name="collection">Коллекция.</param>
         /// <param name="replace">Заменить все посты.</param>
+        /// <param name="cleanupPolicy">Политика зачистки старых данных. Если null - не производить зачистку.</param>
         /// <returns>Идентификатор коллекции.</returns>
-        IAsyncOperation<Guid> SaveCollection(IBoardPostCollection collection, bool replace);
-
-        /// <summary>
-        /// Сохранить коллекцию.
-        /// </summary>
-        /// <param name="collection">Коллекция.</param>
-        /// <param name="replace">Заменить все посты.</param>
-        /// <returns>Идентификатор коллекции.</returns>
-        IAsyncOperation<Guid> SaveThreadCollection(IBoardPageThreadCollection collection, bool replace);
+        IAsyncOperationWithProgress<Guid, OperationProgress> SaveCollection(IBoardPostEntity collection, bool replace, IPostStoreStaleDataClearPolicy cleanupPolicy);
 
         /// <summary>
         /// Загрузить информацию о коллекции.
@@ -228,5 +222,66 @@ namespace Imageboard10.Core.ModelInterface.Posts.Store
         /// Очистить все данные.
         /// </summary>
         IAsyncAction ClearAllData();
+
+        /// <summary>
+        /// Очистить старые данные.
+        /// </summary>
+        /// <param name="policy">Политика удаления старых данных.</param>
+        IAsyncAction ClearStaleData(IPostStoreStaleDataClearPolicy policy);
+
+        /// <summary>
+        /// Очистить незавершённые загрузки.
+        /// </summary>
+        IAsyncAction ClearUnfinishedData();
+
+        /// <summary>
+        /// Загрузить лог последнего доступа.
+        /// </summary>
+        /// <param name="entityType">Тип сущности.</param>
+        /// <param name="query">Запрос.</param>
+        /// <returns>Лог доступа.</returns>
+        IAsyncOperation<IList<IBoardPostStoreAccessLogItem>> GetAccessLog(PostStoreEntityType entityType, PostStoreAccessLogQuery query);
+
+        /// <summary>
+        /// Очистить лог доступа.
+        /// </summary>
+        /// <param name="maxAgeSec">Максимальное время нахождения записи в логе в секундах.</param>
+        IAsyncAction ClearAccessLog(double maxAgeSec);
+
+        /// <summary>
+        /// Синхронизировать лог доступа между устройствами.
+        /// </summary>
+        /// <param name="maxLogSize">Максимальный размер лога.</param>
+        IAsyncAction SyncAccessLog(int maxLogSize);
+
+        /// <summary>
+        /// Пометить сущность как открытую в UI.
+        /// </summary>
+        /// <param name="id">Идентификатор.</param>
+        IAsyncAction MarkUiOpen(Guid id);
+
+        /// <summary>
+        /// Убрать пометку сущности как открытую в UI.
+        /// </summary>
+        /// <param name="id">Идентификатор.</param>
+        IAsyncAction MarkUiClose(Guid id);
+
+        /// <summary>
+        /// Получить открытые в UI сущности.
+        /// </summary>
+        /// <returns>Сприсок открытых сущностей.</returns>
+        IAsyncOperation<IList<Guid>> GetUiOpenEntities();
+
+        /// <summary>
+        /// Установить идентификатор инсталляции.
+        /// </summary>
+        /// <param name="id">Новый идентификатор инсталляции.</param>
+        void SetInstallationId(Guid id);
+
+        /// <summary>
+        /// Получить идентификатор инсталляции.
+        /// </summary>
+        /// <returns>Идентификатор инсталляции.</returns>
+        Guid? GetInstallationId();
     }
 }
