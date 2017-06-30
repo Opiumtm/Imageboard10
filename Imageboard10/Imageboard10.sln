@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-VisualStudioVersion = 15.0.26430.13
+VisualStudioVersion = 15.0.26430.14
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Imageboard10", "Imageboard10\Imageboard10.csproj", "{E0A101CC-81B3-40FE-A753-A914F3692D4A}"
 EndProject
@@ -34,6 +34,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Imageboard10.Makaba.Common", "Imageboard10.Makaba.Common\Imageboard10.Makaba.Common.csproj", "{89829E34-005C-462D-8969-041FBA3AACF0}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Imageboard10.Makaba.Models", "Imageboard10.Makaba.Models\Imageboard10.Makaba.Models.csproj", "{8932F030-917A-462D-B9AA-E2ABBA5BE892}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Imageboard10.Core.CrossDeviceInterface", "Imageboard10.Core.CrossDeviceInterface\Imageboard10.Core.CrossDeviceInterface.csproj", "{5DAAB447-21F3-4468-B89F-72606A9AF166}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -263,6 +265,22 @@ Global
 		{8932F030-917A-462D-B9AA-E2ABBA5BE892}.Release|x64.Build.0 = Release|x64
 		{8932F030-917A-462D-B9AA-E2ABBA5BE892}.Release|x86.ActiveCfg = Release|x86
 		{8932F030-917A-462D-B9AA-E2ABBA5BE892}.Release|x86.Build.0 = Release|x86
+		{5DAAB447-21F3-4468-B89F-72606A9AF166}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5DAAB447-21F3-4468-B89F-72606A9AF166}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5DAAB447-21F3-4468-B89F-72606A9AF166}.Debug|ARM.ActiveCfg = Debug|ARM
+		{5DAAB447-21F3-4468-B89F-72606A9AF166}.Debug|ARM.Build.0 = Debug|ARM
+		{5DAAB447-21F3-4468-B89F-72606A9AF166}.Debug|x64.ActiveCfg = Debug|x64
+		{5DAAB447-21F3-4468-B89F-72606A9AF166}.Debug|x64.Build.0 = Debug|x64
+		{5DAAB447-21F3-4468-B89F-72606A9AF166}.Debug|x86.ActiveCfg = Debug|x86
+		{5DAAB447-21F3-4468-B89F-72606A9AF166}.Debug|x86.Build.0 = Debug|x86
+		{5DAAB447-21F3-4468-B89F-72606A9AF166}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5DAAB447-21F3-4468-B89F-72606A9AF166}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5DAAB447-21F3-4468-B89F-72606A9AF166}.Release|ARM.ActiveCfg = Release|ARM
+		{5DAAB447-21F3-4468-B89F-72606A9AF166}.Release|ARM.Build.0 = Release|ARM
+		{5DAAB447-21F3-4468-B89F-72606A9AF166}.Release|x64.ActiveCfg = Release|x64
+		{5DAAB447-21F3-4468-B89F-72606A9AF166}.Release|x64.Build.0 = Release|x64
+		{5DAAB447-21F3-4468-B89F-72606A9AF166}.Release|x86.ActiveCfg = Release|x86
+		{5DAAB447-21F3-4468-B89F-72606A9AF166}.Release|x86.Build.0 = Release|x86
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -280,5 +298,6 @@ Global
 		{357B09C0-3CF7-4B1B-A245-3DF0B6337EF7} = {A9F45F7F-545C-46C1-A9BF-9323883F351B}
 		{89829E34-005C-462D-8969-041FBA3AACF0} = {44A03434-27F5-4D8F-A8E2-D7A0C4A27E2B}
 		{8932F030-917A-462D-B9AA-E2ABBA5BE892} = {44A03434-27F5-4D8F-A8E2-D7A0C4A27E2B}
+		{5DAAB447-21F3-4468-B89F-72606A9AF166} = {A9F45F7F-545C-46C1-A9BF-9323883F351B}
 	EndGlobalSection
 EndGlobal

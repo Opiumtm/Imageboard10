@@ -251,37 +251,7 @@ namespace Imageboard10.Core.ModelInterface.Posts.Store
         /// <summary>
         /// Синхронизировать лог доступа между устройствами.
         /// </summary>
-        /// <param name="maxLogSize">Максимальный размер лога.</param>
-        IAsyncAction SyncAccessLog(int maxLogSize);
-
-        /// <summary>
-        /// Пометить сущность как открытую в UI.
-        /// </summary>
-        /// <param name="id">Идентификатор.</param>
-        IAsyncAction MarkUiOpen(Guid id);
-
-        /// <summary>
-        /// Убрать пометку сущности как открытую в UI.
-        /// </summary>
-        /// <param name="id">Идентификатор.</param>
-        IAsyncAction MarkUiClose(Guid id);
-
-        /// <summary>
-        /// Получить открытые в UI сущности.
-        /// </summary>
-        /// <returns>Сприсок открытых сущностей.</returns>
-        IAsyncOperation<IList<Guid>> GetUiOpenEntities();
-
-        /// <summary>
-        /// Установить идентификатор инсталляции.
-        /// </summary>
-        /// <param name="id">Новый идентификатор инсталляции.</param>
-        void SetInstallationId(Guid id);
-
-        /// <summary>
-        /// Получить идентификатор инсталляции.
-        /// </summary>
-        /// <returns>Идентификатор инсталляции.</returns>
-        Guid? GetInstallationId();
+        /// <param name="accessLog">Лог доступа из внешнего источника.</param>
+        IAsyncAction SyncAccessLog(IList<IBoardPostStoreAccessLogItem> accessLog);
     }
 }
