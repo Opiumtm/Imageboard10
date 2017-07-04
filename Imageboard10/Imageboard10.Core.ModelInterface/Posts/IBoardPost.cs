@@ -58,10 +58,5 @@ namespace Imageboard10.Core.ModelInterface.Posts
         /// Уникальный идентификатор.
         /// </summary>
         string UniqueId { get; }
-
-        /// <summary>
-        /// Последнее время доступа.
-        /// </summary>
-        DateTimeOffset LastAccess { get; set; }
     }
 }

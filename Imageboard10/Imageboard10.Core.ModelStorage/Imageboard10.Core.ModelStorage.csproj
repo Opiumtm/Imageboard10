@@ -122,6 +122,9 @@
     <Compile Include="Boards\BoardReferenceStore.cs" />
     <Compile Include="Boards\DataContracts\BoardExtendedInfo.cs" />
     <Compile Include="Boards\DataContracts\BoardShortInfo.cs" />
+    <Compile Include="IndexDefinition.cs" />
+    <Compile Include="Posts\PostModelStore.cs" />
+    <Compile Include="Posts\PostModelStoreDefs.cs" />
     <Compile Include="UnitTests\BlobStreamInfo.cs" />
     <Compile Include="UnitTests\IBoardReferenceStoreForTests.cs" />
     <Compile Include="UnitTests\IModelStorageForTests.cs" />

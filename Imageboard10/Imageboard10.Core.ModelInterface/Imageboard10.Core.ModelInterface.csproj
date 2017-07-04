@@ -153,6 +153,7 @@
     <Compile Include="Posts\IBoardPostIcon.cs" />
     <Compile Include="Posts\IBoardPostLight.cs" />
     <Compile Include="Posts\IBoardPostOnServerCounter.cs" />
+    <Compile Include="Posts\Store\FlagUpdateOperation.cs" />
     <Compile Include="Posts\Store\IBoardPostLikesStoreInfo.cs" />
     <Compile Include="Posts\Store\IBoardPostStore.cs" />
     <Compile Include="Posts\IBoardPostTags.cs" />
@@ -177,13 +178,13 @@
     <Compile Include="Posts\PostMediaTypes.cs" />
     <Compile Include="Posts\Store\IBoardPostStoreAccessInfo.cs" />
     <Compile Include="Posts\Store\IBoardPostStoreAccessLogItem.cs" />
-    <Compile Include="Posts\Store\IFlagUpdateAction.cs" />
+    <Compile Include="Posts\Store\FlagUpdateAction.cs" />
     <Compile Include="Posts\Store\PostStoreAccessLogQuery.cs" />
     <Compile Include="Posts\Store\IPostStoreEntityIdSearchResult.cs" />
     <Compile Include="Posts\Store\IArchiveExportService.cs" />
     <Compile Include="Posts\Store\PostStoreEntityType.cs" />
     <Compile Include="Posts\Store\PostStoreLoadMode.cs" />
-    <Compile Include="Posts\Store\IPostStoreStaleDataClearPolicy.cs" />
+    <Compile Include="Posts\Store\PostStoreStaleDataClearPolicy.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

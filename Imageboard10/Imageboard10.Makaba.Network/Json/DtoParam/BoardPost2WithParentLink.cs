@@ -1,4 +1,5 @@
 ﻿using System;
+using Imageboard10.Core.ModelInterface.Posts.Store;
 using Imageboard10.Core.Models.Links.LinkTypes;
 
 namespace Imageboard10.Makaba.Network.Json
@@ -17,12 +18,7 @@ namespace Imageboard10.Makaba.Network.Json
         /// Ссылка на тред.
         /// </summary>
         public ThreadLink ParentLink;
-
-        /// <summary>
-        /// Предварительный просмотр треда.
-        /// </summary>
-        public bool IsPreview;
-
+       
         /// <summary>
         /// Порядковый номер поста в треде.
         /// </summary>
@@ -32,5 +28,10 @@ namespace Imageboard10.Makaba.Network.Json
         /// Время загрузки.
         /// </summary>
         public DateTimeOffset LoadedTime;
+
+        /// <summary>
+        /// Тип сущности.
+        /// </summary>
+        public PostStoreEntityType EntityType;
     }
 }

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 
 namespace Imageboard10.Core.ModelInterface.Posts.Store
 {
@@ -33,8 +34,13 @@ namespace Imageboard10.Core.ModelInterface.Posts.Store
         public DateTimeOffset? To { get; set; }
 
         /// <summary>
-        /// Фильтровать избранное. null - не рассматривать этот флаг.
+        /// С флагами.
         /// </summary>
-        public bool? FilterFavorites { get; set; }
+        public IList<Guid> WithFlags { get; set; }
+
+        /// <summary>
+        /// Без флагов.
+        /// </summary>
+        public IList<Guid> WithoutFlags { get; set; }
     }
 }

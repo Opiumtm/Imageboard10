@@ -40,7 +40,7 @@ namespace Imageboard10.Core.ModelInterface.Posts
         string Subject { get; }
 
         /// <summary>
-        /// Превью поста.
+        /// Превью картинки поста.
         /// </summary>
         IPostMediaWithSize Thumbnail { get; }
     }

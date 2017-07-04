@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 using System.Xml;
@@ -587,5 +588,29 @@ namespace Imageboard10.Core.ModelStorage
         {
             return WaitForTablesInitialize();
         }
+
+        /// <summary>
+        /// Создать индекс.
+        /// </summary>
+        /// <param name="sid">Сессия.</param>
+        /// <param name="tableid">Идентификатор таблицы.</param>
+        /// <param name="tableName">Имя таблицы.</param>
+        /// <param name="indexName">Имя индекса.</param>
+        /// <param name="definition">Описание индекса.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        protected void CreateIndex(Session sid, JET_TABLEID tableid, string tableName, string indexName, IndexDefinition definition)
+        {
+            var def = definition.IndexDef();
+            Api.JetCreateIndex(sid, tableid, GetIndexName(tableName, indexName), definition.Grbit, def, def.Length, 100);
+        }
+
+        /// <summary>
+        /// Получить имя индекса.
+        /// </summary>
+        /// <param name="tableName">Имя таблицы.</param>
+        /// <param name="indexName">Имя индекса.</param>
+        /// <returns></returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        protected string GetIndexName(string tableName, string indexName) => $"IX_{tableName}_{indexName}";
     }
 }

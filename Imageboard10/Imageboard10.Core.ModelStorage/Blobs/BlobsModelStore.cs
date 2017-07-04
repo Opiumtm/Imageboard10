@@ -33,7 +33,14 @@ namespace Imageboard10.Core.ModelStorage.Blobs
             await EnsureTable(BlobsTable, 1, InitializeBlobsTable, null);
             await EnsureTable(ReferencesTable, 1, InitializeReferencesTable, null);
             _filestreamFolder = await CreateFilestreamTable();
-            await DoDeleteAllUncompletedBlobs();
+            try
+            {
+                await DoDeleteAllUncompletedBlobs();
+            }
+            catch (Exception e)
+            {
+                GlobalErrorHandler?.SignalError(e);
+            }
             return Nothing.Value;
         }
 

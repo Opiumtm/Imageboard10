@@ -89,7 +89,7 @@ namespace Imageboard10.Makaba.Network.JsonParsers
         {
             var data = source.Post;
             var link = source.ParentLink;
-            var isPreview = source.IsPreview;
+            var isPreview = source.EntityType != PostStoreEntityType.Post;
 
             var ipIdRegex = RegexCache.CreateRegex(IpIdRegexText);
             var ipIdRegex2 = RegexCache.CreateRegex(IpIdRegexText2);
@@ -251,7 +251,6 @@ namespace Imageboard10.Makaba.Network.JsonParsers
                 Likes = likes,
                 LoadedTime = source.LoadedTime,
                 OnServerCounter = source.Post.CountNumber,
-                LastAccess = DateTimeOffset.Now
             };
             if (data.Files != null)
             {
@@ -461,8 +460,8 @@ namespace Imageboard10.Makaba.Network.JsonParsers
                     Counter = p.Key,
                     ParentLink = new ThreadLink() { Board = source.Link.Board, Engine = source.Link.Engine, OpPostNum = source.Link.OpPostNum },
                     Post = p.Value,
-                    IsPreview = false,
                     LoadedTime = source.LoadedTime,                    
+                    EntityType = PostStoreEntityType.Post
                 })).ToList()
             };
             return result;
@@ -482,7 +481,7 @@ namespace Imageboard10.Makaba.Network.JsonParsers
                 ParentLink = source.Link,
                 Counter = c.Key,
                 Post = c.Value,
-                IsPreview = false,
+                EntityType = PostStoreEntityType.Post,
                 LoadedTime = source.LoadedTime
             })).ToArray();
             return new BoardPostCollection()
@@ -634,7 +633,7 @@ namespace Imageboard10.Makaba.Network.JsonParsers
                     Counter = p.Key,
                     ParentLink = new ThreadLink() { Board = source.Link.Board, Engine = source.Link.Engine, OpPostNum = source.Link.OpPostNum },
                     Post = p.Value,
-                    IsPreview = true,
+                    EntityType = PostStoreEntityType.ThreadPreviewPost,
                     LoadedTime = source.LoadedTime,
                 })).ToList(),
                 Etag = source.Etag,
@@ -666,7 +665,7 @@ namespace Imageboard10.Makaba.Network.JsonParsers
                     Counter = p.Key,
                     ParentLink = new ThreadLink() { Board = source.Link.Board, Engine = source.Link.Engine, OpPostNum = p.Value.Number.TryParseWithDefault() },
                     Post = p.Value,
-                    IsPreview = true,
+                    EntityType = PostStoreEntityType.CatalogPost,
                     LoadedTime = source.LoadedTime,
                 })).ToList()                
             };

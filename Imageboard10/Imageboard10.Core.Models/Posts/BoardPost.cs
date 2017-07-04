@@ -93,11 +93,6 @@ namespace Imageboard10.Core.Models.Posts
         public string UniqueId { get; set; }
 
         /// <summary>
-        /// Последнее время доступа.
-        /// </summary>
-        public DateTimeOffset LastAccess { get; set; }
-
-        /// <summary>
         /// Постер.
         /// </summary>
         public IPosterInfo Poster { get; set; }

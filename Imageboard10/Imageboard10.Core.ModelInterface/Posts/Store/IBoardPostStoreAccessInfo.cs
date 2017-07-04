@@ -11,17 +11,17 @@ namespace Imageboard10.Core.ModelInterface.Posts.Store
         /// <summary>
         /// Последнее обновление.
         /// </summary>
-        DateTimeOffset LastUpdate { get; }
+        DateTimeOffset? LastUpdate { get; }
 
         /// <summary>
         /// Последняя загрузка.
         /// </summary>
-        DateTimeOffset LastDownload { get; }
+        DateTimeOffset? LastDownload { get; }
 
         /// <summary>
         /// Количество постов.
         /// </summary>
-        int NumberOfPosts { get; }
+        int? NumberOfPosts { get; }
 
         /// <summary>
         /// Количество загруженных постов.
@@ -31,7 +31,7 @@ namespace Imageboard10.Core.ModelInterface.Posts.Store
         /// <summary>
         /// Количество прочитанных постов.
         /// </summary>
-        int NumberOfReadPosts { get; }
+        int? NumberOfReadPosts { get; }
 
         /// <summary>
         /// Последний пост.

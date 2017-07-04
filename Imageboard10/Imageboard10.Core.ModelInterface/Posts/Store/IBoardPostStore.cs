@@ -139,7 +139,7 @@ namespace Imageboard10.Core.ModelInterface.Posts.Store
         /// <param name="replace">Заменить все посты.</param>
         /// <param name="cleanupPolicy">Политика зачистки старых данных. Если null - не производить зачистку.</param>
         /// <returns>Идентификатор коллекции.</returns>
-        IAsyncOperationWithProgress<Guid, OperationProgress> SaveCollection(IBoardPostEntity collection, bool replace, IPostStoreStaleDataClearPolicy cleanupPolicy);
+        IAsyncOperationWithProgress<Guid, OperationProgress> SaveCollection(IBoardPostEntity collection, bool replace, PostStoreStaleDataClearPolicy cleanupPolicy);
 
         /// <summary>
         /// Загрузить информацию о коллекции.
@@ -164,9 +164,8 @@ namespace Imageboard10.Core.ModelInterface.Posts.Store
         /// <summary>
         /// Обновить флаги сущности.
         /// </summary>
-        /// <param name="id">Идентификатор.</param>
         /// <param name="flags">Флаги.</param>
-        IAsyncAction UpdateFlags(Guid id, IList<IFlagUpdateAction> flags);
+        IAsyncAction UpdateFlags(IList<FlagUpdateAction> flags);
 
         /// <summary>
         /// Загрузить флаги сущности.
@@ -189,14 +188,14 @@ namespace Imageboard10.Core.ModelInterface.Posts.Store
         IAsyncOperation<PostStoreEntityType> GetCollectionType(Guid collectionId);
 
         /// <summary>
-        /// Получить количества медиа-файлов сущности (рекурсивно).
+        /// Получить количество медиа-файлов сущности (рекурсивно).
         /// </summary>
         /// <param name="id">Идентификатор.</param>
         /// <returns>Количество.</returns>
         IAsyncOperation<int> GetMediaCount(Guid id);
         
         /// <summary>
-        /// Получить медиафайлы поста (рекурсивно).
+        /// Получить медиафайлы сущности (рекурсивно).
         /// </summary>
         /// <param name="id">Идентификатор.</param>
         /// <param name="skip">Сколько пропустить.</param>
@@ -227,7 +226,7 @@ namespace Imageboard10.Core.ModelInterface.Posts.Store
         /// Очистить старые данные.
         /// </summary>
         /// <param name="policy">Политика удаления старых данных.</param>
-        IAsyncAction ClearStaleData(IPostStoreStaleDataClearPolicy policy);
+        IAsyncAction ClearStaleData(PostStoreStaleDataClearPolicy policy);
 
         /// <summary>
         /// Очистить незавершённые загрузки.
@@ -237,11 +236,20 @@ namespace Imageboard10.Core.ModelInterface.Posts.Store
         /// <summary>
         /// Загрузить лог последнего доступа.
         /// </summary>
-        /// <param name="entityType">Тип сущности.</param>
         /// <param name="query">Запрос.</param>
         /// <returns>Лог доступа.</returns>
-        IAsyncOperation<IList<IBoardPostStoreAccessLogItem>> GetAccessLog(PostStoreEntityType entityType, PostStoreAccessLogQuery query);
+        IAsyncOperation<IList<IBoardPostStoreAccessLogItem>> GetAccessLog(PostStoreAccessLogQuery query);
 
+        /// <summary>
+        /// Запросить по флагам.
+        /// </summary>
+        /// <param name="type">Тип сущности.</param>
+        /// <param name="parentId">Идентификатор родительской сущности.</param>
+        /// <param name="havingFlags">Должен иметь флаги.</param>
+        /// <param name="notHavingFlags">Не должен иметь флаги.</param>
+        /// <returns>Результат.</returns>
+        IAsyncOperation<IList<Guid>> QueryByFlags(PostStoreEntityType type, Guid? parentId, IList<Guid> havingFlags, IList<Guid> notHavingFlags);
+        
         /// <summary>
         /// Очистить лог доступа.
         /// </summary>

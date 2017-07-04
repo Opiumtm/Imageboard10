@@ -14,19 +14,9 @@ namespace Imageboard10.Core.ModelInterface.Posts.Store
         Guid? LogEntryId { get; }
 
         /// <summary>
-        /// Ссылка на коллекцию.
+        /// Сущность.
         /// </summary>
-        ILink Link { get; }
-
-        /// <summary>
-        /// Идентификатор.
-        /// </summary>
-        Guid Id { get; }
-
-        /// <summary>
-        /// Тип сущности.
-        /// </summary>
-        PostStoreEntityType EntityType { get; }
+        IBoardPostEntity Entity { get; }
 
         /// <summary>
         /// Время доступа.
