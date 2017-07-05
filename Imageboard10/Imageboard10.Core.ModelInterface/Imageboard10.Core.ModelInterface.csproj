@@ -153,6 +153,7 @@
     <Compile Include="Posts\IBoardPostIcon.cs" />
     <Compile Include="Posts\IBoardPostLight.cs" />
     <Compile Include="Posts\IBoardPostOnServerCounter.cs" />
+    <Compile Include="Posts\Store\BoardPostCollectionUpdateMode.cs" />
     <Compile Include="Posts\Store\FlagUpdateOperation.cs" />
     <Compile Include="Posts\Store\IBoardPostLikesStoreInfo.cs" />
     <Compile Include="Posts\Store\IBoardPostStore.cs" />

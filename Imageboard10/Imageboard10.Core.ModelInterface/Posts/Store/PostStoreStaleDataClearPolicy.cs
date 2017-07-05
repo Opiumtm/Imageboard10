@@ -30,5 +30,16 @@ namespace Imageboard10.Core.ModelInterface.Posts.Store
         /// Если null, то произвести очистку в любом случае.
         /// </summary>
         public double? MinCleanupPeriod { get; set; }
+
+        /// <summary>
+        /// Обратный вызов.
+        /// </summary>
+        public event PostStoreStaleDataClearFinishedCallback Callback;
     }
+
+    /// <summary>
+    /// Обратный вызов.
+    /// </summary>
+    /// <param name="error">null, если операция завершена успешно.</param>
+    public delegate void PostStoreStaleDataClearFinishedCallback(Exception error);
 }

@@ -1,12 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Imageboard10.Core;
 using Imageboard10.Core.Database;
 using Imageboard10.Core.Database.UnitTests;
 using Imageboard10.Core.Modules;
+using Imageboard10.Core.Utility;
 using Microsoft.Isam.Esent.Interop;
+using Microsoft.Isam.Esent.Interop.Vista;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 // ReSharper disable AccessToDisposedClosure
@@ -433,6 +436,188 @@ namespace Imageboard10UnitTests
                 }
             });
         }
+
+        [TestMethod]
+        [TestCategory("ESENT")]
+        public async Task TestMultivalueDistinct()
+        {
+            await RunEsentTest(async (provider, testData) =>
+            {
+                IEsentSession session = provider.MainSession;
+                const string tableName = "TestMultivalue";
+                const string idColumn = "Id";
+                const string tagColumn = "Tag";
+                const string indexName = "IX_Tag";
+                const string pkDef = "+Id\0\0";
+                const string ixDef = "+Tag\0\0";
+
+                var toAdd = new List<Guid[]>()
+                {
+                    new [] { new Guid("{1BF157B8-FFEE-4D7E-AD21-F65A67DAC49B}") },
+                    new [] { new Guid("{1BF157B8-FFEE-4D7E-AD21-F65A67DAC49B}") },
+                    new Guid[0],
+                    new [] { new Guid("{1BF157B8-FFEE-4D7E-AD21-F65A67DAC49B}"), new Guid("{EA3539E9-9205-4085-93C4-04B961E940CB}") },
+                    new [] { new Guid("{1BF157B8-FFEE-4D7E-AD21-F65A67DAC49B}"), new Guid("{EA3539E9-9205-4085-93C4-04B961E940CB}") },
+                    new [] { new Guid("{1BF157B8-FFEE-4D7E-AD21-F65A67DAC49B}"), new Guid("{EA3539E9-9205-4085-93C4-04B961E940CB}") },
+                    new [] { new Guid("{EA3539E9-9205-4085-93C4-04B961E940CB}"), new Guid("{BC599936-E897-48FD-B0CD-E1F03FB60CE2}"), },
+                    new [] { new Guid("{1BF157B8-FFEE-4D7E-AD21-F65A67DAC49B}"), new Guid("{EA3539E9-9205-4085-93C4-04B961E940CB}"), new Guid("{BC599936-E897-48FD-B0CD-E1F03FB60CE2}")},
+                    new [] { new Guid("{1BF157B8-FFEE-4D7E-AD21-F65A67DAC49B}"), new Guid("{EA3539E9-9205-4085-93C4-04B961E940CB}"), new Guid("{BC599936-E897-48FD-B0CD-E1F03FB60CE2}")},
+                    new [] { new Guid("{1BF157B8-FFEE-4D7E-AD21-F65A67DAC49B}"), new Guid("{BC599936-E897-48FD-B0CD-E1F03FB60CE2}")},
+                    new [] { new Guid("{1BF157B8-FFEE-4D7E-AD21-F65A67DAC49B}"), new Guid("{2BAB0AEA-972D-463E-B43F-115A083DCF2D}") },
+                    new [] { new Guid("{1BF157B8-FFEE-4D7E-AD21-F65A67DAC49B}"), new Guid("{2BAB0AEA-972D-463E-B43F-115A083DCF2D}") },
+                };
+
+                var toCheck = new HashSet<Guid>()
+                {
+                    new Guid("{1BF157B8-FFEE-4D7E-AD21-F65A67DAC49B}"),
+                    new Guid("{EA3539E9-9205-4085-93C4-04B961E940CB}"),
+                    new Guid("{BC599936-E897-48FD-B0CD-E1F03FB60CE2}"),
+                    new Guid("{2BAB0AEA-972D-463E-B43F-115A083DCF2D}")
+                };
+
+                var counters = new Dictionary<Guid, int>();
+
+                foreach (var a in toAdd)
+                {
+                    foreach (var id in a)
+                    {
+                        if (!counters.ContainsKey(id))
+                        {
+                            counters[id] = 1;
+                        }
+                        else
+                        {
+                            counters[id] = counters[id] + 1;
+                        }
+                    }
+                }
+
+                await session.RunInTransaction(() =>
+                {
+                    var sid = session.Session;
+                    var dbid = session.Database;
+                    JET_TABLEID tableid;
+                    JET_COLUMNID tempid;
+                    JET_COLUMNID tagId;
+                    Api.JetCreateTable(sid, dbid, tableName, 0, 100, out tableid);
+                    Api.JetAddColumn(sid, tableid, idColumn, new JET_COLUMNDEF()
+                    {
+                        coltyp = JET_coltyp.Long,
+                        grbit = ColumndefGrbit.ColumnAutoincrement | ColumndefGrbit.ColumnNotNULL
+                    }, null, 0, out tempid);
+                    Api.JetAddColumn(sid, tableid, tagColumn, new JET_COLUMNDEF()
+                    {
+                        coltyp = VistaColtyp.GUID,
+                        grbit = ColumndefGrbit.ColumnMultiValued | ColumndefGrbit.ColumnTagged
+                    }, null, 0, out tagId);
+                    Api.JetCreateIndex(sid, tableid, "PK", CreateIndexGrbit.IndexPrimary | CreateIndexGrbit.IndexUnique, pkDef, pkDef.Length, 100);
+                    Api.JetCreateIndex(sid, tableid, indexName, CreateIndexGrbit.IndexIgnoreAnyNull, ixDef, ixDef.Length, 100);
+
+                    foreach (var tags in toAdd)
+                    {
+                        using (var update = new Update(sid, tableid, JET_prep.Insert))
+                        {
+                            var columns = tags.Select(t => new GuidColumnValue()
+                            {
+                                Value = t,
+                                ItagSequence = 0,
+                                Columnid = tagId,
+                                SetGrbit = SetColumnGrbit.UniqueMultiValues
+                            }).OfType<ColumnValue>().ToArray();
+                            if (columns.Length > 0)
+                            {
+                                Api.SetColumns(sid, tableid, columns);
+                            }
+                            update.Save();
+                        }
+                    }
+                    Api.JetCloseTable(sid, tableid);
+                    return true;
+                });
+
+                session = await provider.GetReadOnlySession();
+                using (session.UseSession())
+                {
+                    await session.Run(() =>
+                    {
+                        using (var table = session.OpenTable(tableName, OpenTableGrbit.ReadOnly))
+                        {
+                            var colid = Api.GetTableColumnid(table.Session, table, tagColumn);
+                            Api.JetSetCurrentIndex(table.Session, table.Table, indexName);
+
+                            Assert.IsTrue(Api.TryMoveFirst(table.Session, table), "Нет ни одной записи");
+                            do
+                            {
+                                var id1 = Api.RetrieveColumnAsGuid(table.Session, table, colid, RetrieveColumnGrbit.RetrieveFromIndex);
+                                if (id1 != null)
+                                {
+                                    Assert.IsTrue(toCheck.Contains(id1.Value), $"{id1.Value}: Не найден ключ или повторное получение ключа");
+                                    toCheck.Remove(id1.Value);
+                                }
+                            } while (Api.TryMove(table.Session, table, JET_Move.Next, MoveGrbit.MoveKeyNE));
+                            Assert.AreEqual(0, toCheck.Count, "Не все ключи найдены в базе");
+
+                            foreach (var key in counters.Keys)
+                            {
+                                Api.MakeKey(table.Session, table, key, MakeKeyGrbit.NewKey);
+                                Assert.IsTrue(Api.TrySeek(table.Session, table, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange));
+                                int count;
+                                Api.JetIndexRecordCount(table.Session, table, out count, Int32.MaxValue);
+                                Assert.AreEqual(counters[key], count, $"{key}: Не совпадает количество элементов (Count)");
+
+                                Api.MakeKey(table.Session, table, key, MakeKeyGrbit.NewKey);
+                                Assert.IsTrue(Api.TrySeek(table.Session, table, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange));
+                                int count2 = 0;
+                                do
+                                {
+                                    count2++;
+                                } while (Api.TryMoveNext(table.Session, table));
+                                Assert.AreEqual(counters[key], count2, $"{key}: Не совпадает количество элементов (Move)");
+                            }
+                        }
+                    });
+                }
+            });
+        }
+
+        private int GetMultiValueCount(EsentTable table, JET_COLUMNID columnid)
+        {
+            JET_RETRIEVECOLUMN col = new JET_RETRIEVECOLUMN
+            {
+                columnid = columnid,
+                itagSequence = 0
+            };
+            Api.JetRetrieveColumns(table.Session, table, new[] { col }, 1);
+            return col.itagSequence;
+        }
+
+        /// <summary>
+        /// Перечислить значения в столбце со многоими значениями.
+        /// </summary>
+        /// <param name="table">Таблица.</param>
+        /// <param name="columnid">Идентификатор столбца.</param>
+        /// <param name="factoryFunc">Фабрика создания значений для получения данных.</param>
+        /// <returns>Результат.</returns>
+        private IEnumerable<ColumnValue> EnumMultivalueColumn(EsentTable table, JET_COLUMNID columnid, Func<ColumnValue> factoryFunc)
+        {
+            var count = GetMultiValueCount(table, columnid);
+            if (count == 0)
+            {
+                yield break;
+            }
+
+            var a = new ColumnValue[1];
+            for (var i = 1; i <= count; i++)
+            {
+                var col = factoryFunc();
+                col.ItagSequence = i;
+                col.Columnid = columnid;
+                a[0] = col;
+                Api.RetrieveColumns(table.Session, table.Table, a);
+                yield return col;
+            }
+        }
+
 
         private (string pk, JET_COLUMNID id, JET_COLUMNID val) CreateSimpleTable(IEsentSession session, string tableName)
         {

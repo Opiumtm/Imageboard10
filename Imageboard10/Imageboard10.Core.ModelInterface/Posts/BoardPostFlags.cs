@@ -61,5 +61,10 @@ namespace Imageboard10.Core.ModelInterface.Posts
         /// Мой пост.
         /// </summary>
         public static Guid MyPost { get; } = new Guid("{EA6A4811-C5E0-45ED-9F1D-BB474FA5CD91}");
+
+        /// <summary>
+        /// Пост удалён на сервере.
+        /// </summary>
+        public static Guid IsDeletedOnServer { get; } = new Guid("{49C118C1-F8D0-4B77-B355-CEE297E6914E}");
     }
 }

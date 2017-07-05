@@ -359,7 +359,6 @@ namespace Imageboard10UnitTests
             var param = new BoardPost2WithParentLink()
             {
                 Counter = 1,
-                IsPreview = true,
                 Post = dto,
                 ParentLink = new ThreadLink() { Engine  = MakabaConstants.MakabaEngineId, Board = "po", OpPostNum = 22855542 }, 
                 LoadedTime = DateTimeOffset.Now
@@ -427,7 +426,6 @@ namespace Imageboard10UnitTests
             var param = new BoardPost2WithParentLink()
             {
                 Counter = 1,
-                IsPreview = true,
                 Post = dto,
                 ParentLink = new ThreadLink() { Engine = MakabaConstants.MakabaEngineId, Board = "po", OpPostNum = 22855542 },
             };
@@ -463,7 +461,6 @@ namespace Imageboard10UnitTests
             var param = new BoardPost2WithParentLink()
             {
                 Counter = 1,
-                IsPreview = true,
                 Post = dto,
                 ParentLink = new ThreadLink() { Engine = MakabaConstants.MakabaEngineId, Board = "po", OpPostNum = 22855542 },
             };
@@ -486,7 +483,6 @@ namespace Imageboard10UnitTests
             var param = new BoardPost2WithParentLink()
             {
                 Counter = 1,
-                IsPreview = true,
                 Post = dto,
                 ParentLink = new ThreadLink() { Engine = MakabaConstants.MakabaEngineId, Board = "int", OpPostNum = 20441 },
             };
@@ -508,7 +504,6 @@ namespace Imageboard10UnitTests
             var param = new BoardPost2WithParentLink()
             {
                 Counter = 1,
-                IsPreview = true,
                 Post = dto,
                 ParentLink = new ThreadLink() { Engine = MakabaConstants.MakabaEngineId, Board = "int", OpPostNum = 20441 },
             };
@@ -531,7 +526,6 @@ namespace Imageboard10UnitTests
             var param = new BoardPost2WithParentLink()
             {
                 Counter = 1,
-                IsPreview = true,
                 Post = dto,
                 ParentLink = new ThreadLink() { Engine = MakabaConstants.MakabaEngineId, Board = "int", OpPostNum = 20441 },
             };
@@ -554,7 +548,6 @@ namespace Imageboard10UnitTests
             var param = new BoardPost2WithParentLink()
             {
                 Counter = 1,
-                IsPreview = true,
                 Post = dto,
                 ParentLink = new ThreadLink() { Engine = MakabaConstants.MakabaEngineId, Board = "po", OpPostNum = 22823169 },
             };

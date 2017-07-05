@@ -6,7 +6,9 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Xml;
 using Imageboard10.Core.Database;
+using Imageboard10.Core.ModelInterface;
 using Imageboard10.Core.ModelInterface.Links;
+using Imageboard10.Core.Models.Serialization;
 using Imageboard10.Core.ModelStorage.UnitTests;
 using Imageboard10.Core.Modules;
 using Imageboard10.Core.Tasks;
@@ -56,6 +58,11 @@ namespace Imageboard10.Core.ModelStorage
         protected ILinkSerializationService LinkSerialization { get; private set; }
 
         /// <summary>
+        /// Сериализация объектов.
+        /// </summary>
+        protected IObjectSerializationService ObjectSerializationService { get; private set; }
+
+        /// <summary>
         /// Глобальная сигнализация об ошибках.
         /// </summary>
         protected ModuleInterface.IGlobalErrorHandler GlobalErrorHandler { get; private set; }
@@ -69,6 +76,7 @@ namespace Imageboard10.Core.ModelStorage
             await base.OnInitialize(moduleProvider);
             EsentProvider = await moduleProvider.QueryModuleAsync<IEsentInstanceProvider>() ?? throw new ModuleNotFoundException(typeof(IEsentInstanceProvider));
             LinkSerialization = await moduleProvider.QueryModuleAsync<ILinkSerializationService>() ?? throw new ModuleNotFoundException(typeof(ILinkSerializationService));
+            ObjectSerializationService = await moduleProvider.QueryModuleAsync<IObjectSerializationService>() ?? throw new ModuleNotFoundException(typeof(IObjectSerializationService));
             GlobalErrorHandler = await moduleProvider.QueryModuleAsync<ModuleInterface.IGlobalErrorHandler>();
             return Nothing.Value;
         }
@@ -612,5 +620,50 @@ namespace Imageboard10.Core.ModelStorage
         /// <returns></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         protected string GetIndexName(string tableName, string indexName) => $"IX_{tableName}_{indexName}";
+
+        /// <summary>
+        /// Получить количество значений в столбце с несколькими значениями.
+        /// </summary>
+        /// <param name="table">Таблица.</param>
+        /// <param name="columnid">Идентификатор столбца.</param>
+        /// <returns>Количество значений.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        protected int GetMultiValueCount(EsentTable table, JET_COLUMNID columnid)
+        {
+            JET_RETRIEVECOLUMN col = new JET_RETRIEVECOLUMN
+            {
+                columnid = columnid,
+                itagSequence = 0
+            };
+            Api.JetRetrieveColumns(table.Session, table, new[] {col}, 1);
+            return col.itagSequence;
+        }
+
+        /// <summary>
+        /// Перечислить значения в столбце со многоими значениями.
+        /// </summary>
+        /// <param name="table">Таблица.</param>
+        /// <param name="columnid">Идентификатор столбца.</param>
+        /// <param name="factoryFunc">Фабрика создания значений для получения данных.</param>
+        /// <returns>Результат.</returns>
+        protected IEnumerable<ColumnValue> EnumMultivalueColumn(EsentTable table, JET_COLUMNID columnid, Func<ColumnValue> factoryFunc)
+        {
+            var count = GetMultiValueCount(table, columnid);
+            if (count == 0)
+            {
+                yield break;
+            }
+
+            var a = new ColumnValue[1];
+            for (var i = 1; i <= count; i++)
+            {
+                var col = factoryFunc();
+                col.ItagSequence = i;
+                col.Columnid = columnid;
+                a[0] = col;
+                Api.RetrieveColumns(table.Session, table.Table, a);
+                yield return col;
+            }
+        }
     }
 }

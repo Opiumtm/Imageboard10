@@ -1,10 +1,12 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using Imageboard10.Core.ModelInterface.Links;
-using Imageboard10.Core.Models.Links.LinkTypes;
+using Imageboard10.Core.ModelInterface.Posts;
+using Imageboard10.Core.Models.Links;
 using Imageboard10.Core.Utility;
 
-namespace Imageboard10.Core.ModelInterface.Posts
+namespace Imageboard10.Core.Models.Posts
 {
     /// <summary>
     /// Класс-помощник для документов.
@@ -67,5 +69,25 @@ namespace Imageboard10.Core.ModelInterface.Posts
             return a.Attribute == attribute;
         }
 
+        /// <summary>
+        /// Получить цитируемые посты.
+        /// </summary>
+        /// <param name="document">Документ.</param>
+        /// <returns>Цитируемые посты.</returns>
+        public static IList<ILink> GetQuotes(this IPostDocument document)
+        {
+            if (document?.Nodes == null)
+            {
+                return new List<ILink>();
+            }
+            return document.Nodes.FlatHierarchy(n =>
+            {
+                if (n is ICompositePostNode cn)
+                {
+                    return cn.Children;
+                }
+                return null;
+            }).OfType<IBoardLinkPostNode>().Select(l => l?.BoardLink).Where(l => l != null).ToList();
+        }
     }
 }

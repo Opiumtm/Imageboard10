@@ -8,6 +8,7 @@ using Imageboard10.Core.Database;
 using Imageboard10.Core.ModelInterface.Boards;
 using Imageboard10.Core.Models.Links;
 using Imageboard10.Core.Models.Links.LinkTypes;
+using Imageboard10.Core.Models.Serialization;
 using Imageboard10.Core.ModelStorage.Boards;
 using Imageboard10.Core.ModelStorage.UnitTests;
 using Imageboard10.Core.Modules;
@@ -36,6 +37,7 @@ namespace Imageboard10UnitTests
             _collection = new ModuleCollection();
 
             LinkModelsRegistration.RegisterModules(_collection);
+            CommonSerializationRegistration.RegisterModules(_collection);
             _collection.RegisterModule<EsentInstanceProvider, IEsentInstanceProvider>(new EsentInstanceProvider(true));
             _collection.RegisterModule<BoardReferenceStore, IBoardReferenceStore>(new BoardReferenceStore("makaba"));
             _collection.RegisterModule<MakabaBoardReferenceDtoParsers, INetworkDtoParsers>();

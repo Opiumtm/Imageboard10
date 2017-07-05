@@ -136,10 +136,10 @@ namespace Imageboard10.Core.ModelInterface.Posts.Store
         /// Сохранить коллекцию.
         /// </summary>
         /// <param name="collection">Коллекция.</param>
-        /// <param name="replace">Заменить все посты.</param>
+        /// <param name="replace">Режим замены.</param>
         /// <param name="cleanupPolicy">Политика зачистки старых данных. Если null - не производить зачистку.</param>
         /// <returns>Идентификатор коллекции.</returns>
-        IAsyncOperationWithProgress<Guid, OperationProgress> SaveCollection(IBoardPostEntity collection, bool replace, PostStoreStaleDataClearPolicy cleanupPolicy);
+        IAsyncOperationWithProgress<Guid, OperationProgress> SaveCollection(IBoardPostEntity collection, BoardPostCollectionUpdateMode replace, PostStoreStaleDataClearPolicy cleanupPolicy);
 
         /// <summary>
         /// Загрузить информацию о коллекции.

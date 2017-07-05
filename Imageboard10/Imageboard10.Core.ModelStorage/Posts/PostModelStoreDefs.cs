@@ -55,9 +55,14 @@ namespace Imageboard10.Core.ModelStorage.Posts
             public const string Id = "Id";
 
             /// <summary>
-            /// Ссылка на родительскую сущность.
+            /// Ссылка на родительскую сущность (multi-value).
             /// </summary>
             public const string ParentId = "ParentId";
+
+            /// <summary>
+            /// Ссылка на непосредственную родительскую сущность (multi-value).
+            /// </summary>
+            public const string DirectParentId = "DirectParentId";
 
             /// <summary>
             /// Тип сущности.
@@ -183,6 +188,11 @@ namespace Imageboard10.Core.ModelStorage.Posts
             /// Последний пост на сервере.
             /// </summary>
             public const string LastPostLinkOnServer = "LastPostLinkOnServer";
+
+            /// <summary>
+            /// Порядковый номер на сервере. Сейчас не пригодно к использованию, но возможно в будущем Makaba API будет изменено в лучшую сторону.
+            /// </summary>
+            public const string OnServerSequenceCounter = "OnServerSequenceCounter";
         }
 
         /// <summary>
@@ -254,14 +264,27 @@ namespace Imageboard10.Core.ModelStorage.Posts
             };
 
             /// <summary>
-            /// QuotedPosts.
+            /// Цитаты.
             /// </summary>
             public static readonly IndexDefinition QuotedPosts = new IndexDefinition()
             {
                 Fields = new[]
                 {
-                    "+" + ColumnNames.ParentId,
+                    "+" + ColumnNames.DirectParentId,
                     "+" + ColumnNames.QuotedPosts
+                },
+                Grbit = CreateIndexGrbit.IndexIgnoreAnyNull
+            };
+
+            /// <summary>
+            /// Ссылка на пост в треде.
+            /// </summary>
+            public static readonly IndexDefinition InThreadPostLink = new IndexDefinition()
+            {
+                Fields = new[]
+                {
+                    "+" + ColumnNames.DirectParentId,
+                    "+" + ColumnNames.SequenceNumber
                 },
                 Grbit = CreateIndexGrbit.IndexIgnoreAnyNull
             };
@@ -410,6 +433,11 @@ namespace Imageboard10.Core.ModelStorage.Posts
             Api.JetAddColumn(sid, tableid, ColumnNames.ParentId, new JET_COLUMNDEF()
             {
                 coltyp = VistaColtyp.GUID,
+                grbit = ColumndefGrbit.ColumnMultiValued | ColumndefGrbit.ColumnTagged,
+            }, null, 0, out tempcolid);
+            Api.JetAddColumn(sid, tableid, ColumnNames.DirectParentId, new JET_COLUMNDEF()
+            {
+                coltyp = VistaColtyp.GUID,
                 grbit = ColumndefGrbit.None,
             }, null, 0, out tempcolid);
             Api.JetAddColumn(sid, tableid, ColumnNames.EntityType, new JET_COLUMNDEF()
@@ -545,6 +573,11 @@ namespace Imageboard10.Core.ModelStorage.Posts
                 grbit = ColumndefGrbit.ColumnTagged,
                 cp = JET_CP.Unicode
             }, null, 0, out tempcolid);
+            Api.JetAddColumn(sid, tableid, ColumnNames.OnServerSequenceCounter, new JET_COLUMNDEF()
+            {
+                coltyp = JET_coltyp.Long,
+                grbit = ColumndefGrbit.ColumnTagged,
+            }, null, 0, out tempcolid);
 
             var pkDef = $"+{ColumnNames.Id}\0\0";
             Api.JetCreateIndex(sid, tableid, TablePkName, CreateIndexGrbit.IndexUnique | CreateIndexGrbit.IndexPrimary, pkDef, pkDef.Length, 100);
@@ -555,6 +588,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
             CreateIndex(sid, tableid, TableName, nameof(Indexes.Type), Indexes.Type);
             CreateIndex(sid, tableid, TableName, nameof(Indexes.TypeAndId), Indexes.TypeAndId);
             CreateIndex(sid, tableid, TableName, nameof(Indexes.TypeAndPostId), Indexes.TypeAndPostId);
+            CreateIndex(sid, tableid, TableName, nameof(Indexes.InThreadPostLink), Indexes.InThreadPostLink);
         }
 
         /// <summary>
