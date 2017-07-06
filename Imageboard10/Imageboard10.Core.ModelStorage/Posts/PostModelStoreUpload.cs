@@ -32,6 +32,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
         /// <returns>Идентификатор коллекции.</returns>
         public IAsyncOperationWithProgress<PostStoreEntityId, OperationProgress> SaveCollection(IBoardPostEntity collection, BoardPostCollectionUpdateMode replace, PostStoreStaleDataClearPolicy cleanupPolicy)
         {
+            if (collection == null) throw new ArgumentNullException(nameof(collection));
             var serverFlags = new HashSet<Guid>(ServerFlags());
             const string progressMessage = "Сохранение постов в базу";
             const string progressId = "ESENT";
@@ -307,8 +308,9 @@ namespace Imageboard10.Core.ModelStorage.Posts
                 return (newId, exists);
             }
 
-            async Task<PostStoreEntityId> SaveCatalogOrThread(CancellationToken token, IProgress<OperationProgress> progress, PostStoreEntityId? directParent, bool reportProgress, List<PostStoreEntityId> addedEntities)
+            async Task<PostStoreEntityId> SaveCatalogOrThread(CancellationToken token, IProgress<OperationProgress> progress, PostStoreEntityId? directParent, bool reportProgress, ConcurrentBag<PostStoreEntityId> addedEntities)
             {
+                token.ThrowIfCancellationRequested();
                 var collection2 = collection as IBoardPostCollection;
                 if (collection2 == null)
                 {
@@ -755,6 +757,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
                     var parents = parents1.Select(p => new PostStoreEntityId() {Id = p}).ToArray();
                     foreach (var p in collection2.Posts.SplitSet(20))
                     {
+                        token.ThrowIfCancellationRequested();
                         var toSave = p.ToArray();
 
                         await UpdateAsync(async session =>
@@ -855,6 +858,11 @@ namespace Imageboard10.Core.ModelStorage.Posts
                     progress.Report(new OperationProgress() { Progress = null, Message = progressMessage, OperationId = progressId });
 
                     PostStoreEntityId addedEntity = new PostStoreEntityId() { Id = -1 };
+
+                    if (collection.EntityType == PostStoreEntityType.Catalog || collection.EntityType == PostStoreEntityType.Thread)
+                    {
+                        addedEntity = await SaveCatalogOrThread(token, progress, null, true, addedEntities);
+                    }
 
                     if (cleanupPolicy != null)
                     {
