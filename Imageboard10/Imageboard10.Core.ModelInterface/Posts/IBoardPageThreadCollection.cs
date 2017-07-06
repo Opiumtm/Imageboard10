@@ -6,17 +6,12 @@ namespace Imageboard10.Core.ModelInterface.Posts
     /// <summary>
     /// Коллекция тредов.
     /// </summary>
-    public interface IBoardPageThreadCollection : IBoardPostEntity
+    public interface IBoardPageThreadCollection : IBoardPostEntity, IBoardPostCollectionInfoEnabled, IBoardPostCollectionEtagEnabled
     {
         /// <summary>
         /// Посты.
         /// </summary>
         IList<IThreadPreviewPostCollection> Threads { get; }
-
-        /// <summary>
-        /// Дополнительная информация.
-        /// </summary>
-        IBoardPostCollectionInfoSet Info { get; }
 
         /// <summary>
         /// Штамп изменений.

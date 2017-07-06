@@ -146,7 +146,9 @@
     <Compile Include="Posts\IBoardPost.cs" />
     <Compile Include="Posts\IBoardPostCollection.cs" />
     <Compile Include="Posts\IBoardPostCollectionEtag.cs" />
+    <Compile Include="Posts\IBoardPostCollectionEtagEnabled.cs" />
     <Compile Include="Posts\IBoardPostCollectionInfo.cs" />
+    <Compile Include="Posts\IBoardPostCollectionInfoEnabled.cs" />
     <Compile Include="Posts\IBoardPostCollectionUpdateInfo.cs" />
     <Compile Include="Posts\IBoardPostCountryFlag.cs" />
     <Compile Include="Posts\IBoardPostEntity.cs" />

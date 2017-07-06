@@ -10,6 +10,7 @@ using Imageboard10.Core.ModelInterface.Links;
 using Imageboard10.Core.ModelInterface.Posts;
 using Imageboard10.Core.ModelInterface.Posts.Store;
 using Imageboard10.Core.Models.Links.LinkTypes;
+using Imageboard10.Core.ModelStorage.UnitTests;
 using Imageboard10.Core.Utility;
 using Microsoft.Isam.Esent.Interop;
 
@@ -210,6 +211,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
             yield return PostCollectionFlags.IsBoard;
             yield return PostCollectionFlags.IsClosed;
             yield return PostCollectionFlags.IsIndex;
+            yield return UnitTestStoreFlags.ShouldFail;
         }
 
         public IAsyncOperation<IBoardPostEntity> Load(PostStoreEntityId id, PostStoreLoadMode mode)

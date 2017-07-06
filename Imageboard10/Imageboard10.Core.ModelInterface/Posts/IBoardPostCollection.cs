@@ -6,16 +6,11 @@ namespace Imageboard10.Core.ModelInterface.Posts
     /// <summary>
     /// Коллекция постов.
     /// </summary>
-    public interface IBoardPostCollection : IBoardPostEntity
+    public interface IBoardPostCollection : IBoardPostEntity, IBoardPostCollectionInfoEnabled
     {
         /// <summary>
         /// Посты.
         /// </summary>
         IList<IBoardPost> Posts { get; }
-
-        /// <summary>
-        /// Дополнительная информация.
-        /// </summary>
-        IBoardPostCollectionInfoSet Info { get; }
     }
 }

@@ -3,11 +3,7 @@
     /// <summary>
     /// Коллекция постов со штампом изменения.
     /// </summary>
-    public interface IBoardPostCollectionEtag : IBoardPostCollection
+    public interface IBoardPostCollectionEtag : IBoardPostCollection, IBoardPostCollectionEtagEnabled
     {
-        /// <summary>
-        /// Штамп изменений.
-        /// </summary>
-        string Etag { get; }
     }
 }
