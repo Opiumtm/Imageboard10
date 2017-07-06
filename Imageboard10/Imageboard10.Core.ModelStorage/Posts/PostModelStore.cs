@@ -132,6 +132,24 @@ namespace Imageboard10.Core.ModelStorage.Posts
             }
         }
 
+        /// <summary>
+        /// Получить информацию о треде или каталоге из ссылки.
+        /// </summary>
+        /// <param name="link">Ссылка.</param>
+        /// <returns>Информация о посте.</returns>
+        protected virtual (string boardId, int sequenceId) ExtractBoardPageLinkData(ILink link)
+        {
+            switch (link)
+            {
+                case BoardPageLink l:
+                    return (l.Board, l.Page);
+                case BoardLink l:
+                    return (l.Board, 0);
+                default:
+                    throw new ArgumentException($"Невозможно определить информацию о странице доски {link.GetLinkHash()}");
+            }
+        }
+
         private bool SeekExistingEntityInSequence(EsentTable table, PostStoreEntityId directParent, int postId, out PostStoreEntityId id)
         {
             Api.JetSetCurrentIndex(table.Session, table, GetIndexName(TableName, nameof(Indexes.InThreadPostLink)));

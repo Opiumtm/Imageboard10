@@ -338,6 +338,16 @@ namespace Imageboard10.Core.ModelStorage.Posts
                 return 0;
             }
 
+            int ExtractThreadNumber(IThreadPreviewPostCollection thread)
+            {
+                var post = thread?.Posts?.OrderBy(ExtractPostNumber)?.FirstOrDefault();
+                if (post?.Link is PostLink pl)
+                {
+                    return pl.OpPostNum;
+                }
+                return 0;
+            }
+
             void SetPostCollectionFields<T>(IEsentSession session, EsentTable table, IDictionary<string, JET_COLUMNID> colids, PostStoreEntityId? directParent, ref PostStoreEntityId newId, bool exists, T collection2, string boardId,
                 int sequenceId)
                 where T : class, IBoardPostEntity, IBoardPostCollectionInfoEnabled
@@ -866,6 +876,114 @@ namespace Imageboard10.Core.ModelStorage.Posts
                 await CleanChildPostsOnReplace(collection2, collectionId, exists);
 
                 await SaveCollectionPosts(collection2, directParent, collectionId, exists, reportProgress, progress, token, addedEntities);
+
+                return collectionId;
+            }
+
+            async Task CleanChildThreadsOnReplace(IBoardPageThreadCollection collection2, PostStoreEntityId collectionId, bool exists)
+            {
+                if (exists)
+                {
+                    var children = await QueryReadonly(session =>
+                    {
+                        using (var table = session.OpenTable(TableName, OpenTableGrbit.ReadOnly))
+                        {
+                            return new HashSet<int>(FindAllChildrenSeqNums(table, collectionId).Where(c => c.parentId.Id == collectionId.Id).Select(c => c.sequenceId));
+                        }
+                    });
+                    foreach (var postId in (collection2.Threads ?? new List<IThreadPreviewPostCollection>()).Select(ExtractThreadNumber))
+                    {
+                        children.Remove(postId);
+                    }
+                    if (children.Count > 0)
+                    {
+                        var toDelete = new HashSet<int>();
+                        await QueryReadonly(async session =>
+                        {
+                            await session.Run(() =>
+                            {
+                                using (var table = session.OpenTable(TableName, OpenTableGrbit.ReadOnly))
+                                {
+                                    using (var ct = session.OpenTable(TableName, OpenTableGrbit.ReadOnly))
+                                    {
+                                        Api.JetSetCurrentIndex(table.Session, table, GetIndexName(TableName, nameof(Indexes.InThreadPostLink)));
+                                        var colid = Api.GetTableColumnid(table.Session, table, ColumnNames.Id);
+                                        foreach (var id in children)
+                                        {
+                                            Api.MakeKey(table.Session, table, collectionId.Id, MakeKeyGrbit.NewKey);
+                                            Api.MakeKey(table.Session, table, id, MakeKeyGrbit.None);
+                                            if (Api.TrySeek(table.Session, table, SeekGrbit.SeekEQ))
+                                            {
+                                                var iid = Api.RetrieveColumnAsInt32(table.Session, table, colid, RetrieveColumnGrbit.RetrieveFromPrimaryBookmark);
+                                                if (iid != null)
+                                                {
+                                                    toDelete.Add(iid.Value);
+                                                    foreach (var c in FindAllChildren(ct, new PostStoreEntityId {Id = iid.Value}).Where(c => c.parentId.Id == iid.Value))
+                                                    {
+                                                        toDelete.Add(c.id.Id);
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            });
+                            return Nothing.Value;
+                        });
+                        await UpdateAsync(async session =>
+                        {
+                            await DoDeleteEntitiesList(session, toDelete.Select(id => new PostStoreEntityId() { Id = id }));
+                            return Nothing.Value;
+                        });
+                    }
+                }
+            }
+
+            async Task<PostStoreEntityId> SaveBoardPage(CancellationToken token, IProgress<OperationProgress> progress, bool reportProgress,
+                ConcurrentBag<PostStoreEntityId> addedEntities)
+            {
+                token.ThrowIfCancellationRequested();
+                var collection2 = collection as IBoardPageThreadCollection;
+                if (collection2 == null)
+                {
+                    throw new ArgumentException("Неравильный тип объекта для страницы доски", nameof(collection));
+                }
+
+                if (replace == BoardPostCollectionUpdateMode.Merge)
+                {
+                    throw new InvalidOperationException("Нельзя сливать посты для данного вида сущности");
+                }
+
+                bool exists = false;
+                var collectionId = await UpdateAsync(async session =>
+                {
+                    return await session.RunInTransaction(() =>
+                    {
+                        PostStoreEntityId newId;
+                        (var boardId, var sequenceId) = ExtractBoardPageLinkData(collection2.Link);
+
+                        using (var table = session.OpenTable(TableName, OpenTableGrbit.DenyWrite))
+                        {
+                            var colids = Api.GetColumnDictionary(table.Session, table);
+                            if (collection2.EntityType == PostStoreEntityType.BoardPage)
+                            {
+                                exists = SeekExistingEntityOnBoard(table, collection2.EntityType, boardId, sequenceId, out newId);
+                            }
+                            else
+                            {
+                                throw new InvalidOperationException($"Неправильный тип сущности для сохранения {collection2.EntityType}");
+                            }
+
+                            SetPostCollectionFields(session, table, colids, null, ref newId, exists, collection2, boardId, sequenceId);
+
+                            return (true, newId);
+                        }
+                    });
+                });
+
+                await CleanChildThreadsOnReplace(collection2, collectionId, exists);
+
+                //await SaveCollectionPosts(collection2, directParent, collectionId, exists, reportProgress, progress, token, addedEntities);
 
                 return collectionId;
             }
