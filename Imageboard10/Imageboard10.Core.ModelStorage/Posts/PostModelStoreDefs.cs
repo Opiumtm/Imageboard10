@@ -421,17 +421,17 @@ namespace Imageboard10.Core.ModelStorage.Posts
             JET_COLUMNID tempcolid;
             Api.JetAddColumn(sid, tableid, ColumnNames.Id, new JET_COLUMNDEF()
             {
-                coltyp = JET_coltyp.Currency,
+                coltyp = JET_coltyp.Long,
                 grbit = ColumndefGrbit.ColumnNotNULL | ColumndefGrbit.ColumnAutoincrement,
             }, null, 0, out tempcolid);
             Api.JetAddColumn(sid, tableid, ColumnNames.ParentId, new JET_COLUMNDEF()
             {
-                coltyp = JET_coltyp.Currency,
+                coltyp = JET_coltyp.Long,
                 grbit = ColumndefGrbit.ColumnMultiValued | ColumndefGrbit.ColumnTagged,
             }, null, 0, out tempcolid);
             Api.JetAddColumn(sid, tableid, ColumnNames.DirectParentId, new JET_COLUMNDEF()
             {
-                coltyp = JET_coltyp.Currency,
+                coltyp = JET_coltyp.Long,
                 grbit = ColumndefGrbit.None,
             }, null, 0, out tempcolid);
             Api.JetAddColumn(sid, tableid, ColumnNames.EntityType, new JET_COLUMNDEF()
@@ -601,7 +601,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
             }, null, 0, out tempcolid);
             Api.JetAddColumn(sid, tableid, AccessLogColumnNames.EntityId, new JET_COLUMNDEF()
             {
-                coltyp = JET_coltyp.Currency,
+                coltyp = JET_coltyp.Long,
                 grbit = ColumndefGrbit.ColumnNotNULL,
             }, null, 0, out tempcolid);
             Api.JetAddColumn(sid, tableid, AccessLogColumnNames.AccessTime, new JET_COLUMNDEF()
@@ -627,12 +627,12 @@ namespace Imageboard10.Core.ModelStorage.Posts
             JET_COLUMNID tempcolid;
             Api.JetAddColumn(sid, tableid, MediaFilesColumnNames.Id, new JET_COLUMNDEF()
             {
-                coltyp = JET_coltyp.Currency,
+                coltyp = JET_coltyp.Long,
                 grbit = ColumndefGrbit.ColumnNotNULL | ColumndefGrbit.ColumnAutoincrement,
             }, null, 0, out tempcolid);
             Api.JetAddColumn(sid, tableid, MediaFilesColumnNames.EntityReferences, new JET_COLUMNDEF()
             {
-                coltyp = JET_coltyp.Currency,
+                coltyp = JET_coltyp.Long,
                 grbit = ColumndefGrbit.ColumnMultiValued | ColumndefGrbit.ColumnTagged,
             }, null, 0, out tempcolid);
             Api.JetAddColumn(sid, tableid, MediaFilesColumnNames.SequenceNumber, new JET_COLUMNDEF()

@@ -19,12 +19,12 @@ namespace Imageboard10.Core.Models.Posts
         /// <summary>
         /// Идентификатор в хранилище.
         /// </summary>
-        public long? StoreId { get; set; }
+        public PostStoreEntityId? StoreId { get; set; }
 
         /// <summary>
         /// Родительская сущность.
         /// </summary>
-        public long? StoreParentId { get; set; }
+        public PostStoreEntityId? StoreParentId { get; set; }
 
         /// <summary>
         /// Ссылка.

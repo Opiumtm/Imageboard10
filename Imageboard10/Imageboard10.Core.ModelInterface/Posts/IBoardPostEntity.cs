@@ -17,12 +17,12 @@ namespace Imageboard10.Core.ModelInterface.Posts
         /// <summary>
         /// Идентификатор в хранилище.
         /// </summary>
-        long? StoreId { get; }
+        PostStoreEntityId? StoreId { get; }
 
         /// <summary>
         /// Родительская сущность.
         /// </summary>
-        long? StoreParentId { get; }
+        PostStoreEntityId? StoreParentId { get; }
 
         /// <summary>
         /// Ссылка на пост.
