@@ -125,6 +125,7 @@
     <Compile Include="IndexDefinition.cs" />
     <Compile Include="Posts\PostModelStore.cs" />
     <Compile Include="Posts\PostModelStoreDefs.cs" />
+    <Compile Include="Posts\PostModelStoreUpload.cs" />
     <Compile Include="Posts\PostOtherData.cs" />
     <Compile Include="UnitTests\BlobStreamInfo.cs" />
     <Compile Include="UnitTests\IBoardReferenceStoreForTests.cs" />

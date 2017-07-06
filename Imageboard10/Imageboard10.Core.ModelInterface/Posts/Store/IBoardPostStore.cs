@@ -49,6 +49,13 @@ namespace Imageboard10.Core.ModelInterface.Posts.Store
         IAsyncOperation<IList<PostStoreEntityId>> GetChildren(PostStoreEntityId collectionId, int skip, int? count);
 
         /// <summary>
+        /// Статус загрузки дочерних сущностей.
+        /// </summary>
+        /// <param name="collectionId">Коллекция.</param>
+        /// <returns>Результат.</returns>
+        IAsyncOperation<bool> IsChildrenLoaded(PostStoreEntityId collectionId);
+        
+        /// <summary>
         /// Получить количество постов в коллекции.
         /// </summary>
         /// <param name="collectionId">Идентификатор коллекции.</param>

@@ -681,5 +681,36 @@ namespace Imageboard10.Core.ModelStorage
                 yield return col;
             }
         }
+
+        /// <summary>
+        /// Перечислить значения в столбце со многоими значениями.
+        /// </summary>
+        /// <param name="table">Таблица.</param>
+        /// <param name="columnid">Идентификатор столбца.</param>
+        /// <param name="grbit">Флаг получения.</param>
+        /// <returns>Результат.</returns>
+        protected IEnumerable<T> EnumMultivalueColumn<T>(EsentTable table, JET_COLUMNID columnid, RetrieveColumnGrbit grbit = RetrieveColumnGrbit.None) where T: ColumnValue, new()
+        {
+            var count = GetMultiValueCount(table, columnid);
+            if (count == 0)
+            {
+                yield break;
+            }
+
+            var a = new ColumnValue[1];
+            for (var i = 1; i <= count; i++)
+            {
+                var col = new T
+                {
+                    ItagSequence = i,
+                    Columnid = columnid,
+                    RetrieveGrbit = grbit
+                };
+                a[0] = col;
+                Api.RetrieveColumns(table.Session, table.Table, a);
+                yield return col;
+            }
+        }
+
     }
 }

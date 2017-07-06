@@ -6,7 +6,7 @@
     public enum BoardPostCollectionUpdateMode
     {
         /// <summary>
-        /// Слить.
+        /// Слить. Только для существующего треда. Информация о самом треде не обновляется.
         /// </summary>
         Merge,
 

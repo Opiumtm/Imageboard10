@@ -563,9 +563,8 @@ namespace Imageboard10.Core.ModelStorage.Posts
             }, null, 0, out tempcolid);
             Api.JetAddColumn(sid, tableid, ColumnNames.LastPostLinkOnServer, new JET_COLUMNDEF()
             {
-                coltyp = JET_coltyp.LongText,
+                coltyp = JET_coltyp.Long,
                 grbit = ColumndefGrbit.ColumnTagged,
-                cp = JET_CP.Unicode
             }, null, 0, out tempcolid);
             Api.JetAddColumn(sid, tableid, ColumnNames.OnServerSequenceCounter, new JET_COLUMNDEF()
             {
