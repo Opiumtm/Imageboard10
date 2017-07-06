@@ -10,7 +10,7 @@ namespace Imageboard10.Core.ModelInterface.Posts.Store
         /// <summary>
         /// Идентификатор.
         /// </summary>
-        Guid Id { get; }
+        long Id { get; }
 
         /// <summary>
         /// Лайки.

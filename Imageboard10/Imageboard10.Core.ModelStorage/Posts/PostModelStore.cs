@@ -6,6 +6,7 @@ using System.Runtime.InteropServices.WindowsRuntime;
 using System.Threading;
 using System.Threading.Tasks;
 using Windows.Foundation;
+using Windows.UI;
 using Imageboard10.Core.Database;
 using Imageboard10.Core.ModelInterface.Links;
 using Imageboard10.Core.ModelInterface.Posts;
@@ -52,89 +53,9 @@ namespace Imageboard10.Core.ModelStorage.Posts
             return Nothing.Value;
         }
 
-        public IAsyncOperation<IBoardPostEntity> Load(Guid id, PostStoreLoadMode mode)
+        protected async Task DoDeleteEntitiesList(IEsentSession session, IEnumerable<long> toDelete)
         {
-            throw new NotImplementedException();
-        }
-
-        public IAsyncOperation<IList<IBoardPostEntity>> Load(IList<Guid> ids, PostStoreLoadMode mode)
-        {
-            throw new NotImplementedException();
-        }
-
-        public IAsyncOperation<IList<IBoardPostEntity>> Load(Guid? parentId, int skip, int? count, PostStoreLoadMode mode)
-        {
-            throw new NotImplementedException();
-        }
-
-        public IAsyncOperation<IList<Guid>> GetChildren(Guid collectionId, int skip, int? count)
-        {
-            throw new NotImplementedException();
-        }
-
-        public IAsyncOperation<int> GetCollectionSize(Guid collectionId)
-        {
-            throw new NotImplementedException();
-        }
-
-        public IAsyncOperation<int> GetTotalSize(PostStoreEntityType type)
-        {
-            throw new NotImplementedException();
-        }
-
-        public IAsyncOperation<Guid> FindEntity(PostStoreEntityType type, ILink link)
-        {
-            throw new NotImplementedException();
-        }
-
-        public IAsyncOperation<IList<IPostStoreEntityIdSearchResult>> FindEntities(Guid? parentId, IList<ILink> links)
-        {
-            throw new NotImplementedException();
-        }
-
-        public IAsyncOperation<IBoardPostStoreAccessInfo> GetAccessInfo(Guid id)
-        {
-            throw new NotImplementedException();
-        }
-
-        public IAsyncOperation<IList<IBoardPostStoreAccessInfo>> GetAccessInfos(IList<Guid> ids)
-        {
-            throw new NotImplementedException();
-        }
-
-        public IAsyncOperation<IList<IBoardPostStoreAccessInfo>> GetAllAccessInfos()
-        {
-            throw new NotImplementedException();
-        }
-
-        public IAsyncAction Touch(Guid id, DateTimeOffset? accessTime)
-        {
-            throw new NotImplementedException();
-        }
-
-        public IAsyncOperation<string> GetEtag(Guid id)
-        {
-            throw new NotImplementedException();
-        }
-
-        public IAsyncAction UpdateEtag(Guid id, string etag)
-        {
-            throw new NotImplementedException();
-        }
-
-        public IAsyncAction SetCollectionUpdateInfo(IBoardPostCollectionUpdateInfo updateInfo)
-        {
-            throw new NotImplementedException();
-        }
-
-        public IAsyncAction SetReadPostsCount(Guid id, int readPosts)
-        {
-            throw new NotImplementedException();
-        }
-
-        protected async Task DoDeleteEntitiesList(IEsentSession session, IEnumerable<Guid> toDelete)
-        {
-            async Task Delete(Guid[] toDeletePart)
+            async Task Delete(long[] toDeletePart)
             {
                 await session.RunInTransaction(() =>
                 {
@@ -197,12 +118,177 @@ namespace Imageboard10.Core.ModelStorage.Posts
             }
         }
 
-        private bool SeekExistingPostInThread(EsentTable table, Guid directParent, int postId)
+        private bool SeekExistingPostInThread(EsentTable table, long directParent, int postId, out long id)
         {
             Api.JetSetCurrentIndex(table.Session, table, GetIndexName(TableName, nameof(Indexes.InThreadPostLink)));
             Api.MakeKey(table.Session, table, directParent, MakeKeyGrbit.NewKey);
             Api.MakeKey(table.Session, table, postId, MakeKeyGrbit.None);
-            return Api.TrySeek(table.Session, table.Table, SeekGrbit.SeekEQ);
+            var r = Api.TrySeek(table.Session, table.Table, SeekGrbit.SeekEQ);
+            if (r)
+            {
+                var id1 = Api.RetrieveColumnAsInt64(table.Session, table.Table, Api.GetTableColumnid(table.Session, table.Table, ColumnNames.Id), RetrieveColumnGrbit.RetrieveFromPrimaryBookmark);
+                if (id1 == null)
+                {
+                    throw new InvalidOperationException($"Невозможно получить первичный ключ для {EngineId}:{directParent}->{postId}");
+                }
+                id = id1.Value;
+            }
+            else
+            {
+                id = -1;
+            }
+            return r;
+        }
+
+        public IAsyncOperation<IBoardPostEntity> Load(long id, PostStoreLoadMode mode)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IAsyncOperation<IList<IBoardPostEntity>> Load(IList<long> ids, PostStoreLoadMode mode)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IAsyncOperation<IList<IBoardPostEntity>> Load(long? parentId, int skip, int? count, PostStoreLoadMode mode)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IAsyncOperation<IList<long>> GetChildren(long collectionId, int skip, int? count)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IAsyncOperation<int> GetCollectionSize(long collectionId)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IAsyncOperation<int> GetTotalSize(PostStoreEntityType type)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IAsyncOperation<long> FindEntity(PostStoreEntityType type, ILink link)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IAsyncOperation<IList<IPostStoreEntityIdSearchResult>> FindEntities(long? parentId, IList<ILink> links)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IAsyncOperation<IBoardPostStoreAccessInfo> GetAccessInfo(long id)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IAsyncOperation<IList<IBoardPostStoreAccessInfo>> GetAccessInfos(IList<long> ids)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IAsyncOperation<IList<IBoardPostStoreAccessInfo>> GetAllAccessInfos()
+        {
+            throw new NotImplementedException();
+        }
+
+        public IAsyncAction Touch(long id, DateTimeOffset? accessTime)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IAsyncOperation<string> GetEtag(long id)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IAsyncAction UpdateEtag(long id, string etag)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IAsyncAction SetCollectionUpdateInfo(IBoardPostCollectionUpdateInfo updateInfo)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IAsyncAction SetReadPostsCount(long id, int readPosts)
+        {
+            throw new NotImplementedException();
+        }
+
+        IAsyncOperationWithProgress<long, OperationProgress> IBoardPostStore.SaveCollection(IBoardPostEntity collection, BoardPostCollectionUpdateMode replace,
+            PostStoreStaleDataClearPolicy cleanupPolicy)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IAsyncOperation<IBoardPostCollectionInfoSet> LoadCollectionInfoSet(Guid collectionId)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IAsyncAction UpdateLikes(IList<IBoardPostLikesStoreInfo> likes)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IAsyncOperation<IList<IBoardPostLikes>> LoadLikes(IList<long> ids)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IAsyncAction UpdateFlags(IList<FlagUpdateAction> flags)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IAsyncOperation<IList<Guid>> LoadFlags(long id)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IAsyncOperation<IList<long>> GetPostQuotes(long id)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IAsyncOperation<PostStoreEntityType> GetCollectionType(long collectionId)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IAsyncOperation<int> GetMediaCount(long id)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IAsyncOperation<IList<IPostMedia>> GetPostMedia(long id, int skip, int? count)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IAsyncOperation<IPostDocument> GetDocument(long id)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IAsyncOperation<IList<long>> Delete(IList<long> ids)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IAsyncAction ClearAllData()
+        {
+            throw new NotImplementedException();
+        }
+
+        public IAsyncAction ClearStaleData(PostStoreStaleDataClearPolicy policy)
+        {
+            throw new NotImplementedException();
         }
 
         /// <summary>
@@ -214,28 +300,29 @@ namespace Imageboard10.Core.ModelStorage.Posts
         /// <returns>Идентификатор коллекции.</returns>
         public IAsyncOperationWithProgress<Guid, OperationProgress> SaveCollection(IBoardPostEntity collection, BoardPostCollectionUpdateMode replace, PostStoreStaleDataClearPolicy cleanupPolicy)
         {
-            Guid SavePost(EsentTable table, IBoardPost post, Guid[] parents, Guid directParent, IDictionary<string, JET_COLUMNID> colids)
+            long CreateMediaSequenceId(int postId, int mediaCount)
+            {
+                long a = postId;
+                long b = mediaCount;
+                return a * 1000 + b;
+            }
+
+            long SavePost(EsentTable table, EsentTable mediaTable, IBoardPost post, long[] parents, long directParent, IDictionary<string, JET_COLUMNID> colids, IDictionary<string, JET_COLUMNID> mediaColids)
             {
                 if (post == null) throw new ArgumentNullException(nameof(post));
                 CheckLinkEngine(post.Link);
                 (var boardId, var threadId, var postId) = ExtractPostLinkData(post.Link);
 
-                var newId = Guid.NewGuid();
-                var exists = SeekExistingPostInThread(table, directParent, postId);
+                var exists = SeekExistingPostInThread(table, directParent, postId, out var newId);
                 using (var update = new Update(table.Session, table.Table, exists ? JET_prep.Replace : JET_prep.Insert))
                 {
                     var toUpdate = new List<ColumnValue>();
 
                     if (!exists)
                     {
-                        toUpdate.Add(new GuidColumnValue()
-                        {
-                            Value = newId,
-                            Columnid = colids[ColumnNames.Id]
-                        });
                         for (var i = 0; i < parents.Length; i++)
                         {
-                            toUpdate.Add(new GuidColumnValue()
+                            toUpdate.Add(new Int64ColumnValue()
                             {
                                 Columnid = colids[ColumnNames.ParentId],
                                 ItagSequence = 0,
@@ -243,7 +330,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
                                 SetGrbit = SetColumnGrbit.UniqueMultiValues
                             });
                         }
-                        toUpdate.Add(new GuidColumnValue()
+                        toUpdate.Add(new Int64ColumnValue()
                         {
                             Value = directParent,
                             Columnid = colids[ColumnNames.DirectParentId]
@@ -278,6 +365,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
                             Value = postId,
                             Columnid = colids[ColumnNames.SequenceNumber]
                         });
+                        newId = Api.RetrieveColumnAsInt64(table.Session, table, colids[ColumnNames.Id], RetrieveColumnGrbit.RetrieveCopy) ?? -1;
                     }
                     toUpdate.Add(new StringColumnValue()
                     {
@@ -299,6 +387,10 @@ namespace Imageboard10.Core.ModelStorage.Posts
                         Value = post.BoardSpecificDate,
                         Columnid = colids[ColumnNames.BoardSpecificDate]
                     });
+                    if (exists)
+                    {
+                        ClearMultiValue(table, colids[ColumnNames.Flags]);
+                    }
                     if (post.Flags != null)
                     {
                         foreach (var f in post.Flags.Distinct())
@@ -312,6 +404,10 @@ namespace Imageboard10.Core.ModelStorage.Posts
                             });
                         }
                     }
+                    if (exists)
+                    {
+                        ClearMultiValue(table, colids[ColumnNames.ThreadTags]);
+                    }
                     if (post.Tags?.Tags != null && post.Tags.Tags.Count > 0)
                     {
                         foreach (var t in post.Tags.Tags)
@@ -323,24 +419,25 @@ namespace Imageboard10.Core.ModelStorage.Posts
                             });
                         }
                     }
-                    if (post.Likes != null)
+                    toUpdate.Add(new Int32ColumnValue()
                     {
-                        toUpdate.Add(new Int32ColumnValue()
-                        {
-                            Value = post.Likes.Likes,
-                            Columnid = colids[ColumnNames.Likes]
-                        });
-                        toUpdate.Add(new Int32ColumnValue()
-                        {
-                            Value = post.Likes.Dislikes,
-                            Columnid = colids[ColumnNames.Dislikes]
-                        });
-                    }
+                        Value = post.Likes?.Likes,
+                        Columnid = colids[ColumnNames.Likes]
+                    });
+                    toUpdate.Add(new Int32ColumnValue()
+                    {
+                        Value = post.Likes?.Dislikes,
+                        Columnid = colids[ColumnNames.Dislikes]
+                    });
                     toUpdate.Add(new BytesColumnValue()
                     {
                         Value = ObjectSerializationService.SerializeToBytes(post.Comment),
                         Columnid = colids[ColumnNames.Document]
                     });
+                    if (exists)
+                    {
+                        ClearMultiValue(table, colids[ColumnNames.QuotedPosts]);
+                    }
                     foreach (var qp in post.Comment.GetQuotes().OfType<PostLink>().Where(l => l.OpPostNum == threadId).Select(l => l.PostNum).Distinct())
                     {
                         toUpdate.Add(new Int32ColumnValue()
@@ -349,21 +446,106 @@ namespace Imageboard10.Core.ModelStorage.Posts
                             Columnid = colids[ColumnNames.QuotedPosts]
                         });
                     }
-                    Api.SetColumns(table.Session, table.Table, toUpdate.ToArray());
                     toUpdate.Add(new DateTimeColumnValue()
                     {
                         Value = post.LoadedTime.UtcDateTime,
                         Columnid = colids[ColumnNames.LoadedTime]
                     });
-                    if (post.Poster != null)
+                    toUpdate.Add(new StringColumnValue()
                     {
-                        toUpdate.Add(new StringColumnValue()
+                        Value = post.Poster?.Name,
+                        Columnid = colids[ColumnNames.PosterName]
+                    });
+                    var onServerCount = post as IBoardPostOnServerCounter;
+                    toUpdate.Add(new Int32ColumnValue()
+                    {
+                        Value = onServerCount?.OnServerCounter,
+                        Columnid = colids[ColumnNames.OnServerSequenceCounter]
+                    });
+                    var otherData = new PostOtherData()
+                    {
+                        Email = post.Email,
+                        Hash = post.Hash,
+                        UniqueId = post.UniqueId,
+                        Icon = post.Icon != null ? new PostOtherDataIcon()
                         {
-                            Value = post.Poster.Name,
-                            Columnid = colids[ColumnNames.PosterName]
-                        });
-                    }
+                            Description = post.Icon.Description,
+                            ImageLink = LinkSerialization.Serialize(post.Icon.ImageLink)
+                        } : null,
+                        Country = post.Country != null ? new PostOtherDataCountry()
+                        {
+                            ImageLink = LinkSerialization.Serialize(post.Country.ImageLink)
+                        } : null,
+                        Poster = post.Poster != null ? new PostOtherDataPoster()
+                        {
+                            NameColor = post.Poster.NameColor,
+                            Tripcode = post.Poster.Tripcode,
+                            NameColorStr = post.Poster.NameColorStr
+                        } : null
+                    };
+                    toUpdate.Add(new BytesColumnValue()
+                    {
+                        Value = SerializeDataContract(otherData),
+                        Columnid = colids[ColumnNames.OtherDataBinary]
+                    });
+
+                    Api.SetColumns(table.Session, table.Table, toUpdate.ToArray());
                     update.Save();
+                }
+
+                if (exists)
+                {
+                    Api.JetSetCurrentIndex(mediaTable.Session, mediaTable, GetIndexName(MediaFilesTableName, nameof(MediaFilesIndexes.EntityReferences)));
+                    Api.MakeKey(mediaTable.Session, mediaTable, newId, MakeKeyGrbit.NewKey);
+                    if (Api.TrySeek(mediaTable.Session, mediaTable, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange))
+                    {
+                        do
+                        {
+                            Api.JetDelete(mediaTable.Session, mediaTable);
+                        } while (Api.TryMoveNext(mediaTable.Session, mediaTable));
+                    }
+                }
+                if (post.MediaFiles != null && post.MediaFiles.Count > 0)
+                {
+                    for (var i = 0; i < post.MediaFiles.Count; i++)
+                    {
+                        if (post.MediaFiles[i] != null)
+                        {
+                            using (var update = new Update(mediaTable.Session, mediaTable, JET_prep.Insert))
+                            {
+                                var columns = new List<ColumnValue>();
+                                columns.Add(new Int64ColumnValue()
+                                {
+                                    Value = newId,
+                                    Columnid = mediaColids[MediaFilesColumnNames.EntityReferences],
+                                    SetGrbit = SetColumnGrbit.UniqueMultiValues,
+                                    ItagSequence = 0
+                                });
+                                for (var j = 0; j < parents.Length; j++)
+                                {
+                                    columns.Add(new Int64ColumnValue()
+                                    {
+                                        Value = parents[j],
+                                        Columnid = mediaColids[MediaFilesColumnNames.EntityReferences],
+                                        SetGrbit = SetColumnGrbit.UniqueMultiValues,
+                                        ItagSequence = 0
+                                    });
+                                }
+                                columns.Add(new Int64ColumnValue()
+                                {
+                                    Value = CreateMediaSequenceId(postId, i),
+                                    Columnid = mediaColids[MediaFilesColumnNames.MediaData],
+                                });
+                                columns.Add(new BytesColumnValue()
+                                {
+                                    Value = ObjectSerializationService.SerializeToBytes(post.MediaFiles[i]),
+                                    Columnid = mediaColids[MediaFilesColumnNames.MediaData],
+                                });
+                                Api.SetColumns(mediaTable.Session, mediaTable, columns.ToArray());
+                                update.Save();
+                            }
+                        }
+                    }
                 }
                 return newId;
             }
@@ -380,7 +562,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
                     throw new ArgumentException($"Нельзя напрямую загружать в базу сущности типа {collection.EntityType}");
                 }
 
-                var addedEntities = new List<Guid>();
+                var addedEntities = new List<long>();
 
                 async Task DoCleanupOnError()
                 {
@@ -440,71 +622,6 @@ namespace Imageboard10.Core.ModelStorage.Posts
             return AsyncInfo.Run(fdo);
         }
 
-        public IAsyncOperation<IBoardPostCollectionInfoSet> LoadCollectionInfoSet(Guid collectionId)
-        {
-            throw new NotImplementedException();
-        }
-
-        public IAsyncAction UpdateLikes(IList<IBoardPostLikesStoreInfo> likes)
-        {
-            throw new NotImplementedException();
-        }
-
-        public IAsyncOperation<IList<IBoardPostLikes>> LoadLikes(IList<Guid> ids)
-        {
-            throw new NotImplementedException();
-        }
-
-        public IAsyncAction UpdateFlags(IList<FlagUpdateAction> flags)
-        {
-            throw new NotImplementedException();
-        }
-
-        public IAsyncOperation<IList<Guid>> LoadFlags(Guid id)
-        {
-            throw new NotImplementedException();
-        }
-
-        public IAsyncOperation<IList<Guid>> GetPostQuotes(Guid id)
-        {
-            throw new NotImplementedException();
-        }
-
-        public IAsyncOperation<PostStoreEntityType> GetCollectionType(Guid collectionId)
-        {
-            throw new NotImplementedException();
-        }
-
-        public IAsyncOperation<int> GetMediaCount(Guid id)
-        {
-            throw new NotImplementedException();
-        }
-
-        public IAsyncOperation<IList<IPostMedia>> GetPostMedia(Guid id, int skip, int? count)
-        {
-            throw new NotImplementedException();
-        }
-
-        public IAsyncOperation<IPostDocument> GetDocument(Guid id)
-        {
-            throw new NotImplementedException();
-        }
-
-        public IAsyncOperation<IList<Guid>> Delete(IList<Guid> ids)
-        {
-            throw new NotImplementedException();
-        }
-
-        public IAsyncAction ClearAllData()
-        {
-            throw new NotImplementedException();
-        }
-
-        public IAsyncAction ClearStaleData(PostStoreStaleDataClearPolicy policy)
-        {
-            throw new NotImplementedException();
-        }
-
         /// <summary>
         /// Очистить незавершённые загрузки.
         /// </summary>
@@ -520,7 +637,27 @@ namespace Imageboard10.Core.ModelStorage.Posts
             return Do().AsAsyncAction();
         }
 
-        private IEnumerable<(Guid id, Guid parentId)> FindAllChildren(EsentTable table, IEnumerable<Guid> parents)
+        public IAsyncOperation<IList<IBoardPostStoreAccessLogItem>> GetAccessLog(PostStoreAccessLogQuery query)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IAsyncOperation<IList<long>> QueryByFlags(PostStoreEntityType type, long? parentId, IList<Guid> havingFlags, IList<Guid> notHavingFlags)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IAsyncAction ClearAccessLog(double maxAgeSec)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IAsyncAction SyncAccessLog(IList<IBoardPostStoreAccessLogItem> accessLog)
+        {
+            throw new NotImplementedException();
+        }
+
+        private IEnumerable<(long id, long parentId)> FindAllChildren(EsentTable table, IEnumerable<long> parents)
         {
             Api.JetSetCurrentIndex(table.Session, table.Table, GetIndexName(TableName, nameof(Indexes.ParentId)));
             var colid = Api.GetTableColumnid(table.Session, table, ColumnNames.Id);
@@ -531,7 +668,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
                 {
                     do
                     {
-                        var cid = Api.RetrieveColumnAsGuid(table.Session, table.Table, colid, RetrieveColumnGrbit.RetrieveFromPrimaryBookmark);
+                        var cid = Api.RetrieveColumnAsInt64(table.Session, table.Table, colid, RetrieveColumnGrbit.RetrieveFromPrimaryBookmark);
                         if (cid.HasValue)
                         {
                             yield return (cid.Value, id);
@@ -541,12 +678,12 @@ namespace Imageboard10.Core.ModelStorage.Posts
             }
         }
 
-        private IEnumerable<(Guid id, Guid parentId)> FindAllChildren(EsentTable table, Guid parent)
+        private IEnumerable<(long id, long parentId)> FindAllChildren(EsentTable table, long parent)
         {
             return FindAllChildren(table, new [] {parent});
         }
 
-        private IEnumerable<Guid> FindAllParents(EsentTable table)
+        private IEnumerable<long> FindAllParents(EsentTable table)
         {
             var colid = Api.GetTableColumnid(table.Session, table.Table, ColumnNames.ParentId);
             Api.JetSetCurrentIndex(table.Session, table.Table, GetIndexName(TableName, nameof(Indexes.ParentId)));
@@ -554,7 +691,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
             {
                 do
                 {
-                    var id = Api.RetrieveColumnAsGuid(table.Session, table, colid);
+                    var id = Api.RetrieveColumnAsInt64(table.Session, table, colid);
                     if (id != null)
                     {
                         yield return id.Value;
@@ -565,8 +702,8 @@ namespace Imageboard10.Core.ModelStorage.Posts
 
         private async Task DoClearUnfinishedData()
         {
-            var toDelete = new Dictionary<Guid, List<Guid>>();
-            var orphanParents = new HashSet<Guid>();
+            var toDelete = new Dictionary<long, List<long>>();
+            var orphanParents = new HashSet<long>();
             await QueryReadonly(session =>
             {
                 using (var parTable = session.OpenTable(TableName, OpenTableGrbit.ReadOnly))
@@ -592,7 +729,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
                     {
                         do
                         {
-                            var id = Api.RetrieveColumnAsGuid(incTable.Session, incTable.Table, colIds[ColumnNames.Id], RetrieveColumnGrbit.RetrieveFromIndex);
+                            var id = Api.RetrieveColumnAsInt64(incTable.Session, incTable.Table, colIds[ColumnNames.Id], RetrieveColumnGrbit.RetrieveFromIndex);
                             if (id != null)
                             {
                                 orphanParents.Add(id.Value);
@@ -613,7 +750,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
                         {
                             if (!toDelete.ContainsKey(child.parentId))
                             {
-                                toDelete[child.parentId] = new List<Guid>();
+                                toDelete[child.parentId] = new List<long>();
                             }
                             toDelete[child.parentId].Add(child.id);
                         }
@@ -654,26 +791,6 @@ namespace Imageboard10.Core.ModelStorage.Posts
                     }
                 }
             }
-        }
-
-        public IAsyncOperation<IList<IBoardPostStoreAccessLogItem>> GetAccessLog(PostStoreAccessLogQuery query)
-        {
-            throw new NotImplementedException();
-        }
-
-        public IAsyncOperation<IList<Guid>> QueryByFlags(PostStoreEntityType type, Guid? parentId, IList<Guid> havingFlags, IList<Guid> notHavingFlags)
-        {
-            throw new NotImplementedException();
-        }
-
-        public IAsyncAction ClearAccessLog(double maxAgeSec)
-        {
-            throw new NotImplementedException();
-        }
-
-        public IAsyncAction SyncAccessLog(IList<IBoardPostStoreAccessLogItem> accessLog)
-        {
-            throw new NotImplementedException();
         }
     }
 }

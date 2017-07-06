@@ -18,7 +18,7 @@ namespace Imageboard10.Core.ModelInterface.Posts.Store
         /// <param name="id">Идентификатор.</param>
         /// <param name="mode">Режим загрузки.</param>
         /// <returns>Сущность.</returns>
-        IAsyncOperation<IBoardPostEntity> Load(Guid id, PostStoreLoadMode mode);
+        IAsyncOperation<IBoardPostEntity> Load(long id, PostStoreLoadMode mode);
 
         /// <summary>
         /// Загрузить посты.
@@ -27,7 +27,7 @@ namespace Imageboard10.Core.ModelInterface.Posts.Store
         /// <param name="mode">Режим загрузки.</param>
         /// <returns>Посты.</returns>
         [DefaultOverload]
-        IAsyncOperation<IList<IBoardPostEntity>> Load(IList<Guid> ids, PostStoreLoadMode mode);
+        IAsyncOperation<IList<IBoardPostEntity>> Load(IList<long> ids, PostStoreLoadMode mode);
 
         /// <summary>
         /// Загрузить сущности.
@@ -37,7 +37,7 @@ namespace Imageboard10.Core.ModelInterface.Posts.Store
         /// <param name="count">Сколько взять сущностей (максимально).</param>
         /// <param name="mode">Режим загрузки.</param>
         /// <returns>Посты.</returns>
-        IAsyncOperation<IList<IBoardPostEntity>> Load(Guid? parentId, int skip, int? count, PostStoreLoadMode mode);
+        IAsyncOperation<IList<IBoardPostEntity>> Load(long? parentId, int skip, int? count, PostStoreLoadMode mode);
 
         /// <summary>
         /// Получить дочерние сущности.
@@ -46,14 +46,14 @@ namespace Imageboard10.Core.ModelInterface.Posts.Store
         /// <param name="skip">Пропустить постов.</param>
         /// <param name="count">Сколько взять постов (максимально).</param>
         /// <returns>Идентификаторы сущностей.</returns>
-        IAsyncOperation<IList<Guid>> GetChildren(Guid collectionId, int skip, int? count);
+        IAsyncOperation<IList<long>> GetChildren(long collectionId, int skip, int? count);
 
         /// <summary>
         /// Получить количество постов в коллекции.
         /// </summary>
         /// <param name="collectionId">Идентификатор коллекции.</param>
         /// <returns>Количество постов.</returns>
-        IAsyncOperation<int> GetCollectionSize(Guid collectionId);
+        IAsyncOperation<int> GetCollectionSize(long collectionId);
 
         /// <summary>
         /// Получить общее количество сущностей в базе.
@@ -68,7 +68,7 @@ namespace Imageboard10.Core.ModelInterface.Posts.Store
         /// <param name="type">Тип сущности.</param>
         /// <param name="link">Ссылка на коллекцию.</param>
         /// <returns>Коллекция.</returns>
-        IAsyncOperation<Guid> FindEntity(PostStoreEntityType type, ILink link);
+        IAsyncOperation<long> FindEntity(PostStoreEntityType type, ILink link);
 
         /// <summary>
         /// Найти коллекции.
@@ -76,21 +76,21 @@ namespace Imageboard10.Core.ModelInterface.Posts.Store
         /// <param name="parentId">Идентификатор родительской коллекции.</param>
         /// <param name="links">Ссылки.</param>
         /// <returns>Коллекции.</returns>
-        IAsyncOperation<IList<IPostStoreEntityIdSearchResult>> FindEntities(Guid? parentId, IList<ILink> links);
+        IAsyncOperation<IList<IPostStoreEntityIdSearchResult>> FindEntities(long? parentId, IList<ILink> links);
 
         /// <summary>
         /// Получить информацию о доступе.
         /// </summary>
         /// <param name="id">Идентификатор.</param>
         /// <returns>Результат.</returns>
-        IAsyncOperation<IBoardPostStoreAccessInfo> GetAccessInfo(Guid id);
+        IAsyncOperation<IBoardPostStoreAccessInfo> GetAccessInfo(long id);
 
         /// <summary>
         /// Получить информацию о доступе.
         /// </summary>
         /// <param name="ids">Идентификаторы.</param>
         /// <returns>Результат.</returns>
-        IAsyncOperation<IList<IBoardPostStoreAccessInfo>> GetAccessInfos(IList<Guid> ids);
+        IAsyncOperation<IList<IBoardPostStoreAccessInfo>> GetAccessInfos(IList<long> ids);
 
         /// <summary>
         /// Получить информацию о доступе для всех коллекций.
@@ -103,21 +103,21 @@ namespace Imageboard10.Core.ModelInterface.Posts.Store
         /// </summary>
         /// <param name="id">Идентификатор.</param>
         /// <param name="accessTime">Время использования (null - текущее).</param>
-        IAsyncAction Touch(Guid id, DateTimeOffset? accessTime);
+        IAsyncAction Touch(long id, DateTimeOffset? accessTime);
 
         /// <summary>
         /// Получить ETAG коллекции.
         /// </summary>
         /// <param name="id">Идентификатор.</param>
         /// <returns>ETAG.</returns>
-        IAsyncOperation<string> GetEtag(Guid id);
+        IAsyncOperation<string> GetEtag(long id);
 
         /// <summary>
         /// Обновить ETAG.
         /// </summary>
         /// <param name="id">Идентификатор.</param>
         /// <param name="etag">ETAG.</param>
-        IAsyncAction UpdateEtag(Guid id, string etag);
+        IAsyncAction UpdateEtag(long id, string etag);
 
         /// <summary>
         /// Обновить информацию о коллекции.
@@ -130,7 +130,7 @@ namespace Imageboard10.Core.ModelInterface.Posts.Store
         /// </summary>
         /// <param name="id">Идентификатор.</param>
         /// <param name="readPosts">Прочитано постов.</param>
-        IAsyncAction SetReadPostsCount(Guid id, int readPosts);
+        IAsyncAction SetReadPostsCount(long id, int readPosts);
 
         /// <summary>
         /// Сохранить коллекцию.
@@ -139,7 +139,7 @@ namespace Imageboard10.Core.ModelInterface.Posts.Store
         /// <param name="replace">Режим замены.</param>
         /// <param name="cleanupPolicy">Политика зачистки старых данных. Если null - не производить зачистку.</param>
         /// <returns>Идентификатор коллекции.</returns>
-        IAsyncOperationWithProgress<Guid, OperationProgress> SaveCollection(IBoardPostEntity collection, BoardPostCollectionUpdateMode replace, PostStoreStaleDataClearPolicy cleanupPolicy);
+        IAsyncOperationWithProgress<long, OperationProgress> SaveCollection(IBoardPostEntity collection, BoardPostCollectionUpdateMode replace, PostStoreStaleDataClearPolicy cleanupPolicy);
 
         /// <summary>
         /// Загрузить информацию о коллекции.
@@ -159,7 +159,7 @@ namespace Imageboard10.Core.ModelInterface.Posts.Store
         /// </summary>
         /// <param name="ids">Идентификаторы.</param>
         /// <returns>Лайки.</returns>
-        IAsyncOperation<IList<IBoardPostLikes>> LoadLikes(IList<Guid> ids);
+        IAsyncOperation<IList<IBoardPostLikes>> LoadLikes(IList<long> ids);
 
         /// <summary>
         /// Обновить флаги сущности.
@@ -171,28 +171,28 @@ namespace Imageboard10.Core.ModelInterface.Posts.Store
         /// Загрузить флаги сущности.
         /// </summary>
         /// <param name="id">Идентификатор.</param>
-        IAsyncOperation<IList<Guid>> LoadFlags(Guid id);
+        IAsyncOperation<IList<Guid>> LoadFlags(long id);
 
         /// <summary>
         /// Получить ответы на этот пост.
         /// </summary>
         /// <param name="id">Идентификатор.</param>
         /// <returns>Ответы.</returns>
-        IAsyncOperation<IList<Guid>> GetPostQuotes(Guid id);
+        IAsyncOperation<IList<long>> GetPostQuotes(long id);
 
         /// <summary>
         /// Получить тип коллекции.
         /// </summary>
         /// <param name="collectionId">Идентификатор коллекции.</param>
         /// <returns>Тип коллекции.</returns>
-        IAsyncOperation<PostStoreEntityType> GetCollectionType(Guid collectionId);
+        IAsyncOperation<PostStoreEntityType> GetCollectionType(long collectionId);
 
         /// <summary>
         /// Получить количество медиа-файлов сущности (рекурсивно).
         /// </summary>
         /// <param name="id">Идентификатор.</param>
         /// <returns>Количество.</returns>
-        IAsyncOperation<int> GetMediaCount(Guid id);
+        IAsyncOperation<int> GetMediaCount(long id);
         
         /// <summary>
         /// Получить медиафайлы сущности (рекурсивно).
@@ -201,21 +201,21 @@ namespace Imageboard10.Core.ModelInterface.Posts.Store
         /// <param name="skip">Сколько пропустить.</param>
         /// <param name="count">Сколько взять (максимально).</param>
         /// <returns>Медиафайлы.</returns>
-        IAsyncOperation<IList<IPostMedia>> GetPostMedia(Guid id, int skip, int? count);
+        IAsyncOperation<IList<IPostMedia>> GetPostMedia(long id, int skip, int? count);
 
         /// <summary>
         /// Загрузить документ.
         /// </summary>
         /// <param name="id">Идентификатор сущности.</param>
         /// <returns>Документ.</returns>
-        IAsyncOperation<IPostDocument> GetDocument(Guid id);
+        IAsyncOperation<IPostDocument> GetDocument(long id);
 
         /// <summary>
         /// Удалить. Удаление всегда производится рекурсивно.
         /// </summary>
         /// <param name="ids">Список сущностей.</param>
         /// <returns>Список идентификаторов удалённых сущностей.</returns>
-        IAsyncOperation<IList<Guid>> Delete(IList<Guid> ids);
+        IAsyncOperation<IList<long>> Delete(IList<long> ids);
 
         /// <summary>
         /// Очистить все данные.
@@ -248,7 +248,7 @@ namespace Imageboard10.Core.ModelInterface.Posts.Store
         /// <param name="havingFlags">Должен иметь флаги.</param>
         /// <param name="notHavingFlags">Не должен иметь флаги.</param>
         /// <returns>Результат.</returns>
-        IAsyncOperation<IList<Guid>> QueryByFlags(PostStoreEntityType type, Guid? parentId, IList<Guid> havingFlags, IList<Guid> notHavingFlags);
+        IAsyncOperation<IList<long>> QueryByFlags(PostStoreEntityType type, long? parentId, IList<Guid> havingFlags, IList<Guid> notHavingFlags);
         
         /// <summary>
         /// Очистить лог доступа.

@@ -640,6 +640,22 @@ namespace Imageboard10.Core.ModelStorage
         }
 
         /// <summary>
+        /// Очистить столбец с несколькими значениями.
+        /// </summary>
+        /// <param name="table">Таблица.</param>
+        /// <param name="columnid">Идентификатор столбца.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        protected void ClearMultiValue(EsentTable table, JET_COLUMNID columnid)
+        {
+            var cnt = GetMultiValueCount(table, columnid);
+            var si = new JET_SETINFO() { itagSequence = 1 };
+            for (var i = 0; i < cnt; i++)
+            {
+                Api.JetSetColumn(table.Session, table.Table, columnid, null, 0, SetColumnGrbit.None, si);
+            }
+        }
+
+        /// <summary>
         /// Перечислить значения в столбце со многоими значениями.
         /// </summary>
         /// <param name="table">Таблица.</param>

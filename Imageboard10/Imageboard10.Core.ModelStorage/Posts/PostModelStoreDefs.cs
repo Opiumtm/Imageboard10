@@ -351,14 +351,9 @@ namespace Imageboard10.Core.ModelStorage.Posts
             public const string EntityReferences = "EntityReferences";
 
             /// <summary>
-            /// Номер последовательности поста. Для составного ключа, определяющего порядок медиа-файлов в каталоге медиа.
+            /// Номер последовательности (int номер поста + int медиа).
             /// </summary>
-            public const string EntitySequenceNumber = "PostSequenceNumber";
-
-            /// <summary>
-            /// Номер последовательности относительно сущности. Для составного ключа, определяющего порядок медиа-файлов в каталоге медиа.
-            /// </summary>
-            public const string MediaSequenceNumber = "MediaSequenceNumber";
+            public const string SequenceNumber = "PostSequenceNumber";
 
             /// <summary>
             /// Бинарное представление информации о медиафайле.
@@ -377,7 +372,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
             public static readonly IndexDefinition EntityReferences = new IndexDefinition()
             {
                 Fields = new[] {"+" + MediaFilesColumnNames.EntityReferences},
-                Grbit = CreateIndexGrbit.None
+                Grbit = CreateIndexGrbit.IndexIgnoreAnyNull
             };
 
             /// <summary>
@@ -388,10 +383,9 @@ namespace Imageboard10.Core.ModelStorage.Posts
                 Fields = new[]
                 {
                     "+" + MediaFilesColumnNames.EntityReferences,
-                    "+" + MediaFilesColumnNames.EntitySequenceNumber,
-                    "+" + MediaFilesColumnNames.MediaSequenceNumber,
+                    "+" + MediaFilesColumnNames.SequenceNumber,
                 },
-                Grbit = CreateIndexGrbit.None
+                Grbit = CreateIndexGrbit.IndexIgnoreFirstNull
             };
         }
 
@@ -427,17 +421,17 @@ namespace Imageboard10.Core.ModelStorage.Posts
             JET_COLUMNID tempcolid;
             Api.JetAddColumn(sid, tableid, ColumnNames.Id, new JET_COLUMNDEF()
             {
-                coltyp = VistaColtyp.GUID,
-                grbit = ColumndefGrbit.ColumnNotNULL,
+                coltyp = JET_coltyp.Currency,
+                grbit = ColumndefGrbit.ColumnNotNULL | ColumndefGrbit.ColumnAutoincrement,
             }, null, 0, out tempcolid);
             Api.JetAddColumn(sid, tableid, ColumnNames.ParentId, new JET_COLUMNDEF()
             {
-                coltyp = VistaColtyp.GUID,
+                coltyp = JET_coltyp.Currency,
                 grbit = ColumndefGrbit.ColumnMultiValued | ColumndefGrbit.ColumnTagged,
             }, null, 0, out tempcolid);
             Api.JetAddColumn(sid, tableid, ColumnNames.DirectParentId, new JET_COLUMNDEF()
             {
-                coltyp = VistaColtyp.GUID,
+                coltyp = JET_coltyp.Currency,
                 grbit = ColumndefGrbit.None,
             }, null, 0, out tempcolid);
             Api.JetAddColumn(sid, tableid, ColumnNames.EntityType, new JET_COLUMNDEF()
@@ -607,7 +601,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
             }, null, 0, out tempcolid);
             Api.JetAddColumn(sid, tableid, AccessLogColumnNames.EntityId, new JET_COLUMNDEF()
             {
-                coltyp = VistaColtyp.GUID,
+                coltyp = JET_coltyp.Currency,
                 grbit = ColumndefGrbit.ColumnNotNULL,
             }, null, 0, out tempcolid);
             Api.JetAddColumn(sid, tableid, AccessLogColumnNames.AccessTime, new JET_COLUMNDEF()
@@ -633,22 +627,17 @@ namespace Imageboard10.Core.ModelStorage.Posts
             JET_COLUMNID tempcolid;
             Api.JetAddColumn(sid, tableid, MediaFilesColumnNames.Id, new JET_COLUMNDEF()
             {
-                coltyp = VistaColtyp.GUID,
-                grbit = ColumndefGrbit.ColumnNotNULL,
+                coltyp = JET_coltyp.Currency,
+                grbit = ColumndefGrbit.ColumnNotNULL | ColumndefGrbit.ColumnAutoincrement,
             }, null, 0, out tempcolid);
             Api.JetAddColumn(sid, tableid, MediaFilesColumnNames.EntityReferences, new JET_COLUMNDEF()
             {
-                coltyp = VistaColtyp.GUID,
+                coltyp = JET_coltyp.Currency,
                 grbit = ColumndefGrbit.ColumnMultiValued | ColumndefGrbit.ColumnTagged,
             }, null, 0, out tempcolid);
-            Api.JetAddColumn(sid, tableid, MediaFilesColumnNames.EntitySequenceNumber, new JET_COLUMNDEF()
+            Api.JetAddColumn(sid, tableid, MediaFilesColumnNames.SequenceNumber, new JET_COLUMNDEF()
             {
-                coltyp = JET_coltyp.Long,
-                grbit = ColumndefGrbit.ColumnNotNULL,
-            }, null, 0, out tempcolid);
-            Api.JetAddColumn(sid, tableid, MediaFilesColumnNames.MediaSequenceNumber, new JET_COLUMNDEF()
-            {
-                coltyp = JET_coltyp.Long,
+                coltyp = JET_coltyp.Currency,
                 grbit = ColumndefGrbit.ColumnNotNULL,
             }, null, 0, out tempcolid);
             Api.JetAddColumn(sid, tableid, MediaFilesColumnNames.MediaData, new JET_COLUMNDEF()
