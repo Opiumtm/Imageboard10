@@ -377,13 +377,6 @@ namespace Imageboard10.Core.ModelStorage.Posts
             return null;
         }
 
-        private class PostStoreEntityIdSearchResult : IPostStoreEntityIdSearchResult
-        {
-            public ILink Link { get; set; }
-            public PostStoreEntityId Id { get; set; }
-            public PostStoreEntityType EntityType { get; set; }
-        }
-
         private void WriteThreadPreviewCount(BinaryWriter wr, int? cnt)
         {
             if (cnt == null)
@@ -538,12 +531,6 @@ namespace Imageboard10.Core.ModelStorage.Posts
             });
         }
 
-        private class LinkWithStoreId : ILinkWithStoreId
-        {
-            public PostStoreEntityId Id { get; set; }
-            public ILink Link { get; set; }
-        }
-
         /// <summary>
         /// Сформировать ссылку.
         /// </summary>
@@ -609,5 +596,18 @@ namespace Imageboard10.Core.ModelStorage.Posts
             (var entityType, var boardId, var sequenceId, var parentSequenceId) = ExtractLinkData(table, colids);
             return ConstructLink(entityType, boardId, sequenceId, parentSequenceId);
         }
+    }
+
+    internal class PostStoreEntityIdSearchResult : IPostStoreEntityIdSearchResult
+    {
+        public ILink Link { get; set; }
+        public PostStoreEntityId Id { get; set; }
+        public PostStoreEntityType EntityType { get; set; }
+    }
+
+    internal class LinkWithStoreId : ILinkWithStoreId
+    {
+        public PostStoreEntityId Id { get; set; }
+        public ILink Link { get; set; }
     }
 }

@@ -82,7 +82,7 @@ namespace Imageboard10.Core.ModelInterface.Posts.Store
         /// </summary>
         /// <param name="type">Тип сущности.</param>
         /// <returns>Количество сущностей.</returns>
-        IAsyncOperation<int> GetTotalSize(PostStoreEntityType type);
+        IAsyncOperation<int> GetTotalSize(PostStoreEntityType? type);
 
         /// <summary>
         /// Найти коллекцию.
