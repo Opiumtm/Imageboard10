@@ -241,7 +241,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
         /// </summary>
         /// <param name="type">Тип сущности.</param>
         /// <returns>Количество сущностей.</returns>
-        public IAsyncOperation<int> GetTotalSize(PostStoreEntityType type)
+        public IAsyncOperation<int> GetTotalSize(PostStoreEntityType? type)
         {
             async Task<int> Do()
             {
@@ -249,8 +249,20 @@ namespace Imageboard10.Core.ModelStorage.Posts
                 {
                     using (var table = session.OpenTable(TableName, OpenTableGrbit.ReadOnly))
                     {
-                        int cnt;
-                        Api.JetIndexRecordCount(table.Session, table, out cnt, int.MaxValue);
+                        int cnt = 0;
+                        if (type != null)
+                        {
+                            Api.JetSetCurrentIndex(table.Session, table, GetIndexName(TableName, nameof(Indexes.Type)));
+                            Api.MakeKey(table.Session, table, (byte)(type.Value), MakeKeyGrbit.NewKey);
+                            if (Api.TrySeek(table.Session, table, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange))
+                            {
+                                Api.JetIndexRecordCount(table.Session, table, out cnt, int.MaxValue);
+                            }
+                        }
+                        else
+                        {
+                            Api.JetIndexRecordCount(table.Session, table, out cnt, int.MaxValue);
+                        }
                         return cnt;
                     }
                 });
