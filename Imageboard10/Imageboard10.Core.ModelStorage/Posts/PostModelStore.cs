@@ -8,6 +8,7 @@ using Imageboard10.Core.ModelInterface.Links;
 using Imageboard10.Core.ModelInterface.Posts;
 using Imageboard10.Core.ModelInterface.Posts.Store;
 using Imageboard10.Core.Models.Links;
+using Imageboard10.Core.Modules;
 using Imageboard10.ModuleInterface;
 using Microsoft.Isam.Esent.Interop;
 
@@ -16,7 +17,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
     /// <summary>
     /// Хранилище постов.
     /// </summary>
-    public partial class PostModelStore : ModelStorageBase<IBoardPostStore>, IBoardPostStore
+    public partial class PostModelStore : ModelStorageBase<IBoardPostStore>, IBoardPostStore, IStaticModuleQueryFilter
     {
         /// <summary>
         /// Конструктор.
@@ -644,6 +645,26 @@ namespace Imageboard10.Core.ModelStorage.Posts
                     }
                 }
             }
+        }
+
+
+        /// <summary>
+        /// Проверить запрос.
+        /// </summary>
+        /// <typeparam name="T">Тип запроса.</typeparam>
+        /// <param name="query">Запрос.</param>
+        /// <returns>Результат.</returns>
+        bool IStaticModuleQueryFilter.CheckQuery<T>(T query)
+        {
+            if (typeof(T) == typeof(string))
+            {
+                var s = (string)(object)query;
+                if (EngineId.Equals(s, StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+            }
+            return false;
         }
     }
 }
