@@ -26,7 +26,6 @@ using Newtonsoft.Json;
 
 namespace Imageboard10UnitTests
 {
-    /*
     [TestClass]
     [TestCategory("ModelStore")]
     public class PostModelStoreTests
@@ -123,5 +122,5 @@ namespace Imageboard10UnitTests
 
             return (tcs.Task, Callback);
         }
-    }*/
+    }
 }

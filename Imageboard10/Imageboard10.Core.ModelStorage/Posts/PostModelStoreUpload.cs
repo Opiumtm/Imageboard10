@@ -271,7 +271,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
                                 columns.Add(new Int64ColumnValue()
                                 {
                                     Value = CreateMediaSequenceId(postId, i),
-                                    Columnid = mediaColids[MediaFilesColumnNames.MediaData],
+                                    Columnid = mediaColids[MediaFilesColumnNames.SequenceNumber],
                                 });
                                 columns.Add(new BytesColumnValue()
                                 {

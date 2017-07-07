@@ -323,11 +323,19 @@ namespace Imageboard10.Core.ModelStorage.Posts
                 {
                     return new List<IPostStoreEntityIdSearchResult>();
                 }
-                var toFind = links.Distinct(BoardLinkEqualityComparer.Instance).Select(k => new { k, l = ExtractLinkKey(k)})
-                    .Where(l => l.l != null)
-                    .Select(l => new { l.k, l = l.l.Value })
-                    .SelectMany(l => ToEntityTypes(l.l.entityType).Select(et => (boardId: l.l.boardId, sequenceId: l.l.sequenceId, entityType: et, link: l.k)))
-                    .ToArray();
+                var toFind = new List<(string boardId, int sequenceId, PostStoreEntityType entityType, ILink link)>();
+                foreach (var l in links.Distinct(BoardLinkEqualityComparer.Instance))
+                {
+                    var key1 = ExtractLinkKey(l);
+                    if (key1 != null)
+                    {
+                        var etypes = ToEntityTypes(key1.Value.entityType);
+                        foreach (var et in etypes)
+                        {
+                            toFind.Add((key1.Value.boardId, key1.Value.sequenceId, et, l));
+                        }
+                    }
+                }
                 return await QueryReadonly(session =>
                 {
                     var result = new List<IPostStoreEntityIdSearchResult>();
