@@ -1,17 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Windows.Foundation;
-using Imageboard10.Core.Database;
 using Imageboard10.Core.ModelInterface.Links;
 using Imageboard10.Core.ModelInterface.Posts;
 using Imageboard10.Core.ModelInterface.Posts.Store;
-using Imageboard10.Core.Models.Links.LinkTypes;
-using Imageboard10.Core.ModelStorage.UnitTests;
-using Imageboard10.Core.Utility;
+using Imageboard10.Core.Models.Links;
+using Imageboard10.ModuleInterface;
 using Microsoft.Isam.Esent.Interop;
 
 namespace Imageboard10.Core.ModelStorage.Posts
@@ -49,187 +46,41 @@ namespace Imageboard10.Core.ModelStorage.Posts
             return Nothing.Value;
         }
 
-        protected async Task DoDeleteEntitiesList(IEsentSession session, IEnumerable<PostStoreEntityId> toDelete)
+        /// <summary>
+        /// Получить ссылку на сущность.
+        /// </summary>
+        /// <param name="id">Идентификатор.</param>
+        /// <returns>Ссылка.</returns>
+        public IAsyncOperation<ILink> GetEntityLink(PostStoreEntityId id)
         {
-            async Task Delete(PostStoreEntityId[] toDeletePart)
+            async Task<ILink> Do()
             {
-                await session.RunInTransaction(() =>
+                return await QueryReadonly(session =>
                 {
-                    using (var table = session.OpenTable(TableName, OpenTableGrbit.DenyWrite))
+                    using (var table = session.OpenTable(TableName, OpenTableGrbit.ReadOnly))
                     {
-                        foreach (var id in toDeletePart)
+                        var colids = Api.GetColumnDictionary(table.Session, table);
+                        Api.MakeKey(table.Session, table, id.Id, MakeKeyGrbit.NewKey);
+                        if (Api.TrySeek(table.Session, table, SeekGrbit.SeekEQ))
                         {
-                            Api.MakeKey(table.Session, table, id.Id, MakeKeyGrbit.NewKey);
-                            if (Api.TrySeek(table.Session, table, SeekGrbit.SeekEQ))
-                            {
-                                Api.JetDelete(table.Session, table);
-                            }
+                            return GetLinkAtCurrentPosition(table, colids);
                         }
+                        return null;
                     }
-                    return true;
                 });
             }
 
-            var split = toDelete.SplitSet(100).Select(s => s.ToArray());
-            foreach (var part in split)
-            {
-                await Delete(part);
-            }
-        }
-
-        private static readonly HashSet<PostStoreEntityType> AllowedToAdd = new HashSet<PostStoreEntityType>()
-        {
-            PostStoreEntityType.BoardPage,
-            PostStoreEntityType.Catalog,
-            PostStoreEntityType.Thread            
-        };
-
-        protected void CheckLinkEngine(ILink link)
-        {
-            if (link == null) throw new ArgumentNullException(nameof(link));
-            if (link is IEngineLink el)
-            {
-                if (!string.Equals(el.Engine, EngineId, StringComparison.OrdinalIgnoreCase))
-                {
-                    throw new ArgumentException($"Передана сущность с идентификатором сетевого модуля {el.Engine} вместо {EngineId}");
-                }
-            }
+            return Do().AsAsyncOperation();
         }
 
         /// <summary>
-        /// Получить информацию о посте из ссылки.
+        /// Получить ссылки на сущности.
         /// </summary>
-        /// <param name="link">Ссылка.</param>
-        /// <returns>Информация о посте.</returns>
-        protected virtual (string boardId, int threadId, int postId) ExtractPostLinkData(ILink link)
+        /// <param name="ids">Идентификаторы.</param>
+        /// <returns>Ссылки.</returns>
+        public IAsyncOperation<IList<ILinkWithStoreId>> GetEntityLinks(PostStoreEntityId[] ids)
         {
-            switch (link)
-            {
-                case PostLink l:
-                    return (l.Board, l.OpPostNum, l.PostNum);
-                case ThreadLink l:
-                    return (l.Board, l.OpPostNum, l.OpPostNum);
-                default:
-                    throw new ArgumentException($"Невозможно определить информацию о доске и номере поста из ссылки {link.GetLinkHash()}");
-            }
-        }
-
-        /// <summary>
-        /// Получить информацию о треде или каталоге из ссылки.
-        /// </summary>
-        /// <param name="link">Ссылка.</param>
-        /// <returns>Информация о посте.</returns>
-        protected virtual (string boardId, int sequenceId) ExtractCatalogOrThreadLinkData(ILink link)
-        {
-            switch (link)
-            {
-                case CatalogLink l:
-                    return (l.Board, (int)l.SortMode);
-                case ThreadLink l:
-                    return (l.Board, l.OpPostNum);
-                default:
-                    throw new ArgumentException($"Невозможно определить информацию о доске и сортировке каталога из ссылки {link.GetLinkHash()}");
-            }
-        }
-
-        /// <summary>
-        /// Получить информацию о треде или каталоге из ссылки.
-        /// </summary>
-        /// <param name="link">Ссылка.</param>
-        /// <returns>Информация о посте.</returns>
-        protected virtual (string boardId, int sequenceId) ExtractBoardPageLinkData(ILink link)
-        {
-            switch (link)
-            {
-                case BoardPageLink l:
-                    return (l.Board, l.Page);
-                case BoardLink l:
-                    return (l.Board, 0);
-                default:
-                    throw new ArgumentException($"Невозможно определить информацию о странице доски {link.GetLinkHash()}");
-            }
-        }
-
-        private bool SeekExistingEntityInSequence(EsentTable table, PostStoreEntityId directParent, int postId, out PostStoreEntityId id)
-        {
-            Api.JetSetCurrentIndex(table.Session, table, GetIndexName(TableName, nameof(Indexes.InThreadPostLink)));
-            Api.MakeKey(table.Session, table, directParent.Id, MakeKeyGrbit.NewKey);
-            Api.MakeKey(table.Session, table, postId, MakeKeyGrbit.None);
-            var r = Api.TrySeek(table.Session, table.Table, SeekGrbit.SeekEQ);
-            if (r)
-            {
-                var id1 = Api.RetrieveColumnAsInt32(table.Session, table.Table, Api.GetTableColumnid(table.Session, table.Table, ColumnNames.Id), RetrieveColumnGrbit.RetrieveFromPrimaryBookmark);
-                if (id1 == null)
-                {
-                    throw new InvalidOperationException($"Невозможно получить первичный ключ для {EngineId}:{directParent},{postId}");
-                }
-                id = new PostStoreEntityId() { Id = id1.Value };
-            }
-            else
-            {
-                id = new PostStoreEntityId() { Id = -1 };
-            }
-            return r;
-        }
-
-        private bool SeekExistingEntityOnBoard(EsentTable table, PostStoreEntityType entityType, string boardId, int sequenceId, out PostStoreEntityId id)
-        {
-            Api.JetSetCurrentIndex(table.Session, table, GetIndexName(TableName, nameof(Indexes.TypeAndPostId)));
-            Api.MakeKey(table.Session, table, (byte)entityType, MakeKeyGrbit.NewKey);
-            Api.MakeKey(table.Session, table, boardId, Encoding.Unicode, MakeKeyGrbit.None);
-            Api.MakeKey(table.Session, table, sequenceId, MakeKeyGrbit.None);
-            var r = Api.TrySeek(table.Session, table.Table, SeekGrbit.SeekEQ);
-            if (r)
-            {
-                var id1 = Api.RetrieveColumnAsInt32(table.Session, table.Table, Api.GetTableColumnid(table.Session, table.Table, ColumnNames.Id), RetrieveColumnGrbit.RetrieveFromPrimaryBookmark);
-                if (id1 == null)
-                {
-                    throw new InvalidOperationException($"Невозможно получить первичный ключ для треда или каталога {EngineId}:{entityType},{boardId},{sequenceId}");
-                }
-                id = new PostStoreEntityId() { Id = id1.Value };
-            }
-            else
-            {
-                id = new PostStoreEntityId() { Id = -1 };
-            }
-            return r;
-        }
-
-        /// <summary>
-        /// Флаги, управляемые сервером.
-        /// </summary>
-        /// <returns>Список флагов.</returns>
-        protected virtual IEnumerable<Guid> ServerFlags()
-        {
-            yield return BoardPostFlags.Closed;
-            yield return BoardPostFlags.AdminTrip;
-            yield return BoardPostFlags.Banned;
-            yield return BoardPostFlags.Endless;
-            yield return BoardPostFlags.IsEdited;
-            yield return BoardPostFlags.Op;
-            yield return BoardPostFlags.Sage;
-            yield return BoardPostFlags.Sticky;
-            yield return BoardPostFlags.ThreadOpPost;
-            yield return BoardPostFlags.ThreadPreview;
-            yield return PostCollectionFlags.EnableCountryFlags;
-            yield return PostCollectionFlags.EnableAudio;
-            yield return PostCollectionFlags.EnableDices;
-            yield return PostCollectionFlags.EnableIcons;
-            yield return PostCollectionFlags.EnableImages;
-            yield return PostCollectionFlags.EnableLikes;
-            yield return PostCollectionFlags.EnableNames;
-            yield return PostCollectionFlags.EnableOekaki;
-            yield return PostCollectionFlags.EnablePosting;
-            yield return PostCollectionFlags.EnableSage;
-            yield return PostCollectionFlags.EnableShield;
-            yield return PostCollectionFlags.EnableSubject;
-            yield return PostCollectionFlags.EnableThreadTags;
-            yield return PostCollectionFlags.EnableTripcodes;
-            yield return PostCollectionFlags.EnableVideo;
-            yield return PostCollectionFlags.IsBoard;
-            yield return PostCollectionFlags.IsClosed;
-            yield return PostCollectionFlags.IsIndex;
-            yield return UnitTestStoreFlags.ShouldFail;
+            throw new NotImplementedException();
         }
 
         public IAsyncOperation<IBoardPostEntity> Load(PostStoreEntityId id, PostStoreLoadMode mode)
@@ -247,34 +98,243 @@ namespace Imageboard10.Core.ModelStorage.Posts
             throw new NotImplementedException();
         }
 
+        /// <summary>
+        /// Получить дочерние сущности.
+        /// </summary>
+        /// <param name="collectionId">Идентификатор коллекции.</param>
+        /// <param name="skip">Пропустить постов.</param>
+        /// <param name="count">Сколько взять постов (максимально).</param>
+        /// <returns>Идентификаторы сущностей.</returns>
         public IAsyncOperation<IList<PostStoreEntityId>> GetChildren(PostStoreEntityId collectionId, int skip, int? count)
         {
-            throw new NotImplementedException();
+            async Task<IList<PostStoreEntityId>> Do()
+            {
+                return await QueryReadonly(session =>
+                {
+                    using (var table = session.OpenTable(TableName, OpenTableGrbit.ReadOnly))
+                    {
+                        var result = new List<PostStoreEntityId>();
+                        Api.JetSetCurrentIndex(table.Session, table, GetIndexName(TableName, nameof(Indexes.InThreadPostLink)));
+                        Api.MakeKey(table.Session, table, collectionId.Id, MakeKeyGrbit.NewKey);
+                        var colid = Api.GetTableColumnid(table.Session, table, ColumnNames.Id);
+                        if (Api.TrySeek(table.Session, table, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange))
+                        {
+                            int counted = 0;
+                            bool skipped = true;
+                            if (skip > 0)
+                            {
+                                skipped = Api.TryMove(table.Session, table, (JET_Move) skip, MoveGrbit.None);
+                            }
+                            if (skipped)
+                            {
+                                do
+                                {
+                                    counted++;
+                                    if (counted > count)
+                                    {
+                                        break;
+                                    }
+                                    var id = Api.RetrieveColumnAsInt32(table.Session, table, colid) ?? -1;
+                                    result.Add(new PostStoreEntityId() { Id = id});
+                                } while (Api.TryMoveNext(table.Session, table.Table));
+                            }
+                        }
+                        return result;
+                    }
+                });
+            }
+
+            return Do().AsAsyncOperation();
         }
 
+        /// <summary>
+        /// Статус загрузки дочерних сущностей.
+        /// </summary>
+        /// <param name="collectionId">Коллекция.</param>
+        /// <returns>Результат.</returns>
         public IAsyncOperation<bool> IsChildrenLoaded(PostStoreEntityId collectionId)
         {
-            throw new NotImplementedException();
+            async Task<bool> Do()
+            {
+                return await QueryReadonly(session =>
+                {
+                    using (var table = session.OpenTable(TableName, OpenTableGrbit.ReadOnly))
+                    {
+                        Api.MakeKey(table.Session, table, collectionId.Id, MakeKeyGrbit.NewKey);
+                        if (Api.TrySeek(table.Session, table, SeekGrbit.SeekEQ))
+                        {
+                            var ls = Api.RetrieveColumnAsByte(table.Session, table, Api.GetTableColumnid(table.Session, table, ColumnNames.ChildrenLoadStage));
+                            if (ls == ChildrenLoadStageId.Completed)
+                            {
+                                return true;
+                            }
+                        }
+                        return false;
+                    }
+                });
+            }
+
+            return Do().AsAsyncOperation();
         }
 
+        /// <summary>
+        /// Получить количество постов в коллекции.
+        /// </summary>
+        /// <param name="collectionId">Идентификатор коллекции.</param>
+        /// <returns>Количество постов.</returns>
         public IAsyncOperation<int> GetCollectionSize(PostStoreEntityId collectionId)
         {
-            throw new NotImplementedException();
+            async Task<int> Do()
+            {
+                return await QueryReadonly(session =>
+                {
+                    using (var table = session.OpenTable(TableName, OpenTableGrbit.ReadOnly))
+                    {
+                        Api.JetSetCurrentIndex(table.Session, table, GetIndexName(TableName, nameof(Indexes.ParentId)));
+                        Api.MakeKey(table.Session, table, collectionId.Id, MakeKeyGrbit.NewKey);
+                        if (Api.TrySeek(table.Session, table, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange))
+                        {
+                            int cnt;
+                            Api.JetIndexRecordCount(table.Session, table, out cnt, int.MaxValue);
+                            return cnt;
+                        }
+                        return 0;
+                    }
+                });
+            }
+
+            return Do().AsAsyncOperation();
         }
 
+        /// <summary>
+        /// Получить общее количество сущностей в базе.
+        /// </summary>
+        /// <param name="type">Тип сущности.</param>
+        /// <returns>Количество сущностей.</returns>
         public IAsyncOperation<int> GetTotalSize(PostStoreEntityType type)
         {
-            throw new NotImplementedException();
+            async Task<int> Do()
+            {
+                return await QueryReadonly(session =>
+                {
+                    using (var table = session.OpenTable(TableName, OpenTableGrbit.ReadOnly))
+                    {
+                        int cnt;
+                        Api.JetIndexRecordCount(table.Session, table, out cnt, int.MaxValue);
+                        return cnt;
+                    }
+                });
+            }
+
+            return Do().AsAsyncOperation();
         }
 
-        public IAsyncOperation<PostStoreEntityId> FindEntity(PostStoreEntityType type, ILink link)
+        /// <summary>
+        /// Найти коллекцию.
+        /// </summary>
+        /// <param name="type">Тип сущности.</param>
+        /// <param name="link">Ссылка на коллекцию.</param>
+        /// <returns>Коллекция.</returns>
+        public IAsyncOperation<PostStoreEntityId?> FindEntity(PostStoreEntityType type, ILink link)
         {
-            throw new NotImplementedException();
+            async Task<PostStoreEntityId?> Do()
+            {
+                var key = ExtractLinkKey(type, link) ?? throw new ArgumentException($"Невозможно определить информацию для поиска из ссылки {link?.GetLinkHash()}.", nameof(link));
+                return await QueryReadonly<PostStoreEntityId?>(session =>
+                {
+                    using (var table = session.OpenTable(TableName, OpenTableGrbit.ReadOnly))
+                    {
+                        Api.JetSetCurrentIndex(table.Session, table, GetIndexName(TableName, nameof(Indexes.TypeAndPostId)));
+                        Api.MakeKey(table.Session, table, (byte)type, MakeKeyGrbit.NewKey);
+                        Api.MakeKey(table.Session, table, key.boardId, Encoding.Unicode, MakeKeyGrbit.None);
+                        Api.MakeKey(table.Session, table, key.sequenceId, MakeKeyGrbit.None);
+                        if (Api.TrySeek(table.Session, table, SeekGrbit.SeekEQ))
+                        {
+                            var id = Api.RetrieveColumnAsInt32(table.Session, table, Api.GetTableColumnid(table.Session, table, ColumnNames.Id), RetrieveColumnGrbit.RetrieveFromPrimaryBookmark);
+                            if (id != null)
+                            {
+                                return new PostStoreEntityId()
+                                {
+                                    Id = id.Value
+                                };
+                            }
+                        }
+                        return null;
+                    }
+                });
+            }
+
+            return Do().AsAsyncOperation();
         }
 
+        /// <summary>
+        /// Найти коллекции.
+        /// </summary>
+        /// <param name="parentId">Идентификатор родительской коллекции.</param>
+        /// <param name="links">Ссылки.</param>
+        /// <returns>Коллекции.</returns>
         public IAsyncOperation<IList<IPostStoreEntityIdSearchResult>> FindEntities(PostStoreEntityId? parentId, IList<ILink> links)
         {
-            throw new NotImplementedException();
+            async Task<IList<IPostStoreEntityIdSearchResult>> Do()
+            {
+                if (links == null || links.Count == 0)
+                {
+                    return new List<IPostStoreEntityIdSearchResult>();
+                }
+                var toFind = links.Distinct(BoardLinkEqualityComparer.Instance).Select(k => new { k, l = ExtractLinkKey(k)})
+                    .Where(l => l.l != null)
+                    .Select(l => new { l.k, l = l.l.Value })
+                    .SelectMany(l => ToEntityTypes(l.l.entityType).Select(et => (boardId: l.l.boardId, sequenceId: l.l.sequenceId, entityType: et, link: l.k)))
+                    .ToArray();
+                return await QueryReadonly(session =>
+                {
+                    var result = new List<IPostStoreEntityIdSearchResult>();
+                    using (var table = session.OpenTable(TableName, OpenTableGrbit.ReadOnly))
+                    {
+                        var colids = Api.GetColumnDictionary(table.Session, table);
+                        Api.JetSetCurrentIndex(table.Session, table, GetIndexName(TableName, nameof(Indexes.TypeAndPostId)));
+                        foreach (var key in toFind)
+                        {
+                            Api.MakeKey(table.Session, table, (byte)key.entityType, MakeKeyGrbit.NewKey);
+                            Api.MakeKey(table.Session, table, key.boardId, Encoding.Unicode, MakeKeyGrbit.None);
+                            Api.MakeKey(table.Session, table, key.sequenceId, MakeKeyGrbit.None);
+                            if (Api.TrySeek(table.Session, table, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange))
+                            {
+                                do
+                                {
+                                    bool skip = false;
+                                    if (parentId != null)
+                                    {
+                                        var parents = EnumMultivalueColumn<Int32ColumnValue>(table, colids[ColumnNames.ParentId]);
+                                        // ReSharper disable once SimplifyLinqExpression
+                                        if (!parents.Any(c => c.Value == parentId.Value.Id))
+                                        {
+                                            skip = true;
+                                        }
+                                    }
+                                    var idV = Api.RetrieveColumnAsInt32(table.Session, table.Table, colids[ColumnNames.Id], RetrieveColumnGrbit.RetrieveFromPrimaryBookmark);
+                                    if (idV == null)
+                                    {
+                                        skip = true;
+                                    }
+                                    if (!skip)
+                                    {
+                                        result.Add(new PostStoreEntityIdSearchResult()
+                                        {
+                                            EntityType = key.entityType,
+                                            Link = key.link,
+                                            Id = new PostStoreEntityId() { Id = idV.Value }
+                                        });
+                                    }
+                                } while (Api.TryMoveNext(table.Session, table));
+                            }
+                        }
+                    }
+                    return result;
+                });
+            }
+
+            return Do().AsAsyncOperation();
         }
 
         public IAsyncOperation<IBoardPostStoreAccessInfo> GetAccessInfo(PostStoreEntityId id)
@@ -317,65 +377,16 @@ namespace Imageboard10.Core.ModelStorage.Posts
             throw new NotImplementedException();
         }
 
-        private void WriteThreadPreviewCount(BinaryWriter wr, int? cnt)
+        /// <summary>
+        /// Сохранить коллекцию.
+        /// </summary>
+        /// <param name="collection">Коллекция.</param>
+        /// <param name="replace">Режим замены.</param>
+        /// <param name="cleanupPolicy">Политика зачистки старых данных. Если null - не производить зачистку.</param>
+        /// <returns>Идентификатор коллекции.</returns>
+        public IAsyncOperationWithProgress<PostStoreEntityId, OperationProgress> SaveCollection(IBoardPostEntity collection, BoardPostCollectionUpdateMode replace, PostStoreStaleDataClearPolicy cleanupPolicy)
         {
-            if (cnt == null)
-            {
-                wr.Write(false);
-            }
-            else
-            {
-                wr.Write(true);
-                wr.Write(cnt.Value);
-            }
-        }
-
-        private int? ReadThreadPreviewCount(BinaryReader rd)
-        {
-            var f = rd.ReadBoolean();
-            if (f)
-            {
-                return rd.ReadInt32();
-            }
-            return null;
-        }
-
-        private byte[] WriteThreadPreviewCounts(IThreadPreviewPostCollection pc)
-        {
-            using (var str = new MemoryStream())
-            {
-                using (var wr = new BinaryWriter(str, Encoding.UTF8, true))
-                {
-                    WriteThreadPreviewCount(wr, pc?.Omit);
-                    WriteThreadPreviewCount(wr, pc?.ReplyCount);
-                    WriteThreadPreviewCount(wr, pc?.OmitImages);
-                    WriteThreadPreviewCount(wr, pc?.ImageCount);
-                    wr.Flush();
-                }
-                return str.ToArray();
-            }
-        }
-
-        private (int? omit, int? replyCount, int? omitImages, int? imageCount) ReadThreadPreviewCounts(byte[] data)
-        {
-            try
-            {
-                if (data == null)
-                {
-                    return (null, null, null, null);
-                }
-                using (var str = new MemoryStream(data))
-                {
-                    using (var rd = new BinaryReader(str))
-                    {
-                        return (ReadThreadPreviewCount(rd), ReadThreadPreviewCount(rd), ReadThreadPreviewCount(rd), ReadThreadPreviewCount(rd));
-                    }
-                }
-            }
-            catch
-            {
-                return (null, null, null, null);
-            }
+            return SaveCollection(collection, replace, cleanupPolicy, null);
         }
 
         public IAsyncOperation<IBoardPostCollectionInfoSet> LoadCollectionInfoSet(Guid collectionId)
@@ -476,99 +487,6 @@ namespace Imageboard10.Core.ModelStorage.Posts
         public IAsyncAction SyncAccessLog(IList<IBoardPostStoreAccessLogItem> accessLog)
         {
             throw new NotImplementedException();
-        }
-
-        private IEnumerable<(PostStoreEntityId id, PostStoreEntityId parentId)> FindAllChildren(EsentTable table, IEnumerable<PostStoreEntityId> parents)
-        {
-            Api.JetSetCurrentIndex(table.Session, table.Table, GetIndexName(TableName, nameof(Indexes.ParentId)));
-            var colid = Api.GetTableColumnid(table.Session, table, ColumnNames.Id);
-            foreach (var id in parents.Distinct())
-            {
-                Api.MakeKey(table.Session, table, id.Id, MakeKeyGrbit.NewKey);
-                if (Api.TrySeek(table.Session, table, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange))
-                {
-                    do
-                    {
-                        var cid = Api.RetrieveColumnAsInt32(table.Session, table.Table, colid, RetrieveColumnGrbit.RetrieveFromPrimaryBookmark);
-                        if (cid.HasValue)
-                        {
-                            yield return (new PostStoreEntityId() { Id = cid.Value }, id);
-                        }
-                    } while (Api.TryMoveNext(table.Session, table.Table));
-                }
-            }
-        }
-
-        private IEnumerable<(int sequenceId, PostStoreEntityId parentId)> FindAllChildrenSeqNums(EsentTable table, IEnumerable<PostStoreEntityId> parents)
-        {
-            Api.JetSetCurrentIndex(table.Session, table.Table, GetIndexName(TableName, nameof(Indexes.ParentId)));
-            var colid = Api.GetTableColumnid(table.Session, table, ColumnNames.SequenceNumber);
-            foreach (var id in parents.Distinct())
-            {
-                Api.MakeKey(table.Session, table, id.Id, MakeKeyGrbit.NewKey);
-                if (Api.TrySeek(table.Session, table, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange))
-                {
-                    do
-                    {
-                        var cid = Api.RetrieveColumnAsInt32(table.Session, table.Table, colid, RetrieveColumnGrbit.None);
-                        if (cid.HasValue)
-                        {
-                            yield return (cid.Value, id);
-                        }
-                    } while (Api.TryMoveNext(table.Session, table.Table));
-                }
-            }
-        }
-
-        private IEnumerable<(PostStoreEntityId id, PostStoreEntityId parentId)> FindAllChildren(EsentTable table, PostStoreEntityId parent)
-        {
-            return FindAllChildren(table, new [] {parent});
-        }
-
-        private IEnumerable<(int sequenceId, PostStoreEntityId parentId)> FindAllChildrenSeqNums(EsentTable table, PostStoreEntityId parent)
-        {
-            return FindAllChildrenSeqNums(table, new[] { parent });
-        }
-
-        private IEnumerable<PostStoreEntityId> FindAllParents(EsentTable table)
-        {
-            var colid = Api.GetTableColumnid(table.Session, table.Table, ColumnNames.ParentId);
-            Api.JetSetCurrentIndex(table.Session, table.Table, GetIndexName(TableName, nameof(Indexes.ParentId)));
-            if (Api.TryMoveFirst(table.Session, table))
-            {
-                do
-                {
-                    var id = Api.RetrieveColumnAsInt32(table.Session, table, colid);
-                    if (id != null)
-                    {
-                        yield return new PostStoreEntityId() { Id = id.Value };
-                    }
-                } while (Api.TryMove(table.Session, table, JET_Move.Next, MoveGrbit.MoveKeyNE));
-            }
-        }
-
-        private async Task SetEntityChildrenLoadStatus(PostStoreEntityId id, byte status)
-        {
-            await UpdateAsync(async session =>
-            {
-                await session.RunInTransaction(() =>
-                {
-                    using (var table = session.OpenTable(TableName, OpenTableGrbit.DenyWrite))
-                    {
-                        Api.MakeKey(table.Session, table, id.Id, MakeKeyGrbit.NewKey);
-                        if (Api.TrySeek(table.Session, table, SeekGrbit.SeekEQ))
-                        {
-                            using (var update = new Update(table.Session, table, JET_prep.Replace))
-                            {
-                                Api.SetColumn(table.Session, table, Api.GetTableColumnid(table.Session, table.Table, ColumnNames.ChildrenLoadStage), status);
-                                update.Save();
-                            }
-                        }
-                    }
-                    return true;
-                });
-                return Nothing.Value;
-            });
         }
 
         private async Task DoClearUnfinishedData()

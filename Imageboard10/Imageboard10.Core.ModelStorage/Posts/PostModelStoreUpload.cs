@@ -30,8 +30,9 @@ namespace Imageboard10.Core.ModelStorage.Posts
         /// <param name="collection">Коллекция.</param>
         /// <param name="replace">Режим обновления постов.</param>
         /// <param name="cleanupPolicy">Политика зачистки старых данных. Если null - не производить зачистку.</param>
+        /// <param name="backgroundFinished">Завершена фоновая операция.</param>
         /// <returns>Идентификатор коллекции.</returns>
-        public IAsyncOperationWithProgress<PostStoreEntityId, OperationProgress> SaveCollection(IBoardPostEntity collection, BoardPostCollectionUpdateMode replace, PostStoreStaleDataClearPolicy cleanupPolicy)
+        public IAsyncOperationWithProgress<PostStoreEntityId, OperationProgress> SaveCollection(IBoardPostEntity collection, BoardPostCollectionUpdateMode replace, PostStoreStaleDataClearPolicy cleanupPolicy, BoardPostStoreBackgroundFinishedCallback backgroundFinished)
         {
             if (collection == null) throw new ArgumentNullException(nameof(collection));
             var serverFlags = new HashSet<Guid>(ServerFlags());
@@ -650,7 +651,6 @@ namespace Imageboard10.Core.ModelStorage.Posts
             {
                 if (!exists)
                 {
-                    addedEntities.Add(collectionId);
                     await SetEntityChildrenLoadStatus(collectionId, ChildrenLoadStageId.Started);
                 }
                 if (collection2.Posts != null)
@@ -875,6 +875,11 @@ namespace Imageboard10.Core.ModelStorage.Posts
 
                 await CleanChildPostsOnReplace(collection2, collectionId, exists);
 
+                if (!exists)
+                {
+                    addedEntities.Add(collectionId);
+                }
+
                 await SaveCollectionPosts(collection2, directParent, collectionId, exists, reportProgress, progress, token, addedEntities);
 
                 return collectionId;
@@ -939,6 +944,41 @@ namespace Imageboard10.Core.ModelStorage.Posts
                 }
             }
 
+            async Task SaveThreadPreviews(IBoardPageThreadCollection collection2, PostStoreEntityId collectionId, IProgress<OperationProgress> progress, bool exists, CancellationToken token, ConcurrentBag<PostStoreEntityId> addedEntities)
+            {
+                if (!exists)
+                {
+                    await SetEntityChildrenLoadStatus(collectionId, ChildrenLoadStageId.Started);
+                }
+
+                var toAdd = collection2.Threads ?? new List<IThreadPreviewPostCollection>();
+
+                progress?.Report(new OperationProgress()
+                {
+                    Progress = 0.0,
+                    Message = progressMessage,
+                    OperationId = progressId
+                });
+
+                double cnt = toAdd.Count;
+
+                for (var i = 0; i < toAdd.Count; i++)
+                {
+                    token.ThrowIfCancellationRequested();
+                    await SaveCatalogOrThread(token, progress, collectionId, false, addedEntities);
+
+                    double p = i + 1;
+                    progress?.Report(new OperationProgress()
+                    {
+                        Progress = p / cnt,
+                        Message = progressMessage,
+                        OperationId = progressId
+                    });
+                }
+
+                await SetEntityChildrenLoadStatus(collectionId, ChildrenLoadStageId.Completed);
+            }
+
             async Task<PostStoreEntityId> SaveBoardPage(CancellationToken token, IProgress<OperationProgress> progress, bool reportProgress,
                 ConcurrentBag<PostStoreEntityId> addedEntities)
             {
@@ -983,7 +1023,12 @@ namespace Imageboard10.Core.ModelStorage.Posts
 
                 await CleanChildThreadsOnReplace(collection2, collectionId, exists);
 
-                //await SaveCollectionPosts(collection2, directParent, collectionId, exists, reportProgress, progress, token, addedEntities);
+                if (!exists)
+                {
+                    addedEntities.Add(collectionId);
+                }
+
+                await SaveThreadPreviews(collection2, collectionId, progress, exists, token, addedEntities);
 
                 return collectionId;
             }
@@ -1011,9 +1056,11 @@ namespace Imageboard10.Core.ModelStorage.Posts
                             await DoDeleteEntitiesList(session, addedEntities.ToArray());
                             return Nothing.Value;
                         });
+                        backgroundFinished?.Invoke(null);
                     }
                     catch (Exception e)
                     {
+                        backgroundFinished?.Invoke(e);
                         GlobalErrorHandler?.SignalError(e);
                     }
                 }
@@ -1023,9 +1070,11 @@ namespace Imageboard10.Core.ModelStorage.Posts
                     try
                     {
                         await ClearStaleData(cleanupPolicy);
+                        backgroundFinished?.Invoke(null);
                     }
                     catch (Exception e)
                     {
+                        backgroundFinished?.Invoke(e);
                         GlobalErrorHandler?.SignalError(e);
                     }
                 }
@@ -1039,11 +1088,18 @@ namespace Imageboard10.Core.ModelStorage.Posts
                     if (collection.EntityType == PostStoreEntityType.Catalog || collection.EntityType == PostStoreEntityType.Thread)
                     {
                         addedEntity = await SaveCatalogOrThread(token, progress, null, true, addedEntities);
+                    } else if (collection.EntityType == PostStoreEntityType.BoardPage)
+                    {
+                        addedEntity = await SaveBoardPage(token, progress, true, addedEntities);
                     }
 
                     if (cleanupPolicy != null)
                     {
                         CoreTaskHelper.RunUnawaitedTaskAsync(DoCleanStaleData);
+                    }
+                    else
+                    {
+                        backgroundFinished?.Invoke(null);
                     }
 
                     return addedEntity;

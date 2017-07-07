@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Runtime.InteropServices.WindowsRuntime;
 using Windows.Foundation;
 using Windows.Foundation.Metadata;
 using Imageboard10.Core.ModelInterface.Links;
@@ -12,6 +13,20 @@ namespace Imageboard10.Core.ModelInterface.Posts.Store
     /// </summary>
     public interface IBoardPostStore
     {
+        /// <summary>
+        /// Получить ссылку на сущность.
+        /// </summary>
+        /// <param name="id">Идентификатор.</param>
+        /// <returns>Ссылка.</returns>
+        IAsyncOperation<ILink> GetEntityLink(PostStoreEntityId id);
+
+        /// <summary>
+        /// Получить ссылки на сущности.
+        /// </summary>
+        /// <param name="ids">Идентификаторы.</param>
+        /// <returns>Ссылки.</returns>
+        IAsyncOperation<IList<ILinkWithStoreId>> GetEntityLinks([ReadOnlyArray] PostStoreEntityId[] ids);
+
         /// <summary>
         /// Загрузить сущность.
         /// </summary>
@@ -75,7 +90,7 @@ namespace Imageboard10.Core.ModelInterface.Posts.Store
         /// <param name="type">Тип сущности.</param>
         /// <param name="link">Ссылка на коллекцию.</param>
         /// <returns>Коллекция.</returns>
-        IAsyncOperation<PostStoreEntityId> FindEntity(PostStoreEntityType type, ILink link);
+        IAsyncOperation<PostStoreEntityId?> FindEntity(PostStoreEntityType type, ILink link);
 
         /// <summary>
         /// Найти коллекции.
@@ -146,7 +161,18 @@ namespace Imageboard10.Core.ModelInterface.Posts.Store
         /// <param name="replace">Режим замены.</param>
         /// <param name="cleanupPolicy">Политика зачистки старых данных. Если null - не производить зачистку.</param>
         /// <returns>Идентификатор коллекции.</returns>
+        [DefaultOverload]
         IAsyncOperationWithProgress<PostStoreEntityId, OperationProgress> SaveCollection(IBoardPostEntity collection, BoardPostCollectionUpdateMode replace, PostStoreStaleDataClearPolicy cleanupPolicy);
+
+        /// <summary>
+        /// Сохранить коллекцию.
+        /// </summary>
+        /// <param name="collection">Коллекция.</param>
+        /// <param name="replace">Режим замены.</param>
+        /// <param name="cleanupPolicy">Политика зачистки старых данных. Если null - не производить зачистку.</param>
+        /// <param name="backgroundFinished">Завершена операция.</param>
+        /// <returns>Идентификатор коллекции.</returns>
+        IAsyncOperationWithProgress<PostStoreEntityId, OperationProgress> SaveCollection(IBoardPostEntity collection, BoardPostCollectionUpdateMode replace, PostStoreStaleDataClearPolicy cleanupPolicy, BoardPostStoreBackgroundFinishedCallback backgroundFinished);
 
         /// <summary>
         /// Загрузить информацию о коллекции.
