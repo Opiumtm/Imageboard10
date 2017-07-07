@@ -21,8 +21,10 @@ namespace Imageboard10.Core.ModelStorage.Posts
     /// </summary>
     public partial class PostModelStore
     {
-        protected async Task DoDeleteEntitiesList(IEsentSession session, IEnumerable<PostStoreEntityId> toDelete)
+        protected async Task<IList<PostStoreEntityId>> DoDeleteEntitiesList(IEsentSession session, IEnumerable<PostStoreEntityId> toDelete)
         {
+            var result = new List<PostStoreEntityId>();
+
             async Task Delete(PostStoreEntityId[] toDeletePart)
             {
                 await session.RunInTransaction(() =>
@@ -35,6 +37,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
                             if (Api.TrySeek(table.Session, table, SeekGrbit.SeekEQ))
                             {
                                 Api.JetDelete(table.Session, table);
+                                result.Add(id);
                             }
                         }
                     }
@@ -47,6 +50,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
             {
                 await Delete(part);
             }
+            return result;
         }
 
         private static readonly HashSet<PostStoreEntityType> AllowedToAdd = new HashSet<PostStoreEntityType>()

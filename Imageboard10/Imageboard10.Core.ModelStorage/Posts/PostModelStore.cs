@@ -80,7 +80,36 @@ namespace Imageboard10.Core.ModelStorage.Posts
         /// <returns>Ссылки.</returns>
         public IAsyncOperation<IList<ILinkWithStoreId>> GetEntityLinks(PostStoreEntityId[] ids)
         {
-            throw new NotImplementedException();
+            if (ids == null) throw new ArgumentNullException(nameof(ids));
+            var ids2 = ids.Select(i => i.Id).Distinct().ToArray();
+
+            async Task<IList<ILinkWithStoreId>> Do()
+            {
+                return await QueryReadonly(session =>
+                {
+                    var result = new List<ILinkWithStoreId>();
+                    using (var table = session.OpenTable(TableName, OpenTableGrbit.ReadOnly))
+                    {
+                        var colids = Api.GetColumnDictionary(table.Session, table);
+
+                        foreach (var id in ids2)
+                        {
+                            Api.MakeKey(table.Session, table, id, MakeKeyGrbit.NewKey);
+                            if (Api.TrySeek(table.Session, table, SeekGrbit.SeekEQ))
+                            {
+                                result.Add(new LinkWithStoreId()
+                                {
+                                    Link = GetLinkAtCurrentPosition(table, colids),
+                                    Id = new PostStoreEntityId() { Id = id }
+                                });
+                            }
+                        }
+                    }
+                    return result;
+                });
+            }
+
+            return Do().AsAsyncOperation();
         }
 
         public IAsyncOperation<IBoardPostEntity> Load(PostStoreEntityId id, PostStoreLoadMode mode)
@@ -439,14 +468,68 @@ namespace Imageboard10.Core.ModelStorage.Posts
             throw new NotImplementedException();
         }
 
+        /// <summary>
+        /// Удалить. Удаление всегда производится рекурсивно.
+        /// </summary>
+        /// <param name="ids">Список сущностей.</param>
+        /// <returns>Список идентификаторов удалённых сущностей.</returns>
         public IAsyncOperation<IList<PostStoreEntityId>> Delete(IList<PostStoreEntityId> ids)
         {
-            throw new NotImplementedException();
+            if (ids == null) throw new ArgumentNullException(nameof(ids));
+
+            async Task<IList<PostStoreEntityId>> Do()
+            {
+                var allEntities = await QueryReadonly(session =>
+                {
+                    using (var table = session.OpenTable(TableName, OpenTableGrbit.ReadOnly))
+                    {
+                        return FindAllChildren(table, ids).ToArray();
+                    }
+                });
+                return await UpdateAsync(async session =>
+                {
+                    return await DoDeleteEntitiesList(session, allEntities.Select(e => e.id));
+                });
+            }
+
+            return Do().AsAsyncOperation();
         }
 
+        /// <summary>
+        /// Очистить все данные.
+        /// </summary>
         public IAsyncAction ClearAllData()
         {
-            throw new NotImplementedException();
+            async Task Do()
+            {
+                bool foundAny = true;
+                do
+                {
+                    await UpdateAsync(async session =>
+                    {
+                        await session.RunInTransaction(() =>
+                        {
+                            int counter = 200;
+                            using (var table = session.OpenTable(TableName, OpenTableGrbit.DenyWrite))
+                            {
+                                if (Api.TryMoveFirst(table.Session, table))
+                                {
+                                    do
+                                    {
+                                        counter--;
+                                        Api.JetDelete(table.Session, table);
+                                    } while (counter > 0 && Api.TryMoveNext(table.Session, table));
+                                }
+                                else foundAny = false;
+                            }
+                            return true;
+                        });
+                        return Nothing.Value;
+                    });
+                } while (foundAny);
+            }
+
+            return Do().AsAsyncAction();
         }
 
         public IAsyncAction ClearStaleData(PostStoreStaleDataClearPolicy policy)
