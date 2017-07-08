@@ -184,6 +184,7 @@
     <Compile Include="Posts\PostNodes\PostNodeBase.cs" />
     <Compile Include="Posts\PostNodes\PostNodeExternalContract.cs" />
     <Compile Include="Posts\PostNodes\TextPostNode.cs" />
+    <Compile Include="Posts\PostStoreEntityIdEqualityComparer.cs" />
     <Compile Include="Posts\Serialization\BoardLinkPostNodeSerializerCustomization.cs" />
     <Compile Include="Posts\Serialization\CompositePostNodeSerializerCustomization.cs" />
     <Compile Include="Posts\Serialization\PostDocumentSerializerCustomization.cs" />

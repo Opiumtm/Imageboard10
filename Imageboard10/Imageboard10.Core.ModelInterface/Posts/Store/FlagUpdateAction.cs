@@ -10,7 +10,7 @@ namespace Imageboard10.Core.ModelInterface.Posts.Store
         /// <summary>
         /// Идентификатор сущности.
         /// </summary>
-        public Guid Id { get; set; }
+        public PostStoreEntityId Id { get; set; }
 
         /// <summary>
         /// Действие.

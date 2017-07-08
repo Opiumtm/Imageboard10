@@ -170,6 +170,44 @@ namespace Imageboard10UnitTests
             Assert.IsNotNull(flagsInfo, "Найдены флаги поста");
             CollectionAssert.AreEquivalent(srcFlagsInfo, flagsInfo, "Флаги поста не совпадают");
 
+            var newFlag1 = new Guid("{434B121C-DA42-443E-BFFC-D0D066DA643E}");
+            var newFlag2 = new Guid("{9B67D253-5E45-4797-9A96-5833080BE7F0}");
+
+            srcFlagsInfo = collection.Posts[0].Flags?.Distinct()?.ToList() ?? throw new NullReferenceException();
+            srcFlagsInfo.Add(newFlag1);
+            srcFlagsInfo.Add(newFlag2);
+            await _store.UpdateFlags(new List<FlagUpdateAction>()
+            {
+                new FlagUpdateAction()
+                {
+                    Id = firstPostId,
+                    Action = FlagUpdateOperation.Add,
+                    Flag = newFlag1
+                },
+                new FlagUpdateAction()
+                {
+                    Id = firstPostId,
+                    Action = FlagUpdateOperation.Add,
+                    Flag = newFlag2
+                },
+            });
+            flagsInfo = (await _store.LoadFlags(firstPostId))?.Distinct()?.ToList();
+            Assert.IsNotNull(flagsInfo, "Найдены флаги поста");
+            CollectionAssert.AreEquivalent(srcFlagsInfo, flagsInfo, "Флаги поста не совпадают");
+            await _store.UpdateFlags(new List<FlagUpdateAction>()
+            {
+                new FlagUpdateAction()
+                {
+                    Id = firstPostId,
+                    Action = FlagUpdateOperation.Remove,
+                    Flag = newFlag1
+                },
+            });
+            srcFlagsInfo.Remove(newFlag1);
+            flagsInfo = (await _store.LoadFlags(firstPostId))?.Distinct()?.ToList();
+            Assert.IsNotNull(flagsInfo, "Найдены флаги поста");
+            CollectionAssert.AreEquivalent(srcFlagsInfo, flagsInfo, "Флаги поста не совпадают");
+
             void AssertMedia(IPostMedia src, IPostMedia test)
             {
                 Assert.IsNotNull(test, "Медиа не равно null");

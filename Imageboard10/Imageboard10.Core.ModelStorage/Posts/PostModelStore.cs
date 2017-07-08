@@ -8,7 +8,9 @@ using Imageboard10.Core.ModelInterface.Links;
 using Imageboard10.Core.ModelInterface.Posts;
 using Imageboard10.Core.ModelInterface.Posts.Store;
 using Imageboard10.Core.Models.Links;
+using Imageboard10.Core.Models.Posts;
 using Imageboard10.Core.Modules;
+using Imageboard10.Core.Utility;
 using Imageboard10.ModuleInterface;
 using Microsoft.Isam.Esent.Interop;
 
@@ -567,9 +569,76 @@ namespace Imageboard10.Core.ModelStorage.Posts
             throw new NotImplementedException();
         }
 
+        /// <summary>
+        /// Обновить флаги сущности.
+        /// </summary>
+        /// <param name="flags">Флаги.</param>
         public IAsyncAction UpdateFlags(IList<FlagUpdateAction> flags)
         {
-            throw new NotImplementedException();
+            async Task Do()
+            {
+                if (flags == null) throw new ArgumentNullException(nameof(flags));
+
+                CheckModuleReady();
+                await WaitForTablesInitialize();
+
+                var byId = flags.ToLookup(f => f.Id, PostStoreEntityIdEqualityComparer.Instance);
+
+                await UpdateAsync(async session =>
+                {
+                    await session.RunInTransaction(() =>
+                    {
+                        using (var table = session.OpenTable(TableName, OpenTableGrbit.DenyWrite))
+                        {
+                            var colid = table.GetColumnid(ColumnNames.Flags);
+                            foreach (var g in byId)
+                            {
+                                Api.MakeKey(table.Session, table, g.Key.Id, MakeKeyGrbit.NewKey);
+                                if (Api.TrySeek(table.Session, table, SeekGrbit.SeekEQ))
+                                {
+                                    using (var update = table.Update(JET_prep.Replace))
+                                    {
+                                        // ReSharper disable once PossibleInvalidOperationException
+                                        var oldFlags = EnumMultivalueColumn<GuidColumnValue>(table, colid).Where(c => c?.Value != null).ToHashSet(c => c.Value.Value);
+                                        foreach (var a in g)
+                                        {
+                                            switch (a.Action)
+                                            {
+                                                case FlagUpdateOperation.Add:
+                                                    oldFlags.Add(a.Flag);
+                                                    break;
+                                                case FlagUpdateOperation.Remove:
+                                                    oldFlags.Remove(a.Flag);
+                                                    break;
+                                                case FlagUpdateOperation.Clear:
+                                                    oldFlags.Clear();
+                                                    break;
+                                            }
+                                        }
+                                        ClearMultiValue(table, colid);
+                                        if (oldFlags.Count > 0)
+                                        {
+                                            var toSet = oldFlags.Select(f => new GuidColumnValue()
+                                            {
+                                                Value = f,
+                                                Columnid = colid,
+                                                SetGrbit = SetColumnGrbit.UniqueMultiValues,
+                                                ItagSequence = 0
+                                            }).OfType<ColumnValue>().ToArray();
+                                            Api.SetColumns(table.Session, table, toSet);
+                                        }
+                                        update.Save();
+                                    }
+                                }
+                            }
+                        }
+                        return true;
+                    });
+                    return Nothing.Value;
+                });
+            }
+
+            return Do().AsAsyncAction();
         }
 
         /// <summary>
