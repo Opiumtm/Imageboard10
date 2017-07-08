@@ -610,14 +610,94 @@ namespace Imageboard10.Core.ModelStorage.Posts
             throw new NotImplementedException();
         }
 
+        /// <summary>
+        /// Получить количество медиа-файлов сущности (рекурсивно).
+        /// </summary>
+        /// <param name="id">Идентификатор.</param>
+        /// <returns>Количество.</returns>
         public IAsyncOperation<int> GetMediaCount(PostStoreEntityId id)
         {
-            throw new NotImplementedException();
+            async Task<int> Do()
+            {
+                CheckModuleReady();
+                await WaitForTablesInitialize();
+
+                return await QueryReadonly(session =>
+                {
+                    using (var table = session.OpenTable(MediaFilesTableName, OpenTableGrbit.ReadOnly))
+                    {
+                        Api.JetSetCurrentIndex(table.Session, table, GetIndexName(MediaFilesTableName, nameof(MediaFilesIndexes.EntityReferences)));
+                        Api.MakeKey(table.Session, table, id.Id, MakeKeyGrbit.NewKey);
+                        if (Api.TrySeek(table.Session, table, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange))
+                        {
+                            int cnt;
+                            Api.JetIndexRecordCount(table.Session, table.Table, out cnt, int.MaxValue);
+                            return cnt;
+                        }
+                        return 0;
+                    }
+                });
+            }
+
+            return Do().AsAsyncOperation();
         }
 
+        /// <summary>
+        /// Получить медиафайлы сущности (рекурсивно).
+        /// </summary>
+        /// <param name="id">Идентификатор.</param>
+        /// <param name="skip">Сколько пропустить.</param>
+        /// <param name="count">Сколько взять (максимально).</param>
+        /// <returns>Медиафайлы.</returns>
         public IAsyncOperation<IList<IPostMedia>> GetPostMedia(PostStoreEntityId id, int skip, int? count)
         {
-            throw new NotImplementedException();
+            async Task<IList<IPostMedia>> Do()
+            {
+                CheckModuleReady();
+                await WaitForTablesInitialize();
+
+                return await QueryReadonly(session =>
+                {
+                    using (var table = session.OpenTable(MediaFilesTableName, OpenTableGrbit.ReadOnly))
+                    {
+                        var result = new List<IPostMedia>();
+                        var colid = table.GetColumnid(MediaFilesColumnNames.MediaData);
+                        Api.JetSetCurrentIndex(table.Session, table, GetIndexName(MediaFilesTableName, nameof(MediaFilesIndexes.Sequences)));
+                        Api.MakeKey(table.Session, table, id.Id, MakeKeyGrbit.NewKey | MakeKeyGrbit.FullColumnStartLimit);
+                        if (Api.TrySeek(table.Session, table, SeekGrbit.SeekGE))
+                        {
+                            Api.MakeKey(table.Session, table, id.Id, MakeKeyGrbit.NewKey | MakeKeyGrbit.FullColumnEndLimit);
+                            Api.TrySetIndexRange(table.Session, table, SetIndexRangeGrbit.RangeUpperLimit);
+                            int counted = 0;
+                            bool skipped = true;
+                            if (skip > 0)
+                            {
+                                skipped = Api.TryMove(table.Session, table, (JET_Move)skip, MoveGrbit.None);
+                            }
+                            if (skipped)
+                            {
+                                do
+                                {
+                                    counted++;
+                                    if (counted > count)
+                                    {
+                                        break;
+                                    }
+                                    var bt = Api.RetrieveColumn(table.Session, table, colid);
+                                    var pm = ObjectSerializationService.Deserialize(bt) as IPostMedia;
+                                    if (pm != null)
+                                    {
+                                        result.Add(pm);
+                                    }
+                                } while (Api.TryMoveNext(table.Session, table.Table));
+                            }
+                        }
+                        return result;
+                    }
+                });
+            }
+
+            return Do().AsAsyncOperation();
         }
 
         /// <summary>

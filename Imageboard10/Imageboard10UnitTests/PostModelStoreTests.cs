@@ -96,7 +96,7 @@ namespace Imageboard10UnitTests
         [TestMethod]
         public async Task SaveThreadToStore()
         {
-            var collection = await ReadThread("mobi_thread.json");
+            var collection = await ReadThread("mobi_thread_2.json");
 
             var count = collection.Posts.Count;
 
@@ -169,6 +169,56 @@ namespace Imageboard10UnitTests
             flagsInfo = (await _store.LoadFlags(firstPostId))?.Distinct()?.ToList();
             Assert.IsNotNull(flagsInfo, "Найдены флаги поста");
             CollectionAssert.AreEquivalent(srcFlagsInfo, flagsInfo, "Флаги поста не совпадают");
+
+            void AssertMedia(IPostMedia src, IPostMedia test)
+            {
+                Assert.IsNotNull(test, "Медиа не равно null");
+                Assert.AreEqual(src.MediaLink.GetLinkHash(), test.MediaLink?.GetLinkHash(), "Ссылка на медиа совпадает");
+            }
+
+            Assert.AreEqual(1, await _store.GetMediaCount(firstPostId), "Совпадает количество медиа файлов поста");
+            var firstPostMedia = await _store.GetPostMedia(firstPostId, 0, null);
+            Assert.AreEqual(1, firstPostMedia.Count, "Совпадает количество медиа файлов поста (loaded)");
+            AssertMedia(collection.Posts[0].MediaFiles[0], firstPostMedia[0]);
+            Assert.AreEqual(0, (await _store.GetPostMedia(firstPostId, 1, null)).Count, "Должно быть 0 медиа при сдвиге");
+
+            var origPost92 = collection.Posts.First(p => (p.Link as PostLink)?.PostNum == 1154272);
+            var post92idn = await _store.FindEntity(PostStoreEntityType.Post, origPost92.Link);
+            Assert.IsNotNull(post92idn, "Пост №92 найден");
+            var post92id = post92idn.Value;
+
+            Assert.AreEqual(2, await _store.GetMediaCount(post92id), "Совпадает количество медиа файлов поста");
+            var pos92Media = await _store.GetPostMedia(post92id, 0, null);
+            Assert.AreEqual(2, pos92Media.Count, "Совпадает количество медиа файлов поста (loaded)");
+            AssertMedia(origPost92.MediaFiles[0], pos92Media[0]);
+            AssertMedia(origPost92.MediaFiles[1], pos92Media[1]);
+            Assert.AreEqual(1, (await _store.GetPostMedia(post92id, 1, null)).Count, "Должно быть 1 медиа при сдвиге");
+            Assert.AreEqual(1, (await _store.GetPostMedia(post92id, 0, 1)).Count, "Должно быть 1 медиа при указании максимума");
+            Assert.AreEqual(0, (await _store.GetPostMedia(post92id, 2, null)).Count, "Должно быть 0 медиа при сдвиге на 2");
+
+            var totalMediaCount = collection.Posts.Sum(p => p.MediaFiles.Count);
+            Assert.AreEqual(totalMediaCount, await _store.GetMediaCount(collectionId), "Количество медиа совпадает");
+
+            var totalMedia = collection.Posts.SelectMany(p => p.MediaFiles).ToArray();
+
+            var gotMedia = await _store.GetPostMedia(collectionId, 20, 5);
+            Assert.AreEqual(5, gotMedia.Count, "Совпадает количество медиа");
+
+            var origMedia = totalMedia.Skip(20).Take(5).ToArray();
+            for (var i = 0; i < origMedia.Length; i++)
+            {
+                AssertMedia(origMedia[i], gotMedia[i]);
+            }
+
+            gotMedia = await _store.GetPostMedia(collectionId, 30, 10);
+            Assert.AreEqual(10, gotMedia.Count, "Совпадает количество медиа");
+
+            origMedia = totalMedia.Skip(30).Take(10).ToArray();
+            for (var i = 0; i < origMedia.Length; i++)
+            {
+                AssertMedia(origMedia[i], gotMedia[i]);
+            }
+
         }
 
         [TestMethod]
