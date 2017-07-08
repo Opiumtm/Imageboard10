@@ -163,6 +163,7 @@
     <Compile Include="Posts\BoardPostLikes.cs" />
     <Compile Include="Posts\BoardPostTags.cs" />
     <Compile Include="Posts\BoardPostCollection.cs" />
+    <Compile Include="Posts\PostCollectionInfoHelpers.cs" />
     <Compile Include="Posts\PostDocument.cs" />
     <Compile Include="Posts\PostDocumentExternalContract.cs" />
     <Compile Include="Posts\PostDocumentHelper.cs" />

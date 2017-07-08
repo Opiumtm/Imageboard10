@@ -9,6 +9,7 @@ using Imageboard10.Core.ModelInterface.Boards;
 using Imageboard10.Core.ModelInterface.Posts;
 using Imageboard10.Core.ModelInterface.Posts.Store;
 using Imageboard10.Core.Models;
+using Imageboard10.Core.Models.Links;
 using Imageboard10.Core.Models.Links.LinkTypes;
 using Imageboard10.Core.Models.Posts;
 using Imageboard10.Core.ModelStorage.Posts;
@@ -18,6 +19,7 @@ using Imageboard10.Core.Network;
 using Imageboard10.Core.Network.Html;
 using Imageboard10.Core.NetworkInterface;
 using Imageboard10.Core.NetworkInterface.Html;
+using Imageboard10.Core.Utility;
 using Imageboard10.Makaba;
 using Imageboard10.Makaba.Models;
 using Imageboard10.Makaba.Network.Html;
@@ -107,11 +109,66 @@ namespace Imageboard10UnitTests
             var postsSize = await _store.GetTotalSize(PostStoreEntityType.Post);
             var threadsSize = await _store.GetTotalSize(PostStoreEntityType.Thread);
             var totalSize = await _store.GetTotalSize(null);
+            var isChildrenLoaded = await _store.IsChildrenLoaded(collectionId);
 
             Assert.AreEqual(count, collectionSize, "Размер коллекции");
             Assert.AreEqual(count, postsSize, "Количество постов");
             Assert.AreEqual(1, threadsSize, "Количество тредов");
             Assert.AreEqual(count + 1, totalSize, "Общее количество сущностей");
+            Assert.IsTrue(isChildrenLoaded, "Флаг успешной загрузки постов");
+
+            var allLinks = collection.Posts.Select(p => p.Link).Distinct(BoardLinkEqualityComparer.Instance).ToArray();
+
+            var childrenIds = (await _store.FindEntities(collectionId, allLinks)).ToDictionary(ll => ll.Link, BoardLinkEqualityComparer.Instance);
+            Assert.AreEqual(allLinks.Length, childrenIds.Count, "Количество загруженных постов");
+
+            foreach (var link in allLinks)
+            {
+                Assert.IsTrue(childrenIds.ContainsKey(link), $"Найдена ссыылка {link.GetLinkHash()}");
+                Assert.AreEqual(PostStoreEntityType.Post, childrenIds[link].EntityType, $"Тип сущности для ссылки {link.GetLinkHash()}");
+            }
+
+            var etag = await _store.GetEtag(collectionId);
+            Assert.AreEqual("##etag##", etag, "ETAG соответствует");
+            await _store.UpdateEtag(collectionId, "##etag##-2");
+            etag = await _store.GetEtag(collectionId);
+            Assert.AreEqual("##etag##-2", etag, "Новый ETAG установлен");
+
+            var l = collection.Posts[0].Link;
+            var firstPostIdn = await _store.FindEntity(PostStoreEntityType.Post, l);
+            Assert.IsNotNull(firstPostIdn, "Найден первый пост");
+
+            var firstPostId = firstPostIdn.Value;
+            var firstPostDoc = await _store.GetDocument(firstPostId);
+
+            var infoSet = await _store.LoadCollectionInfoSet(collectionId);
+            Assert.IsNotNull(infoSet, "Загружена информация о треде");
+
+            AssertCollectionInfo<IBoardPostCollectionInfoBoard>(infoSet, info =>
+            {
+                Assert.AreEqual("mobi", info.Board, "info,Board->Board");
+                Assert.AreEqual("Мобильные устройства и приложения", info.BoardName, "info, Board->BoardName");
+            });
+
+            AssertCollectionInfo<IBoardPostCollectionInfoBoardLimits>(infoSet, info =>
+            {
+                Assert.AreEqual("Аноним", info.DefaultName, "info,Limits->DefaultName");
+                Assert.AreEqual((ulong)(40960 * 1024), info.MaxFilesSize, "info,Limits->MaxFilesSize");
+                Assert.AreEqual(15000, info.MaxComment, "info,Limits->MaxComment");
+                Assert.IsNull(info.Pages, "info,Limits->Pages != null");
+            });
+
+            PostModelsTests.AssertDocuments(_provider, collection.Posts[0].Comment, firstPostDoc);
+
+            var srcFlagsInfo = collection.Info.GetCollectionInfo<IBoardPostCollectionInfoFlags>().Flags?.Distinct()?.ToList() ?? throw new NullReferenceException();
+            var flagsInfo = (await _store.LoadFlags(collectionId))?.Distinct()?.ToList();
+            Assert.IsNotNull(flagsInfo, "Найдены флаги коллекции");
+            CollectionAssert.AreEquivalent(srcFlagsInfo, flagsInfo, "Флаги коллекции совпадают");
+
+            srcFlagsInfo = collection.Posts[0].Flags?.Distinct()?.ToList() ?? throw new NullReferenceException();
+            flagsInfo = (await _store.LoadFlags(firstPostId))?.Distinct()?.ToList();
+            Assert.IsNotNull(flagsInfo, "Найдены флаги поста");
+            CollectionAssert.AreEquivalent(srcFlagsInfo, flagsInfo, "Флаги поста не совпадают");
         }
 
         [TestMethod]
@@ -181,6 +238,16 @@ namespace Imageboard10UnitTests
             }
 
             return (tcs.Task, Callback);
+        }
+
+        private void AssertCollectionInfo<T>(IBoardPostCollectionInfoSet infoSet, Action<T> asserts)
+            where T : class, IBoardPostCollectionInfo
+        {
+            Assert.IsNotNull(infoSet, $"{typeof(T).Name}: infoSet != null");
+            Assert.IsNotNull(infoSet.Items, $"{typeof(T).Name}: infoSet.Items != null");
+            var info = infoSet.Items.FirstOrDefault(i => i.GetInfoInterfaceTypes().Any(it => it == typeof(T))) as T;
+            Assert.IsNotNull(info, $"info is {typeof(T).Name}");
+            asserts?.Invoke(info);
         }
     }
 }

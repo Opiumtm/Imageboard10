@@ -432,14 +432,70 @@ namespace Imageboard10.Core.ModelStorage.Posts
             throw new NotImplementedException();
         }
 
+        /// <summary>
+        /// Получить ETAG коллекции.
+        /// </summary>
+        /// <param name="id">Идентификатор.</param>
+        /// <returns>ETAG.</returns>
         public IAsyncOperation<string> GetEtag(PostStoreEntityId id)
         {
-            throw new NotImplementedException();
+            async Task<string> Do()
+            {
+                CheckModuleReady();
+                await WaitForTablesInitialize();
+
+                return await QueryReadonly(session =>
+                {
+                    using (var table = session.OpenTable(TableName, OpenTableGrbit.ReadOnly))
+                    {
+                        Api.MakeKey(table.Session, table, id.Id, MakeKeyGrbit.NewKey);
+                        if (Api.TrySeek(table.Session, table, SeekGrbit.SeekEQ))
+                        {
+                            return Api.RetrieveColumnAsString(table.Session, table.Table, table.GetColumnid(ColumnNames.Etag), Encoding.Unicode);
+                        }
+                        return null;
+                    }
+                });
+            }
+
+            return Do().AsAsyncOperation();
         }
 
+        /// <summary>
+        /// Обновить ETAG.
+        /// </summary>
+        /// <param name="id">Идентификатор.</param>
+        /// <param name="etag">ETAG.</param>
         public IAsyncAction UpdateEtag(PostStoreEntityId id, string etag)
         {
-            throw new NotImplementedException();
+            async Task Do()
+            {
+                CheckModuleReady();
+                await WaitForTablesInitialize();
+
+                await UpdateAsync(async session =>
+                {
+                    await session.RunInTransaction(() =>
+                    {
+                        using (var table = session.OpenTable(TableName, OpenTableGrbit.DenyWrite))
+                        {
+                            Api.MakeKey(table.Session, table, id.Id, MakeKeyGrbit.NewKey);
+                            if (Api.TrySeek(table.Session, table, SeekGrbit.SeekEQ))
+                            {
+                                using (var update = table.Update(JET_prep.Replace))
+                                {
+                                    Api.SetColumn(table.Session, table, table.GetColumnid(ColumnNames.Etag), etag, Encoding.Unicode);
+                                    update.Save();
+                                }
+                            }
+                        }
+                        return true;
+                    });
+                    return Nothing.Value;
+                });
+            }
+
+            return Do().AsAsyncAction();
         }
 
         public IAsyncAction SetCollectionUpdateInfo(IBoardPostCollectionUpdateInfo updateInfo)
@@ -464,9 +520,41 @@ namespace Imageboard10.Core.ModelStorage.Posts
             return SaveCollection(collection, replace, cleanupPolicy, null);
         }
 
-        public IAsyncOperation<IBoardPostCollectionInfoSet> LoadCollectionInfoSet(Guid collectionId)
+        /// <summary>
+        /// Загрузить информацию о коллекции.
+        /// </summary>
+        /// <param name="collectionId">Идентификатор коллекции.</param>
+        /// <returns>Результат.</returns>
+        public IAsyncOperation<IBoardPostCollectionInfoSet> LoadCollectionInfoSet(PostStoreEntityId collectionId)
         {
-            throw new NotImplementedException();
+            async Task<IBoardPostCollectionInfoSet> Do()
+            {
+                CheckModuleReady();
+                await WaitForTablesInitialize();
+
+                return await QueryReadonly(session =>
+                {
+                    using (var table = session.OpenTable(TableName, OpenTableGrbit.ReadOnly))
+                    {
+                        Api.MakeKey(table.Session, table, collectionId.Id, MakeKeyGrbit.NewKey);
+                        if (Api.TrySeek(table.Session, table.Table, SeekGrbit.SeekEQ))
+                        {
+                            var entityType = (PostStoreEntityType)(Api.RetrieveColumnAsByte(table.Session, table.Table, table.GetColumnid(ColumnNames.EntityType)) ?? 0);
+                            var genEntityType = ToGenericEntityType(entityType);
+                            if (genEntityType == GenericPostStoreEntityType.Thread ||
+                                genEntityType == GenericPostStoreEntityType.Catalog ||
+                                genEntityType == GenericPostStoreEntityType.BoardPage)
+                            {
+                                var bt = Api.RetrieveColumn(table.Session, table, table.GetColumnid(ColumnNames.OtherDataBinary));
+                                return ObjectSerializationService.Deserialize(bt) as IBoardPostCollectionInfoSet;
+                            }
+                        }
+                        return null;
+                    }
+                });
+            }
+
+            return Do().AsAsyncOperation();
         }
 
         public IAsyncAction UpdateLikes(IList<IBoardPostLikesStoreInfo> likes)
@@ -484,9 +572,32 @@ namespace Imageboard10.Core.ModelStorage.Posts
             throw new NotImplementedException();
         }
 
+        /// <summary>
+        /// Загрузить флаги сущности.
+        /// </summary>
+        /// <param name="id">Идентификатор.</param>
         public IAsyncOperation<IList<Guid>> LoadFlags(PostStoreEntityId id)
         {
-            throw new NotImplementedException();
+            async Task<IList<Guid>> Do()
+            {
+                CheckModuleReady();
+                await WaitForTablesInitialize();
+
+                return await QueryReadonly(session =>
+                {
+                    using (var table = session.OpenTable(TableName, OpenTableGrbit.ReadOnly))
+                    {
+                        Api.MakeKey(table.Session, table, id.Id, MakeKeyGrbit.NewKey);
+                        if (Api.TrySeek(table.Session, table, SeekGrbit.SeekEQ))
+                        {
+                            return EnumMultivalueColumn<GuidColumnValue>(table, table.GetColumnid(ColumnNames.Flags)).Where(f => f?.Value != null).Select(f => f.Value.Value).ToList();
+                        }
+                        return null;
+                    }
+                });
+            }
+
+            return Do().AsAsyncOperation();
         }
 
         public IAsyncOperation<IList<PostStoreEntityId>> GetPostQuotes(PostStoreEntityId id)
@@ -509,9 +620,34 @@ namespace Imageboard10.Core.ModelStorage.Posts
             throw new NotImplementedException();
         }
 
+        /// <summary>
+        /// Загрузить документ.
+        /// </summary>
+        /// <param name="id">Идентификатор сущности.</param>
+        /// <returns>Документ.</returns>
         public IAsyncOperation<IPostDocument> GetDocument(PostStoreEntityId id)
         {
-            throw new NotImplementedException();
+            async Task<IPostDocument> Do()
+            {
+                CheckModuleReady();
+                await WaitForTablesInitialize();
+
+                return await QueryReadonly(session =>
+                {
+                    using (var table = session.OpenTable(TableName, OpenTableGrbit.ReadOnly))
+                    {
+                        Api.MakeKey(table.Session, table, id.Id, MakeKeyGrbit.NewKey);
+                        if (Api.TrySeek(table.Session, table.Table, SeekGrbit.SeekEQ))
+                        {
+                            var bt = Api.RetrieveColumn(table.Session, table, table.GetColumnid(ColumnNames.Document));
+                            return ObjectSerializationService.Deserialize(bt) as IPostDocument;
+                        }
+                        return null;
+                    }
+                });
+            }
+
+            return Do().AsAsyncOperation();
         }
 
         /// <summary>

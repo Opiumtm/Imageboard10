@@ -179,7 +179,7 @@ namespace Imageboard10.Core.ModelInterface.Posts.Store
         /// </summary>
         /// <param name="collectionId">Идентификатор коллекции.</param>
         /// <returns>Результат.</returns>
-        IAsyncOperation<IBoardPostCollectionInfoSet> LoadCollectionInfoSet(Guid collectionId);
+        IAsyncOperation<IBoardPostCollectionInfoSet> LoadCollectionInfoSet(PostStoreEntityId collectionId);
 
         /// <summary>
         /// Обновить лайки.

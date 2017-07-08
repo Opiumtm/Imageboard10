@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using Microsoft.Isam.Esent.Interop;
 
 namespace Imageboard10.Core.Database
@@ -27,6 +29,37 @@ namespace Imageboard10.Core.Database
         {
             Session = session;
             Table = table;
+        }
+
+        /// <summary>
+        /// Получить идентификатор столбца.
+        /// </summary>
+        /// <param name="columnName">Имя столбца.</param>
+        /// <returns>Идентификатор.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public JET_COLUMNID GetColumnid(string columnName)
+        {
+            return Api.GetTableColumnid(Session, Table, columnName);
+        }
+
+        /// <summary>
+        /// Получить словарь столбцов.
+        /// </summary>
+        /// <returns>Словарь столбцов.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public IDictionary<string, JET_COLUMNID> GetColumnDictionary()
+        {
+            return Api.GetColumnDictionary(Session, Table);
+        }
+
+        /// <summary>
+        /// Создать обновление.
+        /// </summary>
+        /// <param name="prep">Тип обновления.</param>
+        /// <returns>Обновление.</returns>
+        public Update Update(JET_prep prep)
+        {
+            return new Update(Session, Table, prep);
         }
 
         /// <summary>Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.</summary>

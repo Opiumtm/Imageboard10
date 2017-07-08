@@ -150,5 +150,52 @@ namespace Imageboard10.Core.Utility
                 i++;
             }
         }
+
+        /// <summary>
+        /// Привести последовательность к уникальному набору.
+        /// </summary>
+        /// <typeparam name="T">Тип элемента.</typeparam>
+        /// <param name="src">Исходная последовательность.</param>
+        /// <param name="comparer">Средство сравнения.</param>
+        /// <returns>Уникальный набор.</returns>
+        public static HashSet<T> ToHashSet<T>(this IEnumerable<T> src, IEqualityComparer<T> comparer = null)
+        {
+            if (src == null) throw new ArgumentNullException(nameof(src));
+            if (comparer == null)
+            {
+                comparer = EqualityComparer<T>.Default;
+            }
+            var result = new HashSet<T>(comparer);
+            foreach (var item in src)
+            {
+                result.Add(item);
+            }
+            return result;
+        }
+
+        /// <summary>
+        /// Привести последовательность к уникальному набору.
+        /// </summary>
+        /// <typeparam name="T1">Тип исходного элемента.</typeparam>
+        /// <typeparam name="T">Тип элемента.</typeparam>
+        /// <param name="src">Исходная последовательность.</param>
+        /// <param name="selectFunc">Функция изменения.</param>
+        /// <param name="comparer">Средство сравнения.</param>
+        /// <returns>Уникальный набор.</returns>
+        public static HashSet<T> ToHashSet<T1, T>(this IEnumerable<T1> src, Func<T1, T> selectFunc, IEqualityComparer<T> comparer = null)
+        {
+            if (src == null) throw new ArgumentNullException(nameof(src));
+            if (selectFunc == null) throw new ArgumentNullException(nameof(selectFunc));
+            if (comparer == null)
+            {
+                comparer = EqualityComparer<T>.Default;
+            }
+            var result = new HashSet<T>(comparer);
+            foreach (var item in src)
+            {
+                result.Add(selectFunc(item));
+            }
+            return result;
+        }
     }
 }
