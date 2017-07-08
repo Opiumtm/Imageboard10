@@ -56,6 +56,9 @@ namespace Imageboard10.Core.ModelStorage.Posts
         {
             async Task<ILink> Do()
             {
+                CheckModuleReady();
+                await WaitForTablesInitialize();
+
                 return await QueryReadonly(session =>
                 {
                     using (var table = session.OpenTable(TableName, OpenTableGrbit.ReadOnly))
@@ -86,6 +89,9 @@ namespace Imageboard10.Core.ModelStorage.Posts
 
             async Task<IList<ILinkWithStoreId>> Do()
             {
+                CheckModuleReady();
+                await WaitForTablesInitialize();
+
                 return await QueryReadonly(session =>
                 {
                     var result = new List<ILinkWithStoreId>();
@@ -139,6 +145,9 @@ namespace Imageboard10.Core.ModelStorage.Posts
         {
             async Task<IList<PostStoreEntityId>> Do()
             {
+                CheckModuleReady();
+                await WaitForTablesInitialize();
+
                 return await QueryReadonly(session =>
                 {
                     using (var table = session.OpenTable(TableName, OpenTableGrbit.ReadOnly))
@@ -186,6 +195,9 @@ namespace Imageboard10.Core.ModelStorage.Posts
         {
             async Task<bool> Do()
             {
+                CheckModuleReady();
+                await WaitForTablesInitialize();
+
                 return await QueryReadonly(session =>
                 {
                     using (var table = session.OpenTable(TableName, OpenTableGrbit.ReadOnly))
@@ -216,6 +228,9 @@ namespace Imageboard10.Core.ModelStorage.Posts
         {
             async Task<int> Do()
             {
+                CheckModuleReady();
+                await WaitForTablesInitialize();
+
                 return await QueryReadonly(session =>
                 {
                     using (var table = session.OpenTable(TableName, OpenTableGrbit.ReadOnly))
@@ -245,6 +260,9 @@ namespace Imageboard10.Core.ModelStorage.Posts
         {
             async Task<int> Do()
             {
+                CheckModuleReady();
+                await WaitForTablesInitialize();
+
                 return await QueryReadonly(session =>
                 {
                     using (var table = session.OpenTable(TableName, OpenTableGrbit.ReadOnly))
@@ -282,6 +300,10 @@ namespace Imageboard10.Core.ModelStorage.Posts
             async Task<PostStoreEntityId?> Do()
             {
                 var key = ExtractLinkKey(type, link) ?? throw new ArgumentException($"Невозможно определить информацию для поиска из ссылки {link?.GetLinkHash()}.", nameof(link));
+
+                CheckModuleReady();
+                await WaitForTablesInitialize();
+
                 return await QueryReadonly<PostStoreEntityId?>(session =>
                 {
                     using (var table = session.OpenTable(TableName, OpenTableGrbit.ReadOnly))
@@ -319,6 +341,9 @@ namespace Imageboard10.Core.ModelStorage.Posts
         {
             async Task<IList<IPostStoreEntityIdSearchResult>> Do()
             {
+                CheckModuleReady();
+                await WaitForTablesInitialize();
+
                 if (links == null || links.Count == 0)
                 {
                     return new List<IPostStoreEntityIdSearchResult>();
@@ -496,10 +521,12 @@ namespace Imageboard10.Core.ModelStorage.Posts
         /// <returns>Список идентификаторов удалённых сущностей.</returns>
         public IAsyncOperation<IList<PostStoreEntityId>> Delete(IList<PostStoreEntityId> ids)
         {
-            if (ids == null) throw new ArgumentNullException(nameof(ids));
-
             async Task<IList<PostStoreEntityId>> Do()
             {
+                if (ids == null) throw new ArgumentNullException(nameof(ids));
+                CheckModuleReady();
+                await WaitForTablesInitialize();
+
                 var allEntities = await QueryReadonly(session =>
                 {
                     using (var table = session.OpenTable(TableName, OpenTableGrbit.ReadOnly))
@@ -523,6 +550,9 @@ namespace Imageboard10.Core.ModelStorage.Posts
         {
             async Task Do()
             {
+                CheckModuleReady();
+                await WaitForTablesInitialize();
+
                 bool foundAny = true;
                 do
                 {

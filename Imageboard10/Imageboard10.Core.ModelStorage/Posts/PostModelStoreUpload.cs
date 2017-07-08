@@ -297,6 +297,10 @@ namespace Imageboard10.Core.ModelStorage.Posts
                 }
 
                 var exists = SeekExistingEntityInSequence(table, directParent, postId, out var newId);
+                if (post.Flags?.Any(f => f == UnitTestStoreFlags.AlwaysInsert) ?? false)
+                {
+                    exists = false;
+                }
                 if (exists)
                 {
                     Api.JetSetCurrentIndex(table.Session, table, null);
@@ -367,7 +371,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
                     Api.MakeKey(table.Session, table, newId.Id, MakeKeyGrbit.NewKey);
                     if (!Api.TrySeek(table.Session, table, SeekGrbit.SeekEQ))
                     {
-                        throw new InvalidOperationException("Не найден тред, для которого производится слияние постов");
+                        throw new InvalidOperationException("Не найден тред, для которого производится слияние постов (seek)");
                     }
                     var childMode = Api.RetrieveColumnAsByte(table.Session, table, colids[ColumnNames.ChildrenLoadStage]);
                     if (childMode != ChildrenLoadStageId.Completed)
@@ -866,6 +870,11 @@ namespace Imageboard10.Core.ModelStorage.Posts
                                 throw new InvalidOperationException($"Неправильный тип сущности для сохранения {collection2.EntityType}");
                             }
 
+                            if (ExtractInfo<IBoardPostCollection, IBoardPostCollectionInfoFlags>(collection2)?.Flags?.Any(f => f == UnitTestStoreFlags.AlwaysInsert) ?? false)
+                            {
+                                exists = false;
+                            }
+
                             SetPostCollectionFields(session, table, colids, directParent, ref newId, exists, collection2, boardId, sequenceId);
 
                             return (true, newId);
@@ -1012,6 +1021,11 @@ namespace Imageboard10.Core.ModelStorage.Posts
                             else
                             {
                                 throw new InvalidOperationException($"Неправильный тип сущности для сохранения {collection2.EntityType}");
+                            }
+
+                            if (ExtractInfo<IBoardPageThreadCollection, IBoardPostCollectionInfoFlags>(collection2)?.Flags?.Any(f => f == UnitTestStoreFlags.AlwaysInsert) ?? false)
+                            {
+                                exists = false;
                             }
 
                             SetPostCollectionFields(session, table, colids, null, ref newId, exists, collection2, boardId, sequenceId);

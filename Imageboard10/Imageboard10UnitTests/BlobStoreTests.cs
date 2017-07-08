@@ -15,6 +15,7 @@ using Windows.UI.Xaml.Media.Imaging;
 using Imageboard10.Core;
 using Imageboard10.Core.Database;
 using Imageboard10.Core.Models.Links;
+using Imageboard10.Core.Models.Serialization;
 using Imageboard10.Core.ModelStorage.Blobs;
 using Imageboard10.Core.ModelStorage.UnitTests;
 using Imageboard10.Core.Modules;
@@ -40,6 +41,7 @@ namespace Imageboard10UnitTests
             _collection = new ModuleCollection();
 
             LinkModelsRegistration.RegisterModules(_collection);
+            CommonSerializationRegistration.RegisterModules(_collection);
             _collection.RegisterModule<EsentInstanceProvider, IEsentInstanceProvider>(new EsentInstanceProvider(true));
             _collection.RegisterModule<BlobsModelStore, IBlobsModelStore>();
             _collection.RegisterModule<MakabaBoardReferenceDtoParsers, INetworkDtoParsers>();
