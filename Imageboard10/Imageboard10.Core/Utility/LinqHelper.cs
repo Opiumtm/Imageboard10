@@ -36,6 +36,30 @@ namespace Imageboard10.Core.Utility
         }
 
         /// <summary>
+        /// Распределить для параллельной обработки.
+        /// </summary>
+        /// <typeparam name="T">Тип объекта.</typeparam>
+        /// <param name="src">Исходное перечисление.</param>
+        /// <param name="distributeCount">Количество для распределения.</param>
+        /// <returns>Результат.</returns>
+        public static IList<IList<T>> DistributeToProcess<T>(this IEnumerable<T> src, int distributeCount)
+        {
+            var results = new List<IList<T>>();
+            distributeCount = Math.Min(2, distributeCount);
+            for (var i = 0; i < distributeCount; i++)
+            {
+                results.Add(new List<T>());
+            }
+            int cnt = 0;
+            foreach (var el in src)
+            {
+                results[cnt % distributeCount].Add(el);
+                cnt++;
+            }
+            return results;
+        }
+
+        /// <summary>
         /// Преобразовать иерархию в список.
         /// </summary>
         /// <typeparam name="T">Тип объекта.</typeparam>

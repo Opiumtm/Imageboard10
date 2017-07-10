@@ -1,12 +1,16 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices.WindowsRuntime;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Windows.Foundation;
 using Imageboard10.Core.Database;
+using Imageboard10.Core.ModelInterface.Links;
 using Imageboard10.Core.ModelInterface.Posts;
 using Imageboard10.Core.ModelInterface.Posts.Store;
 using Imageboard10.Core.Models.Links.LinkTypes;
@@ -24,6 +28,102 @@ namespace Imageboard10.Core.ModelStorage.Posts
     /// </summary>
     public partial class PostModelStore
     {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void SetIntMultivalue(EsentTable table, JET_COLUMNID colid, PostStoreEntityId[] values)
+        {
+            if (values.Length == 0)
+            {
+                return;
+            }
+            JET_SETCOLUMN[] columns = new JET_SETCOLUMN[values.Length];
+            for (var i = 0; i < values.Length; i++)
+            {
+                var bytes = BitConverter.GetBytes(values[i].Id);
+                columns[i] = new JET_SETCOLUMN()
+                {
+                    pvData = bytes,
+                    cbData = bytes.Length,
+                    columnid = colid,
+                    itagSequence = i + 1,
+                    ibLongValue = 0,
+                    ibData = 0
+                };
+            }
+            Api.JetSetColumns(table.Session, table, columns, columns.Length);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void SetIntMultivalue(EsentTable table, JET_COLUMNID colid, int[] values)
+        {
+            if (values.Length == 0)
+            {
+                return;
+            }
+            JET_SETCOLUMN[] columns = new JET_SETCOLUMN[values.Length];
+            for (var i = 0; i < values.Length; i++)
+            {
+                var bytes = BitConverter.GetBytes(values[i]);
+                columns[i] = new JET_SETCOLUMN()
+                {
+                    pvData = bytes,
+                    cbData = bytes.Length,
+                    columnid = colid,
+                    itagSequence = i + 1,
+                    ibLongValue = 0,
+                    ibData = 0
+                };
+            }
+            Api.JetSetColumns(table.Session, table, columns, columns.Length);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void SetGuidMultivalue(EsentTable table, JET_COLUMNID colid, Guid[] values)
+        {
+            if (values.Length == 0)
+            {
+                return;
+            }
+            JET_SETCOLUMN[] columns = new JET_SETCOLUMN[values.Length];
+            for (var i = 0; i < values.Length; i++)
+            {
+                var bytes = values[i].ToByteArray();
+                columns[i] = new JET_SETCOLUMN()
+                {
+                    pvData = bytes,
+                    cbData = bytes.Length,
+                    columnid = colid,
+                    itagSequence = i + 1,
+                    ibLongValue = 0,
+                    ibData = 0
+                };
+            }
+            Api.JetSetColumns(table.Session, table, columns, columns.Length);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void SetStringMultivalue(EsentTable table, JET_COLUMNID colid, string[] values)
+        {
+            if (values.Length == 0)
+            {
+                return;
+            }
+            JET_SETCOLUMN[] columns = new JET_SETCOLUMN[values.Length];
+            for (var i = 0; i < values.Length; i++)
+            {
+                var bytes = Encoding.Unicode.GetBytes(values[i]);
+                columns[i] = new JET_SETCOLUMN()
+                {
+                    pvData = bytes,
+                    cbData = bytes.Length,
+                    columnid = colid,
+                    itagSequence = i + 1,
+                    ibLongValue = 0,
+                    ibData = 0
+                };
+            }
+            Api.JetSetColumns(table.Session, table, columns, columns.Length);
+        }
+
         /// <summary>
         /// Сохранить коллекцию.
         /// </summary>
@@ -46,84 +146,65 @@ namespace Imageboard10.Core.ModelStorage.Posts
                 return a * 1000 + b;
             }
 
-            void SetPostFields(EsentTable table, IBoardPost post, PostStoreEntityId[] parents, PostStoreEntityId directParent, IDictionary<string, JET_COLUMNID> colids, ref PostStoreEntityId newId, bool exists, string boardId, int threadId, int postId)
+            PreSerializedPostData PreSerialize(EsentTable table, IBoardPost post, PostStoreEntityId directParent, bool parentExists)
+            {
+                var preSeek = PreSeekPost(table, post, directParent, parentExists);
+                var otherData = new PostOtherData()
+                {
+                    Email = post?.Email,
+                    Hash = post?.Hash,
+                    UniqueId = post?.UniqueId,
+                    Icon = post?.Icon != null ? new PostOtherDataIcon()
+                    {
+                        Description = post.Icon.Description,
+                        ImageLink = LinkSerialization.Serialize(post.Icon.ImageLink)
+                    } : null,
+                    Country = post?.Country != null ? new PostOtherDataCountry()
+                    {
+                        ImageLink = LinkSerialization.Serialize(post.Country.ImageLink)
+                    } : null,
+                    Poster = post?.Poster != null ? new PostOtherDataPoster()
+                    {
+                        NameColor = post.Poster.NameColor,
+                        Tripcode = post.Poster.Tripcode,
+                        NameColorStr = post.Poster.NameColorStr
+                    } : null
+                };
+                return new PreSerializedPostData()
+                {
+                    PreSeek = preSeek,
+                    LinkHash = post?.Link?.GetLinkHash(),
+                    Document = ObjectSerializationService.SerializeToBytes(post?.Comment),
+                    Quotes = post?.Comment != null ? post.Comment.GetQuotes().OfType<PostLink>().Where(l => l.OpPostNum == preSeek.ThreadId).Select(l => l.PostNum).Distinct().ToArray() : new int[0],
+                    OtherData = SerializeDataContract(otherData),
+                    Media = post?.MediaFiles != null ? post.MediaFiles.Select(ObjectSerializationService.SerializeToBytes).ToArray() : new byte[0][],
+                    Thumbnail = ObjectSerializationService.SerializeToBytes(post?.Thumbnail)
+                };
+            }
+
+            void SetPostFields(EsentTable table, IBoardPost post, PostStoreEntityId[] parents, PostStoreEntityId directParent, IDictionary<string, JET_COLUMNID> colids, ref PostStoreEntityId newId, bool exists, string boardId, int threadId, int postId, PreSerializedPostData preSerialized)
             {
                 using (var update = new Update(table.Session, table.Table, exists ? JET_prep.Replace : JET_prep.Insert))
                 {
-                    var toUpdate = new List<ColumnValue>();
-
                     if (!exists)
                     {
-                        for (var i = 0; i < parents.Length; i++)
-                        {
-                            toUpdate.Add(new Int32ColumnValue()
-                            {
-                                Columnid = colids[ColumnNames.ParentId],
-                                ItagSequence = 0,
-                                Value = parents[i].Id,
-                                SetGrbit = SetColumnGrbit.UniqueMultiValues
-                            });
-                        }
-                        toUpdate.Add(new Int32ColumnValue()
-                        {
-                            Value = directParent.Id,
-                            Columnid = colids[ColumnNames.DirectParentId]
-                        });
-                        toUpdate.Add(new ByteColumnValue()
-                        {
-                            Value = (byte)post.EntityType,
-                            Columnid = colids[ColumnNames.EntityType]
-                        });
-                        toUpdate.Add(new BoolColumnValue()
-                        {
-                            Value = true,
-                            Columnid = colids[ColumnNames.DataLoaded]
-                        });
-                        toUpdate.Add(new ByteColumnValue()
-                        {
-                            Value = ChildrenLoadStageId.NotStarted,
-                            Columnid = colids[ColumnNames.ChildrenLoadStage]
-                        });
-                        toUpdate.Add(new StringColumnValue()
-                        {
-                            Value = boardId,
-                            Columnid = colids[ColumnNames.BoardId]
-                        });
-                        toUpdate.Add(new Int32ColumnValue()
-                        {
-                            Value = threadId,
-                            Columnid = colids[ColumnNames.ParentSequenceNumber]
-                        });
-                        toUpdate.Add(new Int32ColumnValue()
-                        {
-                            Value = postId,
-                            Columnid = colids[ColumnNames.SequenceNumber]
-                        });
+                        SetIntMultivalue(table, colids[ColumnNames.ParentId], parents);
+                        Api.SetColumn(table.Session, table, colids[ColumnNames.DirectParentId], directParent.Id);
+                        Api.SetColumn(table.Session, table, colids[ColumnNames.EntityType], (byte)post.EntityType);
+                        Api.SetColumn(table.Session, table, colids[ColumnNames.DataLoaded], true);
+                        Api.SetColumn(table.Session, table, colids[ColumnNames.ChildrenLoadStage], ChildrenLoadStageId.NotStarted);
+                        Api.SetColumn(table.Session, table, colids[ColumnNames.BoardId], boardId, Encoding.Unicode);
+                        Api.SetColumn(table.Session, table, colids[ColumnNames.ParentSequenceNumber], threadId);
+                        Api.SetColumn(table.Session, table, colids[ColumnNames.SequenceNumber], postId);
                         newId = new PostStoreEntityId()
                         {
                             Id = Api.RetrieveColumnAsInt32(table.Session, table, colids[ColumnNames.Id], RetrieveColumnGrbit.RetrieveCopy) ?? -1
                         };
                     }
-                    toUpdate.Add(new StringColumnValue()
-                    {
-                        Value = post.Subject,
-                        Columnid = colids[ColumnNames.Subject]
-                    });
-                    toUpdate.Add(new BytesColumnValue()
-                    {
-                        Value = ObjectSerializationService.SerializeToBytes(post.Thumbnail),
-                        Columnid = colids[ColumnNames.Thumbnail]
-                    });
-                    toUpdate.Add(new DateTimeColumnValue()
-                    {
-                        Value = post.Date.UtcDateTime,
-                        Columnid = colids[ColumnNames.Date]
-                    });
-                    toUpdate.Add(new StringColumnValue()
-                    {
-                        Value = post.BoardSpecificDate,
-                        Columnid = colids[ColumnNames.BoardSpecificDate]
-                    });
+                    Api.SetColumn(table.Session, table, colids[ColumnNames.Subject], post.Subject, Encoding.Unicode);
+                    Api.SetColumn(table.Session, table, colids[ColumnNames.Thumbnail], preSerialized.Thumbnail);
+                    Api.SetColumn(table.Session, table, colids[ColumnNames.Date], post.Date.UtcDateTime);
+                    Api.SetColumn(table.Session, table, colids[ColumnNames.BoardSpecificDate], post.BoardSpecificDate, Encoding.Unicode);
                     var keepFlags = new List<Guid>();
                     if (exists)
                     {
@@ -136,167 +217,145 @@ namespace Imageboard10.Core.ModelStorage.Posts
                         }
                         ClearMultiValue(table, colids[ColumnNames.Flags]);
                     }
+                    List<Guid> toSet = new List<Guid>();
                     foreach (var f in (post.Flags ?? new List<Guid>()).Where(serverFlags.Contains).Concat(keepFlags).Distinct())
                     {
                         if (f == UnitTestStoreFlags.ShouldFail)
                         {
                             throw new UnitTestStoreException();
                         }
-                        toUpdate.Add(new GuidColumnValue()
-                        {
-                            Columnid = colids[ColumnNames.Flags],
-                            ItagSequence = 0,
-                            Value = f,
-                            SetGrbit = SetColumnGrbit.UniqueMultiValues
-                        });
+                        toSet.Add(f);
                     }
+                    SetGuidMultivalue(table, colids[ColumnNames.Flags], toSet.ToArray());
                     if (exists)
                     {
                         ClearMultiValue(table, colids[ColumnNames.ThreadTags]);
                     }
                     if (post.Tags?.Tags != null && post.Tags.Tags.Count > 0)
                     {
-                        foreach (var t in post.Tags.Tags)
-                        {
-                            toUpdate.Add(new StringColumnValue()
-                            {
-                                Value = t,
-                                Columnid = colids[ColumnNames.ThreadTags]
-                            });
-                        }
+                        SetStringMultivalue(table, colids[ColumnNames.ThreadTags], post.Tags.Tags.Where(t => !string.IsNullOrEmpty(t)).ToArray());
                     }
-                    toUpdate.Add(new Int32ColumnValue()
+                    var likes = post.Likes?.Likes;
+                    var dislikes = post.Likes?.Dislikes;
+                    if (likes != null)
                     {
-                        Value = post.Likes?.Likes,
-                        Columnid = colids[ColumnNames.Likes]
-                    });
-                    toUpdate.Add(new Int32ColumnValue()
+                        Api.SetColumn(table.Session, table, colids[ColumnNames.Likes], likes.Value);
+                    }
+                    else
                     {
-                        Value = post.Likes?.Dislikes,
-                        Columnid = colids[ColumnNames.Dislikes]
-                    });
-                    toUpdate.Add(new BytesColumnValue()
+                        Api.SetColumn(table.Session, table, colids[ColumnNames.Likes], null);
+                    }
+                    if (dislikes != null)
                     {
-                        Value = ObjectSerializationService.SerializeToBytes(post.Comment),
-                        Columnid = colids[ColumnNames.Document]
-                    });
+                        Api.SetColumn(table.Session, table, colids[ColumnNames.Dislikes], dislikes.Value);
+                    }
+                    else
+                    {
+                        Api.SetColumn(table.Session, table, colids[ColumnNames.Dislikes], null);
+                    }
+
+                    Api.SetColumn(table.Session, table, colids[ColumnNames.Document], preSerialized.Document);
                     if (exists)
                     {
                         ClearMultiValue(table, colids[ColumnNames.QuotedPosts]);
                     }
-                    foreach (var qp in post.Comment.GetQuotes().OfType<PostLink>().Where(l => l.OpPostNum == threadId).Select(l => l.PostNum).Distinct())
+                    SetIntMultivalue(table, colids[ColumnNames.QuotedPosts], preSerialized.Quotes);
+                    Api.SetColumn(table.Session, table, colids[ColumnNames.LoadedTime], post.LoadedTime.UtcDateTime);
+                    Api.SetColumn(table.Session, table, colids[ColumnNames.PosterName], post.Poster?.Name, Encoding.Unicode);
+                    var onServerCount = (post as IBoardPostOnServerCounter)?.OnServerCounter;
+                    if (onServerCount != null)
                     {
-                        toUpdate.Add(new Int32ColumnValue()
-                        {
-                            Value = qp,
-                            Columnid = colids[ColumnNames.QuotedPosts]
-                        });
+                        Api.SetColumn(table.Session, table, colids[ColumnNames.OnServerSequenceCounter], onServerCount.Value);
                     }
-                    toUpdate.Add(new DateTimeColumnValue()
+                    else
                     {
-                        Value = post.LoadedTime.UtcDateTime,
-                        Columnid = colids[ColumnNames.LoadedTime]
-                    });
-                    toUpdate.Add(new StringColumnValue()
-                    {
-                        Value = post.Poster?.Name,
-                        Columnid = colids[ColumnNames.PosterName]
-                    });
-                    var onServerCount = post as IBoardPostOnServerCounter;
-                    toUpdate.Add(new Int32ColumnValue()
-                    {
-                        Value = onServerCount?.OnServerCounter,
-                        Columnid = colids[ColumnNames.OnServerSequenceCounter]
-                    });
-                    var otherData = new PostOtherData()
-                    {
-                        Email = post.Email,
-                        Hash = post.Hash,
-                        UniqueId = post.UniqueId,
-                        Icon = post.Icon != null ? new PostOtherDataIcon()
-                        {
-                            Description = post.Icon.Description,
-                            ImageLink = LinkSerialization.Serialize(post.Icon.ImageLink)
-                        } : null,
-                        Country = post.Country != null ? new PostOtherDataCountry()
-                        {
-                            ImageLink = LinkSerialization.Serialize(post.Country.ImageLink)
-                        } : null,
-                        Poster = post.Poster != null ? new PostOtherDataPoster()
-                        {
-                            NameColor = post.Poster.NameColor,
-                            Tripcode = post.Poster.Tripcode,
-                            NameColorStr = post.Poster.NameColorStr
-                        } : null
-                    };
-                    toUpdate.Add(new BytesColumnValue()
-                    {
-                        Value = SerializeDataContract(otherData),
-                        Columnid = colids[ColumnNames.OtherDataBinary]
-                    });
-
-                    Api.SetColumns(table.Session, table.Table, toUpdate.ToArray());
+                        Api.SetColumn(table.Session, table, colids[ColumnNames.OnServerSequenceCounter], null);
+                    }
+                    Api.SetColumn(table.Session, table, colids[ColumnNames.OtherDataBinary], preSerialized.OtherData);
                     update.Save();
                 }
             }
 
-            void SetPostMedia(EsentTable mediaTable, IDictionary<string, JET_COLUMNID> mediaColids, IBoardPost post, PostStoreEntityId[] parents, PostStoreEntityId newId, int postId, bool exists)
+            void SetPostMedia(EsentTable mediaTable, IDictionary<string, JET_COLUMNID> mediaColids, PostStoreEntityId[] parents, PostStoreEntityId newId, int postId, bool exists, PreSerializedPostData preSerialized)
             {
-                if (post.MediaFiles != null && post.MediaFiles.Count > 0)
+                if (exists)
                 {
-                    for (var i = 0; i < post.MediaFiles.Count; i++)
+                    Api.JetSetCurrentIndex(mediaTable.Session, mediaTable.Table, GetIndexName(MediaFilesTableName, nameof(MediaFilesIndexes.EntityReferences)));
+                    Api.MakeKey(mediaTable.Session, mediaTable.Table, newId.Id, MakeKeyGrbit.NewKey);
+                    if (Api.TrySeek(mediaTable.Session, mediaTable.Table, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange))
                     {
-                        if (post.MediaFiles[i] != null)
+                        do
                         {
-                            using (var update = new Update(mediaTable.Session, mediaTable, JET_prep.Insert))
+                            Api.JetDelete(mediaTable.Session, mediaTable.Table);
+                        } while (Api.TryMoveNext(mediaTable.Session, mediaTable));
+                    }
+                }
+                if (preSerialized.Media != null && preSerialized.Media.Length > 0)
+                {
+                    for (var i = 0; i < preSerialized.Media.Length; i++)
+                    {
+                        using (var update = new Update(mediaTable.Session, mediaTable, JET_prep.Insert))
+                        {
+                            var parentInts = new PostStoreEntityId[parents.Length + 1];
+                            parentInts[0] = newId;
+                            for (var j = 0; j < parents.Length; j++)
                             {
-                                var columns = new List<ColumnValue>();
-                                columns.Add(new Int32ColumnValue()
-                                {
-                                    Value = newId.Id,
-                                    Columnid = mediaColids[MediaFilesColumnNames.EntityReferences],
-                                    SetGrbit = SetColumnGrbit.UniqueMultiValues,
-                                    ItagSequence = 0
-                                });
-                                for (var j = 0; j < parents.Length; j++)
-                                {
-                                    columns.Add(new Int32ColumnValue()
-                                    {
-                                        Value = parents[j].Id,
-                                        Columnid = mediaColids[MediaFilesColumnNames.EntityReferences],
-                                        SetGrbit = SetColumnGrbit.UniqueMultiValues,
-                                        ItagSequence = 0
-                                    });
-                                }
-                                columns.Add(new Int64ColumnValue()
-                                {
-                                    Value = CreateMediaSequenceId(postId, i),
-                                    Columnid = mediaColids[MediaFilesColumnNames.SequenceNumber],
-                                });
-                                columns.Add(new BytesColumnValue()
-                                {
-                                    Value = ObjectSerializationService.SerializeToBytes(post.MediaFiles[i]),
-                                    Columnid = mediaColids[MediaFilesColumnNames.MediaData],
-                                });
-                                Api.SetColumns(mediaTable.Session, mediaTable, columns.ToArray());
-                                update.Save();
+                                parentInts[j + 1] = parents[j];
                             }
+                            SetIntMultivalue(mediaTable, mediaColids[MediaFilesColumnNames.EntityReferences], parentInts);
+                            Api.SetColumn(mediaTable.Session, mediaTable, mediaColids[MediaFilesColumnNames.SequenceNumber], CreateMediaSequenceId(postId, i));
+                            Api.SetColumn(mediaTable.Session, mediaTable, mediaColids[MediaFilesColumnNames.MediaData], preSerialized.Media[i]);
+                            update.Save();
                         }
                     }
                 }
             }
 
-            (PostStoreEntityId id, bool exists) SavePost(EsentTable table, EsentTable mediaTable, IBoardPost post, PostStoreEntityId[] parents, PostStoreEntityId directParent, IDictionary<string, JET_COLUMNID> colids, IDictionary<string, JET_COLUMNID> mediaColids)
+            PreSeekPost PreSeekPost(EsentTable table, IBoardPost post, PostStoreEntityId directParent, bool parentExists)
             {
-                if (post == null) throw new ArgumentNullException(nameof(post));
-                CheckLinkEngine(post.Link);
-                (var boardId, var threadId, var postId) = ExtractPostLinkData(post.Link);
+                var postLink = post?.Link;
+                CheckLinkEngine(postLink);
+                (var boardId, var threadId, var postId) = ExtractPostLinkData(postLink);
                 if (post.EntityType != PostStoreEntityType.Post && post.EntityType != PostStoreEntityType.ThreadPreviewPost && post.EntityType != PostStoreEntityType.CatalogPost)
                 {
                     throw new InvalidOperationException($"Неправильный тип сущности поста {post.EntityType}");
                 }
+                if (parentExists)
+                {
+                    var exists = SeekExistingEntityInSequence(table, directParent, postId, out var newId);
+                    return new PreSeekPost()
+                    {
+                        Exists = exists,
+                        ThreadId = threadId,
+                        BoardId = boardId,
+                        FoundId = newId,
+                        PostId = postId
+                    };
+                }
+                else
+                {
+                    return new PreSeekPost()
+                    {
+                        Exists = false,
+                        ThreadId = threadId,
+                        BoardId = boardId,
+                        FoundId = new PostStoreEntityId() { Id = -1 },
+                        PostId = postId
+                    };
+                }
+            }
 
-                var exists = SeekExistingEntityInSequence(table, directParent, postId, out var newId);
+            (PostStoreEntityId id, bool exists) SavePost(EsentTable table, EsentTable mediaTable, IBoardPost post, PostStoreEntityId[] parents, PostStoreEntityId directParent, IDictionary<string, JET_COLUMNID> colids, IDictionary<string, JET_COLUMNID> mediaColids, PreSerializedPostData preSerialized)
+            {
+                if (post == null) throw new ArgumentNullException(nameof(post));
+
+                var boardId = preSerialized.PreSeek.BoardId;
+                var threadId = preSerialized.PreSeek.ThreadId;
+                var postId = preSerialized.PreSeek.PostId;
+                var newId = preSerialized.PreSeek.FoundId;
+                var exists = preSerialized.PreSeek.Exists;
+
+
                 if (post.Flags?.Any(f => f == UnitTestStoreFlags.AlwaysInsert) ?? false)
                 {
                     exists = false;
@@ -311,7 +370,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
                     }
                 }
 
-                SetPostFields(table, post, parents, directParent, colids, ref newId, exists, boardId, threadId, postId);
+                SetPostFields(table, post, parents, directParent, colids, ref newId, exists, boardId, threadId, postId, preSerialized);
 
                 if (exists)
                 {
@@ -325,7 +384,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
                         } while (Api.TryMoveNext(mediaTable.Session, mediaTable));
                     }
                 }
-                SetPostMedia(mediaTable, mediaColids, post, parents, newId, postId, exists);
+                SetPostMedia(mediaTable, mediaColids, parents, newId, postId, exists, preSerialized);
                 return (newId, exists);
             }
 
@@ -677,6 +736,27 @@ namespace Imageboard10.Core.ModelStorage.Posts
                     }
                     parents1.Add(collectionId.Id);
                     var parents = parents1.Select(p => new PostStoreEntityId() { Id = p }).ToArray();
+
+                    var toDistribute = collection2.Posts.DistributeToProcess(5);
+                    var preSerializeTasks = toDistribute.Select(l => CoreTaskHelper.RunAsyncFuncOnNewThread(async () =>
+                    {
+                        return await QueryReadonly(session =>
+                        {
+                            using (var table = session.OpenTable(TableName, OpenTableGrbit.ReadOnly))
+                            {
+                                var result = new List<PreSerializedPostData>();
+                                foreach (var post in l)
+                                {
+                                    var pre = PreSerialize(table, post, collectionId, exists);
+                                    result.Add(pre);
+                                }
+                                return result;
+                            }
+                        });
+                    })).ToArray();
+                    var preSerializedParts = await Task.WhenAll(preSerializeTasks);
+                    var preSerialized = preSerializedParts.SelectMany(p => p).Where(p => p.LinkHash != null).Deduplicate(p => p.LinkHash).ToImmutableDictionary(p => p.LinkHash);
+
                     foreach (var p in collection2.Posts.SplitSet(20))
                     {
                         token.ThrowIfCancellationRequested();
@@ -695,9 +775,10 @@ namespace Imageboard10.Core.ModelStorage.Posts
                                         var mediaColids = Api.GetColumnDictionary(mediaTable.Session, mediaTable);
                                         foreach (var post in toSave)
                                         {
-                                            if (post != null)
+                                            var lh = post?.Link?.GetLinkHash();
+                                            if (lh != null && preSerialized.ContainsKey(lh))
                                             {
-                                                var r = SavePost(table, mediaTable, post, parents, collectionId, colids, mediaColids);
+                                                var r = SavePost(table, mediaTable, post, parents, collectionId, colids, mediaColids, preSerialized[lh]);
                                                 if (!r.exists)
                                                 {
                                                     toAdd.Add(r.id);
@@ -1132,5 +1213,25 @@ namespace Imageboard10.Core.ModelStorage.Posts
             return AsyncInfo.Run(fdo);
         }
 
+    }
+
+    internal struct PreSerializedPostData
+    {
+        public string LinkHash;
+        public byte[] Document;
+        public byte[][] Media;
+        public byte[] OtherData;
+        public int[] Quotes;
+        public byte[] Thumbnail;
+        public PreSeekPost PreSeek;
+    }
+
+    internal struct PreSeekPost
+    {
+        public string BoardId;
+        public int ThreadId;
+        public int PostId;
+        public bool Exists;
+        public PostStoreEntityId FoundId;
     }
 }
