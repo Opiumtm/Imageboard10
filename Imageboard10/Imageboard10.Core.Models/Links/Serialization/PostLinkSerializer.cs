@@ -1,3 +1,4 @@
+using System.Runtime.Serialization;
 using Imageboard10.Core.Models.Links.LinkTypes;
 using Newtonsoft.Json;
 
@@ -8,18 +9,19 @@ namespace Imageboard10.Core.Models.Links.Serialization
     /// </summary>
     public sealed class PostLinkSerializer : LinkSerializerBase<PostLink, PostLinkSerializer.Jo>
     {
+        [DataContract]
         public class Jo
         {
-            [JsonProperty("e")]
+            [DataMember(Name = "e")]
             public string Engine { get; set; }
 
-            [JsonProperty("b")]
+            [DataMember(Name = "b")]
             public string Board { get; set; }
 
-            [JsonProperty("t")]
+            [DataMember(Name = "t")]
             public int OpPostNum { get; set; }
 
-            [JsonProperty("p")]
+            [DataMember(Name = "p")]
             public int PostNum { get; set; }
         }
 

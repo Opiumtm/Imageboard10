@@ -1,3 +1,4 @@
+using System.Runtime.Serialization;
 using Imageboard10.Core.Models.Links.LinkTypes;
 using Newtonsoft.Json;
 
@@ -8,15 +9,16 @@ namespace Imageboard10.Core.Models.Links.Serialization
     /// </summary>
     public sealed class BoardPageLinkSerializer : LinkSerializerBase<BoardPageLink, BoardPageLinkSerializer.Jo>
     {
+        [DataContract]
         public class Jo
         {
-            [JsonProperty("e")]
+            [DataMember(Name = "e")]
             public string Engine { get; set; }
 
-            [JsonProperty("b")]
+            [DataMember(Name = "b")]
             public string Board { get; set; }
 
-            [JsonProperty("p")]
+            [DataMember(Name = "p")]
             public int Page { get; set; }
         }
 

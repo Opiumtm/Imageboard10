@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Runtime.Serialization;
 using Imageboard10.Core.Models.Links.LinkTypes;
 using Newtonsoft.Json;
 
@@ -9,24 +10,25 @@ namespace Imageboard10.Core.Models.Links.Serialization
     /// </summary>
     public class CaptchaLinkSerializer : LinkSerializerBase<CaptchaLink, CaptchaLinkSerializer.Jo>
     {
+        [DataContract]
         public class Jo
         {
-            [JsonProperty("e")]
+            [DataMember(Name = "e")]
             public string Engine { get; set; }
 
-            [JsonProperty("t")]
+            [DataMember(Name = "t")]
             public Guid CaptchaType { get; set; }
 
-            [JsonProperty("c")]
+            [DataMember(Name = "c")]
             public Guid CaptchaContext { get; set; }
 
-            [JsonProperty("id")]
+            [DataMember(Name = "id")]
             public string CaptchaId { get; set; }
 
-            [JsonProperty("b")]
+            [DataMember(Name = "b")]
             public string Board { get; set; }
 
-            [JsonProperty("thd")]
+            [DataMember(Name = "thd")]
             public int ThreadId { get; set; }
         }
 

@@ -1,4 +1,5 @@
-﻿using Imageboard10.Core.Models.Links.LinkTypes;
+﻿using System.Runtime.Serialization;
+using Imageboard10.Core.Models.Links.LinkTypes;
 using Newtonsoft.Json;
 
 namespace Imageboard10.Core.Models.Links.Serialization
@@ -8,9 +9,10 @@ namespace Imageboard10.Core.Models.Links.Serialization
     /// </summary>
     public sealed class YoutubeLinkSerializer : LinkSerializerBase<YoutubeLink, YoutubeLinkSerializer.Jo>
     {
+        [DataContract]
         public class Jo
         {
-            [JsonProperty("id")]
+            [DataMember(Name = "id")]
             public string YoutubeId { get; set; }
         }
 

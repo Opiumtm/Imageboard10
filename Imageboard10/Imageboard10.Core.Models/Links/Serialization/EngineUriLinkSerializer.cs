@@ -1,4 +1,5 @@
-﻿using Imageboard10.Core.Models.Links.LinkTypes;
+﻿using System.Runtime.Serialization;
+using Imageboard10.Core.Models.Links.LinkTypes;
 using Newtonsoft.Json;
 
 namespace Imageboard10.Core.Models.Links.Serialization
@@ -8,12 +9,13 @@ namespace Imageboard10.Core.Models.Links.Serialization
     /// </summary>
     public sealed class EngineUriLinkSerializer : LinkSerializerBase<EngineUriLink, EngineUriLinkSerializer.Jo>
     {
+        [DataContract]
         public class Jo
         {
-            [JsonProperty("e")]
+            [DataMember(Name = "e")]
             public string Engine { get; set; }
 
-            [JsonProperty("u")]
+            [DataMember(Name = "u")]
             public string Uri { get; set; }
         }
 
