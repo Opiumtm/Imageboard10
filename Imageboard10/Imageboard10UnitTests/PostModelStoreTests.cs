@@ -19,7 +19,6 @@ using Imageboard10.Core.Network;
 using Imageboard10.Core.Network.Html;
 using Imageboard10.Core.NetworkInterface;
 using Imageboard10.Core.NetworkInterface.Html;
-using Imageboard10.Core.Utility;
 using Imageboard10.Makaba;
 using Imageboard10.Makaba.Models;
 using Imageboard10.Makaba.Network.Html;

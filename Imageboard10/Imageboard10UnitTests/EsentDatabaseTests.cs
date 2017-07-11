@@ -116,7 +116,7 @@ namespace Imageboard10UnitTests
                     });
                     await RunAsyncOnThread(async () =>
                     {
-                        var session = await provider.GetReadOnlySession();
+                        var session = await provider.GetSecondarySession();
                         using (session.UseSession())
                         {
                             await session.RunInTransaction(() =>
@@ -149,7 +149,7 @@ namespace Imageboard10UnitTests
                         }
                     });
                     {
-                        var session = await provider.GetReadOnlySession();
+                        var session = await provider.GetSecondarySession();
                         using (session.UseSession())
                         {
                             JET_TABLEID tableid = default(JET_TABLEID);
@@ -252,7 +252,7 @@ namespace Imageboard10UnitTests
                     Assert.AreEqual(expectedInstanceCount, testData.InstancesCreated, $"Должно быть создано {expectedInstanceCount} инстансов вместо {testData.InstancesCreated}");
                     await Assert.ThrowsExceptionAsync<InvalidOperationException>(async () =>
                     {
-                        var session = await provider.GetReadOnlySession();
+                        var session = await provider.GetSecondarySession();
                         session.UseSession().Dispose();
                     }, "Не было брошено исключение при попытке получить сессию в приостановленном провайдере");
                     await collection.Resume();
@@ -279,7 +279,7 @@ namespace Imageboard10UnitTests
                     Assert.AreEqual(expectedInstanceCount, testData.InstancesCreated, $"Должно быть создано {expectedInstanceCount} инстансов вместо {testData.InstancesCreated}");
                     await Assert.ThrowsExceptionAsync<InvalidOperationException>(async () =>
                     {
-                        var session = await provider.GetReadOnlySession();
+                        var session = await provider.GetSecondarySession();
                         session.UseSession().Dispose();
                     }, "Не было брошено исключение при попытке получить сессию в приостановленном провайдере");
                     await Task.WhenAll(toAwait.ToArray());
@@ -535,7 +535,7 @@ namespace Imageboard10UnitTests
                     return true;
                 });
 
-                session = await provider.GetReadOnlySession();
+                session = await provider.GetSecondarySession();
                 using (session.UseSession())
                 {
                     await session.Run(() =>

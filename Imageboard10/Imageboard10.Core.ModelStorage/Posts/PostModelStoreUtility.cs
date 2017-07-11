@@ -29,7 +29,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
             {
                 await session.RunInTransaction(() =>
                 {
-                    using (var table = session.OpenTable(TableName, OpenTableGrbit.DenyWrite))
+                    using (var table = session.OpenTable(TableName, OpenTableGrbit.Updatable))
                     {
                         foreach (var id in toDeletePart)
                         {
@@ -516,11 +516,11 @@ namespace Imageboard10.Core.ModelStorage.Posts
 
         private async Task SetEntityChildrenLoadStatus(PostStoreEntityId id, byte status)
         {
-            await UpdateAsync(async session =>
+            await OpenSessionAsync(async session =>
             {
                 await session.RunInTransaction(() =>
                 {
-                    using (var table = session.OpenTable(TableName, OpenTableGrbit.DenyWrite))
+                    using (var table = session.OpenTable(TableName, OpenTableGrbit.Updatable))
                     {
                         Api.MakeKey(table.Session, table, id.Id, MakeKeyGrbit.NewKey);
                         if (Api.TrySeek(table.Session, table, SeekGrbit.SeekEQ))

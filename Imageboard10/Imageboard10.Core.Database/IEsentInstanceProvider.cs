@@ -13,10 +13,10 @@ namespace Imageboard10.Core.Database
         IEsentSession MainSession { get; }
 
         /// <summary>
-        /// Получить сессию только для чтения.
+        /// Получить вторичную сессию.
         /// </summary>
         /// <returns>Экземпляр.</returns>
-        ValueTask<IEsentSession> GetReadOnlySession();
+        ValueTask<IEsentSession> GetSecondarySession();
 
       
         /// <summary>

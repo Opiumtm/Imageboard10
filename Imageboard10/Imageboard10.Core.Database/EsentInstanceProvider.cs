@@ -9,7 +9,6 @@ using Imageboard10.Core.Database.UnitTests;
 using Imageboard10.Core.Modules;
 using Imageboard10.Core.Tasks;
 using Microsoft.Isam.Esent.Interop;
-using Microsoft.Isam.Esent.Interop.Windows8;
 using Microsoft.Isam.Esent.Interop.Windows81;
 
 namespace Imageboard10.Core.Database
@@ -26,9 +25,9 @@ namespace Imageboard10.Core.Database
         /// </summary>
         /// <param name="clearDbOnStart">Удалять содержимое базы при старте.</param>
         public EsentInstanceProvider(bool clearDbOnStart)
-            :base(true, false)
+            : base(true, false)
         {
-            _clearDbOnStart = true;
+            _clearDbOnStart = clearDbOnStart;
         }
 
         /// <summary>
@@ -145,28 +144,25 @@ namespace Imageboard10.Core.Database
         {
             var databasePath = GetEdbFilePath();
             var instance = DoCreateInstance();
-            IEsentSession result;
-            bool isCreated = false;
-            if (!File.Exists(databasePath))
+            try
             {
-                var session = new Session(instance);
-                try
+                IEsentSession result;
+                bool isCreated = false;
+                if (!File.Exists(databasePath))
                 {
-                    JET_DBID database;
+                    var session1 = new Session(instance);
+                    try
+                    {
+                        JET_DBID database;
 
-                    Api.JetCreateDatabase(session, databasePath, null, out database, CreateDatabaseGrbit.None);
-                    result = new EsentSession(instance, session, database, databasePath, this, dispatcher, false);
-                    isCreated = true;
+                        Api.JetCreateDatabase(session1, databasePath, null, out database, CreateDatabaseGrbit.None);
+                        isCreated = true;
+                    }
+                    finally
+                    {
+                        session1.Dispose();
+                    }
                 }
-                catch
-                {
-                    session.Dispose();
-                    instance.Dispose();
-                    throw;
-                }
-            }
-            else
-            {
                 var session = new Session(instance);
                 try
                 {
@@ -179,11 +175,15 @@ namespace Imageboard10.Core.Database
                 catch
                 {
                     session.Dispose();
-                    instance.Dispose();
                     throw;
                 }
+                return result;
             }
-            return result;
+            catch
+            {
+                instance.Dispose();
+                throw;
+            }
         }
 
         private Instance DoCreateInstance()
@@ -343,7 +343,7 @@ namespace Imageboard10.Core.Database
         /// Получить сессию только для чтения.
         /// </summary>
         /// <returns>Экземпляр.</returns>
-        public ValueTask<IEsentSession> GetReadOnlySession()
+        public ValueTask<IEsentSession> GetSecondarySession()
         {
             var session = _mainSession;
             return session.GetAvailableSession();
@@ -376,9 +376,9 @@ namespace Imageboard10.Core.Database
                         var session = new Session(parentSession.Instance);
                         try
                         {
-                            Api.JetAttachDatabase(session, parentSession.DatabaseFile, AttachDatabaseGrbit.ReadOnly);
+                            Api.JetAttachDatabase(session, parentSession.DatabaseFile, AttachDatabaseGrbit.None);
                             JET_DBID dbid;
-                            Api.JetOpenDatabase(session, parentSession.DatabaseFile, string.Empty, out dbid, OpenDatabaseGrbit.ReadOnly);
+                            Api.JetOpenDatabase(session, parentSession.DatabaseFile, string.Empty, out dbid, OpenDatabaseGrbit.None);
                             // ReSharper disable once AccessToDisposedClosure
                             return new EsentSession(parentSession.Instance, session, dbid, parentSession.DatabaseFile, waiters, dispatcher, true);
                         }
@@ -396,14 +396,14 @@ namespace Imageboard10.Core.Database
                 }
             }
 
-            public EsentSession(Instance instance, Session session, JET_DBID dbid, string databasePath, IDisposeWaiters waiters, SingleThreadDispatcher dispatcher, bool isReadOnly)
+            public EsentSession(Instance instance, Session session, JET_DBID dbid, string databasePath, IDisposeWaiters waiters, SingleThreadDispatcher dispatcher, bool isSecondary)
             {
                 Instance = instance;
                 _databasePath = databasePath;
                 _waiters = waiters;
                 _session = session;
                 _database = dbid;
-                IsReadOnly = isReadOnly;
+                IsSecondarySession = isSecondary;
                 _dispatcher = dispatcher;
             }
 
@@ -418,7 +418,7 @@ namespace Imageboard10.Core.Database
                         //Api.JetCloseDatabase(Session, Database, CloseDatabaseGrbit.None);
                         //Api.JetDetachDatabase(Session, _databasePath);
                         Session.Dispose();
-                        if (!IsReadOnly)
+                        if (!IsSecondarySession)
                         {
                             Instance.Dispose();
                         }
@@ -446,7 +446,7 @@ namespace Imageboard10.Core.Database
 
             public string DatabaseFile => _databasePath;
 
-            public bool IsReadOnly { get; }
+            public bool IsSecondarySession { get; }
 
             private readonly Session _session;
 

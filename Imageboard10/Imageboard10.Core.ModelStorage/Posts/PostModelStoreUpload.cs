@@ -720,6 +720,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
                 {
                     double allCount = collection2.Posts.Count;
                     double savedCount = 0;
+                    object savedCountLock = new object();
                     if (reportProgress)
                     {
                         progress?.Report(new OperationProgress()
@@ -740,7 +741,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
                     var toDistribute = collection2.Posts.DistributeToProcess(5);
                     var preSerializeTasks = toDistribute.Select(l => CoreTaskHelper.RunAsyncFuncOnNewThread(async () =>
                     {
-                        return await QueryReadonly(session =>
+                        return await OpenSession(session =>
                         {
                             using (var table = session.OpenTable(TableName, OpenTableGrbit.ReadOnly))
                             {
@@ -757,56 +758,72 @@ namespace Imageboard10.Core.ModelStorage.Posts
                     var preSerializedParts = await Task.WhenAll(preSerializeTasks);
                     var preSerialized = preSerializedParts.SelectMany(p => p).Where(p => p.LinkHash != null).Deduplicate(p => p.LinkHash).ToImmutableDictionary(p => p.LinkHash);
 
-                    foreach (var p in collection2.Posts.SplitSet(20))
-                    {
-                        token.ThrowIfCancellationRequested();
-                        var toSave = p.ToArray();
+                    var toProcess = collection2.Posts.SplitSet(20).Select(s => s.ToArray()).DistributeToProcess(5);
 
-                        await UpdateAsync(async session =>
+                    var processTasks = toProcess.Select(processPosts => CoreTaskHelper.RunAsyncFuncOnNewThread(async () =>
+                    {
+                        foreach (var p in processPosts)
                         {
-                            var saved = await session.RunInTransaction(() =>
+                            token.ThrowIfCancellationRequested();
+                            var toSave = p.ToArray();
+
+                            await OpenSessionAsync(async session =>
                             {
-                                var toAdd = new List<PostStoreEntityId>();
-                                using (var table = session.OpenTable(TableName, OpenTableGrbit.DenyWrite))
+                                var saved = await session.RunInTransaction(() =>
                                 {
-                                    var colids = Api.GetColumnDictionary(table.Session, table);
-                                    using (var mediaTable = session.OpenTable(MediaFilesTableName, OpenTableGrbit.DenyWrite))
+                                    var toAdd = new List<PostStoreEntityId>();
+                                    using (var table = session.OpenTable(TableName, OpenTableGrbit.Updatable))
                                     {
-                                        var mediaColids = Api.GetColumnDictionary(mediaTable.Session, mediaTable);
-                                        foreach (var post in toSave)
+                                        var colids = Api.GetColumnDictionary(table.Session, table);
+                                        using (var mediaTable = session.OpenTable(MediaFilesTableName, OpenTableGrbit.Updatable))
                                         {
-                                            var lh = post?.Link?.GetLinkHash();
-                                            if (lh != null && preSerialized.ContainsKey(lh))
+                                            var mediaColids = Api.GetColumnDictionary(mediaTable.Session, mediaTable);
+                                            foreach (var post in toSave)
                                             {
-                                                var r = SavePost(table, mediaTable, post, parents, collectionId, colids, mediaColids, preSerialized[lh]);
-                                                if (!r.exists)
+                                                var lh = post?.Link?.GetLinkHash();
+                                                if (lh != null && preSerialized.ContainsKey(lh))
                                                 {
-                                                    toAdd.Add(r.id);
+                                                    var r = SavePost(table, mediaTable, post, parents, collectionId, colids, mediaColids, preSerialized[lh]);
+                                                    if (!r.exists)
+                                                    {
+                                                        toAdd.Add(r.id);
+                                                    }
                                                 }
                                             }
                                         }
                                     }
+                                    return (true, toAdd);
+                                });
+                                foreach (var id in saved)
+                                {
+                                    addedEntities.Add(id);
                                 }
-                                return (true, toAdd);
+                                return Nothing.Value;
                             });
-                            foreach (var id in saved)
-                            {
-                                addedEntities.Add(id);
-                            }
-                            return Nothing.Value;
-                        });
 
-                        savedCount += toSave.Length;
-                        if (reportProgress && allCount > 0.01)
-                        {
-                            progress?.Report(new OperationProgress()
+                            double curSaved = 0.0;
+                            lock (savedCountLock)
                             {
-                                Progress = savedCount / allCount,
-                                Message = progressMessage,
-                                OperationId = progressId
-                            });
+                                savedCount += toSave.Length;
+                                curSaved = savedCount;
+                            }
+                            if (reportProgress && allCount > 0.01)
+                            {
+                                CoreTaskHelper.RunUnawaitedTask(() =>
+                                {
+                                    progress?.Report(new OperationProgress()
+                                    {
+                                        Progress = curSaved / allCount,
+                                        Message = progressMessage,
+                                        OperationId = progressId
+                                    });
+                                });
+                            }
                         }
-                    }
+                        return Nothing.Value;
+                    })).ToArray();
+
+                    await Task.WhenAll(processTasks);
                 }
 
                 await SetEntityChildrenLoadStatus(collectionId, ChildrenLoadStageId.Completed);
@@ -816,7 +833,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
             {
                 if (replace != BoardPostCollectionUpdateMode.Merge && exists)
                 {
-                    var children = await QueryReadonly(session =>
+                    var children = await OpenSession(session =>
                     {
                         using (var table = session.OpenTable(TableName, OpenTableGrbit.ReadOnly))
                         {
@@ -834,11 +851,11 @@ namespace Imageboard10.Core.ModelStorage.Posts
                             foreach (var part in children.SplitSet(50))
                             {
                                 var partArr = part.ToArray();
-                                await UpdateAsync(async session =>
+                                await OpenSessionAsync(async session =>
                                 {
                                     await session.RunInTransaction(() =>
                                     {
-                                        using (var table = session.OpenTable(TableName, OpenTableGrbit.DenyWrite))
+                                        using (var table = session.OpenTable(TableName, OpenTableGrbit.Updatable))
                                         {
                                             Api.JetSetCurrentIndex(table.Session, table, GetIndexName(TableName, nameof(Indexes.InThreadPostLink)));
                                             foreach (var id in partArr)
@@ -863,11 +880,11 @@ namespace Imageboard10.Core.ModelStorage.Posts
                             foreach (var part in children.SplitSet(50))
                             {
                                 var partArr = part.ToArray();
-                                await UpdateAsync(async session =>
+                                await OpenSessionAsync(async session =>
                                 {
                                     await session.RunInTransaction(() =>
                                     {
-                                        using (var table = session.OpenTable(TableName, OpenTableGrbit.DenyWrite))
+                                        using (var table = session.OpenTable(TableName, OpenTableGrbit.Updatable))
                                         {
                                             var colid = Api.GetTableColumnid(table.Session, table.Table, ColumnNames.Flags);
                                             Api.JetSetCurrentIndex(table.Session, table, GetIndexName(TableName, nameof(Indexes.InThreadPostLink)));
@@ -916,14 +933,14 @@ namespace Imageboard10.Core.ModelStorage.Posts
 
                 bool exists = false;
 
-                var collectionId = await UpdateAsync(async session =>
+                var collectionId = await OpenSessionAsync(async session =>
                 {
                     return await session.RunInTransaction(() =>
                     {
                         PostStoreEntityId newId;
                         (var boardId, var sequenceId) = ExtractCatalogOrThreadLinkData(collection2.Link);
 
-                        using (var table = session.OpenTable(TableName, OpenTableGrbit.DenyWrite))
+                        using (var table = session.OpenTable(TableName, OpenTableGrbit.Updatable))
                         {
                             var colids = Api.GetColumnDictionary(table.Session, table);
                             if (collection2.EntityType == PostStoreEntityType.ThreadPreview)
@@ -979,7 +996,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
             {
                 if (exists)
                 {
-                    var children = await QueryReadonly(session =>
+                    var children = await OpenSession(session =>
                     {
                         using (var table = session.OpenTable(TableName, OpenTableGrbit.ReadOnly))
                         {
@@ -993,7 +1010,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
                     if (children.Count > 0)
                     {
                         var toDelete = new HashSet<int>();
-                        await QueryReadonly(async session =>
+                        await OpenSessionAsync(async session =>
                         {
                             await session.Run(() =>
                             {
@@ -1025,7 +1042,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
                             });
                             return Nothing.Value;
                         });
-                        await UpdateAsync(async session =>
+                        await OpenSessionAsync(async session =>
                         {
                             await DoDeleteEntitiesList(session, toDelete.Select(id => new PostStoreEntityId() { Id = id }));
                             return Nothing.Value;
@@ -1085,7 +1102,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
                 }
 
                 bool exists = false;
-                var collectionId = await UpdateAsync(async session =>
+                var collectionId = await OpenSessionAsync(async session =>
                 {
                     return await session.RunInTransaction(() =>
                     {
@@ -1132,9 +1149,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
             {
                 CheckModuleReady();
                 await WaitForTablesInitialize();
-
                 if (collection == null) throw new ArgumentNullException(nameof(collection));
-
                 if (!AllowedToAdd.Contains(collection.EntityType))
                 {
                     throw new ArgumentException($"Нельзя напрямую загружать в базу сущности типа {collection.EntityType}");
@@ -1146,7 +1161,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
                 {
                     try
                     {
-                        await UpdateAsync(async session =>
+                        await OpenSessionAsync(async session =>
                         {
                             await DoDeleteEntitiesList(session, addedEntities.ToArray());
                             return Nothing.Value;
@@ -1183,7 +1198,8 @@ namespace Imageboard10.Core.ModelStorage.Posts
                     if (collection.EntityType == PostStoreEntityType.Catalog || collection.EntityType == PostStoreEntityType.Thread)
                     {
                         addedEntity = await SaveCatalogOrThread(token, progress, null, true, addedEntities);
-                    } else if (collection.EntityType == PostStoreEntityType.BoardPage)
+                    }
+                    else if (collection.EntityType == PostStoreEntityType.BoardPage)
                     {
                         addedEntity = await SaveBoardPage(token, progress, true, addedEntities);
                     }
