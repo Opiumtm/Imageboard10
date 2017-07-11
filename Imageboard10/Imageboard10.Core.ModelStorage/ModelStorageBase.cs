@@ -94,7 +94,7 @@ namespace Imageboard10.Core.ModelStorage
             {
                 Task<Nothing> DoEnsureTableversion()
                 {
-                    return UpdateAsync(EnsureTableversion);
+                    return InMainSessionAsync(EnsureTableversion);
                 }
 
                 async ValueTask<Nothing> DoUpdate()
@@ -149,19 +149,19 @@ namespace Imageboard10.Core.ModelStorage
         }
 
         /// <summary>
-        /// Запросить данные базы в режиме read-only.
+        /// Запросить данные базы.
         /// </summary>
         /// <typeparam name="T">Тип результата.</typeparam>
         /// <param name="logic">Логика.</param>
         /// <returns>Результат.</returns>
-        protected async Task<T> QueryReadonly<T>(Func<IEsentSession, Task<T>> logic)
+        protected async Task<T> OpenSessionAsync<T>(Func<IEsentSession, Task<T>> logic)
         {
             if (logic == null)
             {
                 return default(T);
             }
             CheckModuleReady();
-            var readonlySession = await EsentProvider.GetReadOnlySession();
+            var readonlySession = await EsentProvider.GetSecondarySession();
             using (readonlySession.UseSession())
             {
                 return await logic(readonlySession);
@@ -169,19 +169,19 @@ namespace Imageboard10.Core.ModelStorage
         }
 
         /// <summary>
-        /// Асинхронно запросить данные базы в режиме read-only. Обращения к базе должны производиться из одного потока.
+        /// Асинхронно запросить данные базы. Обращения к базе должны производиться из одного потока.
         /// </summary>
         /// <typeparam name="T">Тип результата.</typeparam>
         /// <param name="logic">Логика.</param>
         /// <returns>Результат.</returns>
-        protected async Task<T> QueryReadonly<T>(Func<IEsentSession, T> logic)
+        protected async Task<T> OpenSession<T>(Func<IEsentSession, T> logic)
         {
             if (logic == null)
             {
                 return default(T);
             }
             CheckModuleReady();
-            var readonlySession = await EsentProvider.GetReadOnlySession();
+            var readonlySession = await EsentProvider.GetSecondarySession();
             using (readonlySession.UseSession())
             {
                 T result = default(T);
@@ -200,7 +200,7 @@ namespace Imageboard10.Core.ModelStorage
         /// <typeparam name="T">Тип результата.</typeparam>
         /// <param name="logic">Логика.</param>
         /// <returns>Результат.</returns>
-        protected async Task<T> UpdateAsync<T>(Func<IEsentSession, Task<T>> logic)
+        protected async Task<T> InMainSessionAsync<T>(Func<IEsentSession, Task<T>> logic)
         {
             if (logic == null)
             {
@@ -211,6 +211,26 @@ namespace Imageboard10.Core.ModelStorage
             using (mainSession.UseSession())
             {
                 return await logic(mainSession);
+            }
+        }
+
+        /// <summary>
+        /// Обновить данные в базе.
+        /// </summary>
+        /// <typeparam name="T">Тип результата.</typeparam>
+        /// <param name="logic">Логика.</param>
+        /// <returns>Результат.</returns>
+        protected async Task<T> InMainSession<T>(Func<IEsentSession, T> logic)
+        {
+            if (logic == null)
+            {
+                return default(T);
+            }
+            CheckModuleReady();
+            var mainSession = EsentProvider.MainSession;
+            using (mainSession.UseSession())
+            {
+                return logic(mainSession);
             }
         }
 
@@ -404,7 +424,7 @@ namespace Imageboard10.Core.ModelStorage
                 return cachedVersion.Value;
             }
 
-            var newVersion =  await UpdateAsync(Do);
+            var newVersion =  await InMainSessionAsync(Do);
 
             lock (_versionCache)
             {
@@ -421,7 +441,7 @@ namespace Imageboard10.Core.ModelStorage
         protected async Task<Nothing> DeleteTable(string tableName)
         {
             if (tableName == null) throw new ArgumentNullException(nameof(tableName));
-            return await UpdateAsync(async session =>
+            return await InMainSessionAsync(async session =>
             {
                 await session.RunInTransaction(() =>
                 {
@@ -560,7 +580,7 @@ namespace Imageboard10.Core.ModelStorage
         Task<bool> IModelStorageForTests.IsTablePresent(string tableName)
         {
             if (tableName == null) throw new ArgumentNullException(nameof(tableName));
-            return QueryReadonly(session =>
+            return OpenSession(session =>
             {
                 var sid = session.Session;
                 var dbid = session.Database;

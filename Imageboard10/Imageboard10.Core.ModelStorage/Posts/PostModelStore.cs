@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Windows.Foundation;
 using Imageboard10.Core.ModelInterface.Links;
@@ -10,6 +11,7 @@ using Imageboard10.Core.ModelInterface.Posts.Store;
 using Imageboard10.Core.Models.Links;
 using Imageboard10.Core.Models.Posts;
 using Imageboard10.Core.Modules;
+using Imageboard10.Core.Tasks;
 using Imageboard10.Core.Utility;
 using Imageboard10.ModuleInterface;
 using Microsoft.Isam.Esent.Interop;
@@ -61,7 +63,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
                 CheckModuleReady();
                 await WaitForTablesInitialize();
 
-                return await QueryReadonly(session =>
+                return await OpenSession(session =>
                 {
                     using (var table = session.OpenTable(TableName, OpenTableGrbit.ReadOnly))
                     {
@@ -94,7 +96,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
                 CheckModuleReady();
                 await WaitForTablesInitialize();
 
-                return await QueryReadonly(session =>
+                return await OpenSession(session =>
                 {
                     var result = new List<ILinkWithStoreId>();
                     using (var table = session.OpenTable(TableName, OpenTableGrbit.ReadOnly))
@@ -150,7 +152,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
                 CheckModuleReady();
                 await WaitForTablesInitialize();
 
-                return await QueryReadonly(session =>
+                return await OpenSession(session =>
                 {
                     using (var table = session.OpenTable(TableName, OpenTableGrbit.ReadOnly))
                     {
@@ -200,7 +202,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
                 CheckModuleReady();
                 await WaitForTablesInitialize();
 
-                return await QueryReadonly(session =>
+                return await OpenSession(session =>
                 {
                     using (var table = session.OpenTable(TableName, OpenTableGrbit.ReadOnly))
                     {
@@ -233,7 +235,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
                 CheckModuleReady();
                 await WaitForTablesInitialize();
 
-                return await QueryReadonly(session =>
+                return await OpenSession(session =>
                 {
                     using (var table = session.OpenTable(TableName, OpenTableGrbit.ReadOnly))
                     {
@@ -265,7 +267,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
                 CheckModuleReady();
                 await WaitForTablesInitialize();
 
-                return await QueryReadonly(session =>
+                return await OpenSession(session =>
                 {
                     using (var table = session.OpenTable(TableName, OpenTableGrbit.ReadOnly))
                     {
@@ -306,7 +308,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
                 CheckModuleReady();
                 await WaitForTablesInitialize();
 
-                return await QueryReadonly<PostStoreEntityId?>(session =>
+                return await OpenSession<PostStoreEntityId?>(session =>
                 {
                     using (var table = session.OpenTable(TableName, OpenTableGrbit.ReadOnly))
                     {
@@ -363,7 +365,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
                         }
                     }
                 }
-                return await QueryReadonly(session =>
+                return await OpenSession(session =>
                 {
                     var result = new List<IPostStoreEntityIdSearchResult>();
                     using (var table = session.OpenTable(TableName, OpenTableGrbit.ReadOnly))
@@ -446,7 +448,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
                 CheckModuleReady();
                 await WaitForTablesInitialize();
 
-                return await QueryReadonly(session =>
+                return await OpenSession(session =>
                 {
                     using (var table = session.OpenTable(TableName, OpenTableGrbit.ReadOnly))
                     {
@@ -475,11 +477,11 @@ namespace Imageboard10.Core.ModelStorage.Posts
                 CheckModuleReady();
                 await WaitForTablesInitialize();
 
-                await UpdateAsync(async session =>
+                await OpenSessionAsync(async session =>
                 {
                     await session.RunInTransaction(() =>
                     {
-                        using (var table = session.OpenTable(TableName, OpenTableGrbit.DenyWrite))
+                        using (var table = session.OpenTable(TableName, OpenTableGrbit.Updatable))
                         {
                             Api.MakeKey(table.Session, table, id.Id, MakeKeyGrbit.NewKey);
                             if (Api.TrySeek(table.Session, table, SeekGrbit.SeekEQ))
@@ -534,7 +536,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
                 CheckModuleReady();
                 await WaitForTablesInitialize();
 
-                return await QueryReadonly(session =>
+                return await OpenSession(session =>
                 {
                     using (var table = session.OpenTable(TableName, OpenTableGrbit.ReadOnly))
                     {
@@ -584,11 +586,11 @@ namespace Imageboard10.Core.ModelStorage.Posts
 
                 var byId = flags.ToLookup(f => f.Id, PostStoreEntityIdEqualityComparer.Instance);
 
-                await UpdateAsync(async session =>
+                await OpenSessionAsync(async session =>
                 {
                     await session.RunInTransaction(() =>
                     {
-                        using (var table = session.OpenTable(TableName, OpenTableGrbit.DenyWrite))
+                        using (var table = session.OpenTable(TableName, OpenTableGrbit.Updatable))
                         {
                             var colid = table.GetColumnid(ColumnNames.Flags);
                             foreach (var g in byId)
@@ -652,7 +654,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
                 CheckModuleReady();
                 await WaitForTablesInitialize();
 
-                return await QueryReadonly(session =>
+                return await OpenSession(session =>
                 {
                     using (var table = session.OpenTable(TableName, OpenTableGrbit.ReadOnly))
                     {
@@ -691,7 +693,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
                 CheckModuleReady();
                 await WaitForTablesInitialize();
 
-                return await QueryReadonly(session =>
+                return await OpenSession(session =>
                 {
                     using (var table = session.OpenTable(MediaFilesTableName, OpenTableGrbit.ReadOnly))
                     {
@@ -725,7 +727,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
                 CheckModuleReady();
                 await WaitForTablesInitialize();
 
-                return await QueryReadonly(session =>
+                return await OpenSession(session =>
                 {
                     using (var table = session.OpenTable(MediaFilesTableName, OpenTableGrbit.ReadOnly))
                     {
@@ -781,7 +783,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
                 CheckModuleReady();
                 await WaitForTablesInitialize();
 
-                return await QueryReadonly(session =>
+                return await OpenSession(session =>
                 {
                     using (var table = session.OpenTable(TableName, OpenTableGrbit.ReadOnly))
                     {
@@ -812,14 +814,14 @@ namespace Imageboard10.Core.ModelStorage.Posts
                 CheckModuleReady();
                 await WaitForTablesInitialize();
 
-                var allEntities = await QueryReadonly(session =>
+                var allEntities = await OpenSession(session =>
                 {
                     using (var table = session.OpenTable(TableName, OpenTableGrbit.ReadOnly))
                     {
                         return FindAllChildren(table, ids).ToArray();
                     }
                 });
-                return await UpdateAsync(async session =>
+                return await OpenSessionAsync(async session =>
                 {
                     return await DoDeleteEntitiesList(session, allEntities.Select(e => e.id));
                 });
@@ -841,12 +843,12 @@ namespace Imageboard10.Core.ModelStorage.Posts
                 bool foundAny = true;
                 do
                 {
-                    await UpdateAsync(async session =>
+                    await OpenSessionAsync(async session =>
                     {
                         await session.RunInTransaction(() =>
                         {
                             int counter = 200;
-                            using (var table = session.OpenTable(TableName, OpenTableGrbit.DenyWrite))
+                            using (var table = session.OpenTable(TableName, OpenTableGrbit.Updatable))
                             {
                                 if (Api.TryMoveFirst(table.Session, table))
                                 {
@@ -912,7 +914,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
         {
             var toDelete = new Dictionary<int, List<int>>();
             var orphanParents = new HashSet<int>();
-            await QueryReadonly(session =>
+            await OpenSession(session =>
             {
                 using (var parTable = session.OpenTable(TableName, OpenTableGrbit.ReadOnly))
                 {
@@ -949,7 +951,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
             });
             if (orphanParents.Count > 0)
             {
-                await QueryReadonly(session =>
+                await OpenSession(session =>
                 {
                     using (var table = session.OpenTable(TableName, OpenTableGrbit.ReadOnly))
                     {
@@ -971,7 +973,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
                     {
                         var parentKey = idk.Key;
                         var children = idk.Value;
-                        await UpdateAsync(async session =>
+                        await OpenSessionAsync(async session =>
                         {
                             await DoDeleteEntitiesList(session, children.Select(c => new PostStoreEntityId() { Id = c}));
                             return Nothing.Value;

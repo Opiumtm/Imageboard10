@@ -21,9 +21,9 @@ namespace Imageboard10.Core.Database
         string DatabaseFile { get; }
 
         /// <summary>
-        /// Только для чтения.
+        /// Вторичная сессия.
         /// </summary>
-        bool IsReadOnly { get; }
+        bool IsSecondarySession { get; }
 
         /// <summary>
         /// Сессия.

@@ -220,7 +220,7 @@ namespace Imageboard10.Core.ModelStorage.Blobs
             CheckModuleReady();
             await WaitForTablesInitialize();
 
-            return await UpdateAsync(async session =>
+            return await InMainSessionAsync(async session =>
             {
                 token.ThrowIfCancellationRequested();
 
@@ -458,7 +458,7 @@ namespace Imageboard10.Core.ModelStorage.Blobs
 
             CheckModuleReady();
             await WaitForTablesInitialize();
-            return await QueryReadonly(async session =>
+            return await OpenSessionAsync(async session =>
             {
                 BlobId? result = null;
                 await session.Run(() =>
@@ -493,7 +493,7 @@ namespace Imageboard10.Core.ModelStorage.Blobs
             CheckModuleReady();
             await WaitForTablesInitialize();
 
-            return await QueryReadonly(async session =>
+            return await OpenSessionAsync(async session =>
             {
                 BlobStreamBase result = null;
                 BlobId? filestream = null;
@@ -570,7 +570,7 @@ namespace Imageboard10.Core.ModelStorage.Blobs
         {
             CheckModuleReady();
             await WaitForTablesInitialize();
-            return await UpdateAsync(async session =>
+            return await InMainSessionAsync(async session =>
             {
                 bool isFileStream = false;
                 byte[] bookmark = null;
@@ -637,7 +637,7 @@ namespace Imageboard10.Core.ModelStorage.Blobs
         {
             CheckModuleReady();
             await WaitForTablesInitialize();
-            return await UpdateAsync(async session =>
+            return await InMainSessionAsync(async session =>
             {
                 var result = new List<BlobId>();
                 var filestream = new List<(BlobId id, byte[] bookmark)>();
@@ -713,7 +713,7 @@ namespace Imageboard10.Core.ModelStorage.Blobs
         {
             CheckModuleReady();
             await WaitForTablesInitialize();
-            return await QueryReadonly(async session =>
+            return await OpenSessionAsync(async session =>
             {
                 BlobInfo? result = null;
                 await session.Run(() =>
@@ -907,7 +907,7 @@ namespace Imageboard10.Core.ModelStorage.Blobs
         {
             CheckModuleReady();
             await WaitForTablesInitialize();
-            return await QueryReadonly(async session =>
+            return await OpenSessionAsync(async session =>
             {
                 List<BlobInfo> result = new List<BlobInfo>();
                 await session.Run(() =>
@@ -949,7 +949,7 @@ namespace Imageboard10.Core.ModelStorage.Blobs
         {
             CheckModuleReady();
             await WaitForTablesInitialize();
-            return await QueryReadonly(async session =>
+            return await OpenSessionAsync(async session =>
             {
                 List<BlobInfo> result = new List<BlobInfo>();
                 await session.Run(() =>
@@ -991,7 +991,7 @@ namespace Imageboard10.Core.ModelStorage.Blobs
         {
             CheckModuleReady();
             await WaitForTablesInitialize();
-            return await QueryReadonly(async session =>
+            return await OpenSessionAsync(async session =>
             {
                 long result = 0;
                 await session.Run(() =>
@@ -1024,7 +1024,7 @@ namespace Imageboard10.Core.ModelStorage.Blobs
         {
             CheckModuleReady();
             await WaitForTablesInitialize();
-            return await QueryReadonly(async session =>
+            return await OpenSessionAsync(async session =>
             {
                 int result = 0;
                 await session.Run(() =>
@@ -1053,7 +1053,7 @@ namespace Imageboard10.Core.ModelStorage.Blobs
         {
             CheckModuleReady();
             await WaitForTablesInitialize();
-            return await QueryReadonly(async session =>
+            return await OpenSessionAsync(async session =>
             {
                 long result = 0;
                 await session.Run(() =>
@@ -1086,7 +1086,7 @@ namespace Imageboard10.Core.ModelStorage.Blobs
         {
             CheckModuleReady();
             await WaitForTablesInitialize();
-            return await QueryReadonly(async session =>
+            return await OpenSessionAsync(async session =>
             {
                 int result = 0;
                 await session.Run(() =>
@@ -1114,7 +1114,7 @@ namespace Imageboard10.Core.ModelStorage.Blobs
         {
             CheckModuleReady();
             await WaitForTablesInitialize();
-            await UpdateAsync(async session =>
+            await InMainSessionAsync(async session =>
             {
                 await session.RunInTransaction(() =>
                 {
@@ -1144,7 +1144,7 @@ namespace Imageboard10.Core.ModelStorage.Blobs
         {
             CheckModuleReady();
             await WaitForTablesInitialize();
-            await UpdateAsync(async session =>
+            await InMainSessionAsync(async session =>
             {
                 await session.RunInTransaction(() =>
                 {
@@ -1173,7 +1173,7 @@ namespace Imageboard10.Core.ModelStorage.Blobs
 
             CheckModuleReady();
             await WaitForTablesInitialize();
-            return await QueryReadonly(async session =>
+            return await OpenSessionAsync(async session =>
             {
                 HashSet<Guid> result = new HashSet<Guid>();
                 await session.RunInTransaction(() =>
@@ -1203,7 +1203,7 @@ namespace Imageboard10.Core.ModelStorage.Blobs
             CheckModuleReady();
             await WaitForTablesInitialize();
 
-            await UpdateAsync(async session =>
+            await InMainSessionAsync(async session =>
             {
                 var filestream = new List<BlobId>();
                 await session.RunInTransaction(() =>
@@ -1260,7 +1260,7 @@ namespace Imageboard10.Core.ModelStorage.Blobs
         {
             CheckModuleReady();
             await WaitForTablesInitialize();
-            await UpdateAsync(async session =>
+            await InMainSessionAsync(async session =>
             {
                 await session.RunInTransaction(() =>
                 {
@@ -1282,7 +1282,7 @@ namespace Imageboard10.Core.ModelStorage.Blobs
 
         private Task<Nothing> DoDeleteAllUncompletedBlobs()
         {
-            return UpdateAsync(async session =>
+            return InMainSessionAsync(async session =>
             {
                 var filestream = new List<BlobId>();
                 await session.RunInTransaction(() =>
@@ -1352,7 +1352,7 @@ namespace Imageboard10.Core.ModelStorage.Blobs
         {
             CheckModuleReady();
             await WaitForTablesInitialize();
-            return await QueryReadonly(async session =>
+            return await OpenSessionAsync(async session =>
             {
                 int result = 0;
                 await session.Run(() =>
@@ -1379,7 +1379,7 @@ namespace Imageboard10.Core.ModelStorage.Blobs
         {
             CheckModuleReady();
             await WaitForTablesInitialize();
-            return await QueryReadonly(async session =>
+            return await OpenSessionAsync(async session =>
             {
                 long result = 0;
                 await session.Run(() =>
@@ -1410,7 +1410,7 @@ namespace Imageboard10.Core.ModelStorage.Blobs
         {
             CheckModuleReady();
             await WaitForTablesInitialize();
-            return await QueryReadonly(async session =>
+            return await OpenSessionAsync(async session =>
             {
                 int result = 0;
                 await session.Run(() =>
@@ -1437,7 +1437,7 @@ namespace Imageboard10.Core.ModelStorage.Blobs
         {
             CheckModuleReady();
             await WaitForTablesInitialize();
-            return await QueryReadonly(async session =>
+            return await OpenSessionAsync(async session =>
             {
                 long result = 0;
                 var filestream = new List<BlobId>();
@@ -1486,7 +1486,7 @@ namespace Imageboard10.Core.ModelStorage.Blobs
         {
             CheckModuleReady();
             await WaitForTablesInitialize();
-            return await QueryReadonly(async session =>
+            return await OpenSessionAsync(async session =>
             {
                 List<BlobId> result = new List<BlobId>();
                 await session.Run(() =>
@@ -1518,7 +1518,7 @@ namespace Imageboard10.Core.ModelStorage.Blobs
         {
             CheckModuleReady();
             await WaitForTablesInitialize();
-            return await UpdateAsync(async session =>
+            return await InMainSessionAsync(async session =>
             {
                 var result = false;
                 await session.RunInTransaction(() =>
