@@ -464,33 +464,21 @@ namespace Imageboard10.Core.Database
 
             private readonly SingleThreadDispatcher _dispatcher;
 
-            public ValueTask<Nothing> RunInTransaction(Func<bool> logic)
+            public ValueTask<Nothing> RunInTransaction(Func<bool> logic, double? retrySec = null, CommitTransactionGrbit grbit = CommitTransactionGrbit.None)
             {                
                 if (logic == null)
                 {
                     return new ValueTask<Nothing>(Nothing.Value);
                 }
 
-                Nothing Do()
+                return RunInTransaction(() =>
                 {
-                    using (var transaction = new Transaction(Session))
-                    {
-                        if (logic())
-                        {
-                            transaction.Commit(CommitTransactionGrbit.None);
-                        }
-                    }
-                    return Nothing.Value;
-                }
-
-                if (_dispatcher == null || _dispatcher.HaveAccess())
-                {
-                    return new ValueTask<Nothing>(Do());
-                }
-                return new ValueTask<Nothing>(_dispatcher.QueueAction(Do));
+                    var isCommit = logic();
+                    return (isCommit, Nothing.Value);
+                }, retrySec, grbit);
             }
 
-            public ValueTask<T> RunInTransaction<T>(Func<(bool commit, T result)> logic)
+            public ValueTask<T> RunInTransaction<T>(Func<(bool commit, T result)> logic, double? retrySec = null, CommitTransactionGrbit grbit = CommitTransactionGrbit.None)
             {
                 if (logic == null)
                 {
@@ -500,14 +488,46 @@ namespace Imageboard10.Core.Database
                 T Do()
                 {
                     var result = default(T);
-                    using (var transaction = new Transaction(Session))
+                    if (retrySec == null)
                     {
-                        var r = logic();
-                        if (r.commit)
+                        using (var transaction = new Transaction(Session))
                         {
-                            transaction.Commit(CommitTransactionGrbit.None);
+                            var r = logic();
+                            if (r.commit)
+                            {
+                                transaction.Commit(grbit);
+                            }
+                            result = r.result;
                         }
-                        result = r.result;
+                    }
+                    else
+                    {
+                        var waitCount = TimeSpan.FromSeconds(retrySec.Value);
+                        var startedTicks = Environment.TickCount;
+                        do
+                        {
+                            try
+                            {
+                                using (var transaction = new Transaction(Session))
+                                {
+                                    var r = logic();
+                                    if (r.commit)
+                                    {
+                                        transaction.Commit(grbit);
+                                    }
+                                    result = r.result;
+                                }
+                            }
+                            catch (EsentWriteConflictException)
+                            {
+                                // try again
+                            }
+                            catch (EsentVersionStoreOutOfMemoryException)
+                            {
+                                // wait for transactions to commint and try again
+                                Task.Delay(TimeSpan.FromSeconds(0.1)).Wait(TimeSpan.FromSeconds(0.25));
+                            }
+                        } while (TimeSpan.FromMilliseconds(Environment.TickCount - startedTicks) < waitCount);
                     }
                     return result;
                 }

@@ -39,13 +39,17 @@ namespace Imageboard10.Core.Database
         /// Выполнить в транзакции.
         /// </summary>
         /// <param name="logic">Логика. Возвращает true, если транзакцию нужно завершить.</param>
-        ValueTask<Nothing> RunInTransaction(Func<bool> logic);
+        /// <param name="retrySecs">Количество секунд при попытках повторно сделать транзакцию при конфликтах. null - не делать повторных попыток.</param>
+        /// <param name="grbit">Флаги коммита.</param>
+        ValueTask<Nothing> RunInTransaction(Func<bool> logic, double? retrySecs = null, CommitTransactionGrbit grbit = CommitTransactionGrbit.None);
 
         /// <summary>
         /// Выполнить в транзакции.
         /// </summary>
         /// <param name="logic">Логика. Возвращает true, если транзакцию нужно завершить.</param>
-        ValueTask<T> RunInTransaction<T>(Func<(bool commit, T result)> logic);
+        /// <param name="retrySecs">Количество секунд при попытках повторно сделать транзакцию при конфликтах. null - не делать повторных попыток.</param>
+        /// <param name="grbit">Флаги коммита.</param>
+        ValueTask<T> RunInTransaction<T>(Func<(bool commit, T result)> logic, double? retrySecs = null, CommitTransactionGrbit grbit = CommitTransactionGrbit.None);
 
         /// <summary>
         /// Выполнить вне транзакции.
