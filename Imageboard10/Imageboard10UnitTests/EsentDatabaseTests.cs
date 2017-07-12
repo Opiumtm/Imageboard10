@@ -7,6 +7,7 @@ using Imageboard10.Core;
 using Imageboard10.Core.Database;
 using Imageboard10.Core.Database.UnitTests;
 using Imageboard10.Core.Modules;
+using Imageboard10.Core.Tasks;
 using Imageboard10.Core.Utility;
 using Microsoft.Isam.Esent.Interop;
 using Microsoft.Isam.Esent.Interop.Vista;
@@ -576,6 +577,332 @@ namespace Imageboard10UnitTests
                             }
                         }
                     });
+                }
+            });
+        }
+
+        [TestMethod]
+        [TestCategory("ESENT")]
+        public async Task EsentParallelUpdatesTest()
+        {
+            await RunEsentTest(async (provider, testData) =>
+            {
+                async Task RunOnSession(IEsentSession session, Action<IEsentSession> a)
+                {
+                    await session.Run(() => a(session));
+                }
+
+                const string tableName = "test";
+                var mainSession = provider.MainSession;
+                await mainSession.RunInTransaction(() =>
+                {
+                    JET_TABLEID tableid;
+                    Api.JetCreateTable(mainSession.Session, mainSession.Database, tableName, 0, 100, out tableid);
+                    JET_COLUMNID idColid, valColid;
+                    Api.JetAddColumn(mainSession.Session, tableid, "Id", new JET_COLUMNDEF()
+                    {
+                        coltyp = JET_coltyp.Long,
+                        grbit = ColumndefGrbit.ColumnAutoincrement | ColumndefGrbit.ColumnNotNULL
+                    }, null, 0, out idColid);
+                    Api.JetAddColumn(mainSession.Session, tableid, "Value", new JET_COLUMNDEF()
+                    {
+                        coltyp = JET_coltyp.Long,
+                        grbit = ColumndefGrbit.ColumnNotNULL
+                    }, null, 0, out valColid);
+                    const string indexDef = "+Id\0\0";
+                    Api.JetCreateIndex(mainSession.Session, tableid, "pk", CreateIndexGrbit.IndexPrimary | CreateIndexGrbit.IndexUnique, indexDef, indexDef.Length, 100);
+                    Api.JetCloseTable(mainSession.Session, tableid);
+                    return true;
+                });
+
+                Task[] concurrentTasks = new Task[2];
+
+                IEsentSession[] sessions = new IEsentSession[2];
+                IDisposable[] disposables = new IDisposable[2];
+                sessions[0] = await provider.GetSecondarySession();
+                disposables[0] = sessions[0].UseSession();
+                sessions[1] = await provider.GetSecondarySession();
+                disposables[1] = sessions[1].UseSession();
+
+                try
+                {
+                    byte[][] bookmarks = new byte[2][];
+                    bool[] exceptedUpdates = new bool[2];
+
+                    void SetupConcurrentTask(int idx, Action<EsentTable> a)
+                    {
+                        exceptedUpdates[idx] = false;
+                        concurrentTasks[idx] = RunOnSession(sessions[idx], session =>
+                        {
+                            using (var table = session.OpenTable(tableName, OpenTableGrbit.None))
+                            {
+                                a(table);
+                            }
+                        });
+                    }
+
+                    async Task WaitConcurrentTasks()
+                    {
+                        await Task.WhenAll(concurrentTasks);
+                    }
+
+                    void GotoBookmark(EsentTable table, int idx)
+                    {
+                        Assert.IsTrue(Api.TryGotoBookmark(table.Session, table, bookmarks[idx], bookmarks[idx].Length), $"Переход к букмарке {idx}");
+                    }
+
+                    SetupConcurrentTask(0, table =>
+                    {
+                        using (var update = new Update(table.Session, table, JET_prep.Insert))
+                        {
+                            Api.SetColumn(table.Session, table, table.GetColumnid("Value"), 1);
+                            Task.Delay(TimeSpan.FromSeconds(0.1)).Wait();
+                            byte[] toSave = new byte[20];
+                            int saved;
+                            update.Save(toSave, 20, out saved);
+                            bookmarks[0] = new byte[saved];
+                            Array.Copy(toSave, bookmarks[0], saved);
+                        }
+                    });
+                    SetupConcurrentTask(1, table =>
+                    {
+                        using (var update = new Update(table.Session, table, JET_prep.Insert))
+                        {
+                            Api.SetColumn(table.Session, table, table.GetColumnid("Value"), 2);
+                            Task.Delay(TimeSpan.FromSeconds(0.25)).Wait();
+                            byte[] toSave = new byte[20];
+                            int saved;
+                            update.Save(toSave, 20, out saved);
+                            bookmarks[1] = new byte[saved];
+                            Array.Copy(toSave, bookmarks[1], saved);
+                        }
+                    });
+                    await WaitConcurrentTasks();
+
+                    SetupConcurrentTask(0, table =>
+                    {
+                        GotoBookmark(table, 0);
+                        using (var update = new Update(table.Session, table, JET_prep.Replace))
+                        {
+                            Task.Delay(TimeSpan.FromSeconds(0.25)).Wait();
+                            Api.SetColumn(table.Session, table, table.GetColumnid("Value"), 3);
+                            try
+                            {
+                                update.Save();
+                            }
+                            catch (EsentWriteConflictException e)
+                            {
+                                exceptedUpdates[0] = true;
+                            }
+                        }
+                    });
+                    SetupConcurrentTask(1, table =>
+                    {
+                        GotoBookmark(table, 0);
+                        Task.Delay(TimeSpan.FromSeconds(0.25)).Wait();
+                        using (var update = new Update(table.Session, table, JET_prep.Replace))
+                        {
+                            Api.SetColumn(table.Session, table, table.GetColumnid("Value"), 4);
+                            Task.Delay(TimeSpan.FromSeconds(0.25)).Wait();
+                            try
+                            {
+                                update.Save();
+                            }
+                            catch (EsentWriteConflictException e)
+                            {
+                                exceptedUpdates[1] = true;
+                            }
+                        }
+                    });
+                    await WaitConcurrentTasks();
+                    Assert.IsFalse(exceptedUpdates[0], "Конфликт обновления 0");
+                    Assert.IsTrue(exceptedUpdates[1], "Конфликт обновления 1");
+                    
+                    SetupConcurrentTask(0, table =>
+                    {
+                        using (var transaction = new Transaction(table.Session))
+                        {
+                            GotoBookmark(table, 0);
+                            try
+                            {
+                                using (var update = new Update(table.Session, table, JET_prep.Replace))
+                                {
+                                    Task.Delay(TimeSpan.FromSeconds(0.25)).Wait();
+                                    Api.SetColumn(table.Session, table, table.GetColumnid("Value"), 3);
+                                    update.Save();
+                                }
+                            }
+                            catch (EsentWriteConflictException e)
+                            {
+                                exceptedUpdates[0] = true;
+                            }
+                            transaction.Commit(CommitTransactionGrbit.None);
+                        }
+                    });
+                    SetupConcurrentTask(1, table =>
+                    {
+                        using (var transaction = new Transaction(table.Session))
+                        {
+                            GotoBookmark(table, 0);
+                            Task.Delay(TimeSpan.FromSeconds(0.25)).Wait();
+                            try
+                            {
+                                using (var update = new Update(table.Session, table, JET_prep.Replace))
+                                {
+                                    Api.SetColumn(table.Session, table, table.GetColumnid("Value"), 4);
+                                    Task.Delay(TimeSpan.FromSeconds(0.25)).Wait();
+                                    update.Save();
+                                }
+                            }
+                            catch (EsentWriteConflictException e)
+                            {
+                                exceptedUpdates[1] = true;
+                            }
+                            transaction.Commit(CommitTransactionGrbit.None);
+                        }
+                    });
+                    await WaitConcurrentTasks();
+                    Assert.IsFalse(exceptedUpdates[0], "Конфликт обновления 0 в транзакции");
+                    Assert.IsTrue(exceptedUpdates[1], "Конфликт обновления 1 в транзакции");
+
+                    SetupConcurrentTask(0, table =>
+                    {
+                        using (var transaction = new Transaction(table.Session))
+                        {
+                            GotoBookmark(table, 0);
+                            try
+                            {
+                                using (var update = new Update(table.Session, table, JET_prep.Replace))
+                                {
+                                    Task.Delay(TimeSpan.FromSeconds(0.25)).Wait();
+                                    Api.SetColumn(table.Session, table, table.GetColumnid("Value"), 3);
+                                    update.Save();
+                                }
+                            }
+                            catch (EsentWriteConflictException e)
+                            {
+                                exceptedUpdates[0] = true;
+                            }
+                            transaction.Commit(CommitTransactionGrbit.None);
+                        }
+                    });
+                    SetupConcurrentTask(1, table =>
+                    {
+                        using (var transaction = new Transaction(table.Session))
+                        {
+                            GotoBookmark(table, 0);
+                            Task.Delay(TimeSpan.FromSeconds(0.25)).Wait();
+                            try
+                            {
+                                using (var update = new Update(table.Session, table, JET_prep.Replace))
+                                {
+                                    Api.SetColumn(table.Session, table, table.GetColumnid("Value"), 4);
+                                    Task.Delay(TimeSpan.FromSeconds(0.25)).Wait();
+                                    update.Save();
+                                }
+                            }
+                            catch (EsentWriteConflictException e)
+                            {
+                                exceptedUpdates[1] = true;
+                            }
+                            transaction.Commit(CommitTransactionGrbit.None);
+                        }
+                        if (exceptedUpdates[1])
+                        {
+                            Task.Delay(TimeSpan.FromSeconds(0.75)).Wait();
+                            exceptedUpdates[1] = false;
+                            using (var transaction = new Transaction(table.Session))
+                            {
+                                try
+                                {
+                                    GotoBookmark(table, 0);
+                                    using (var update = new Update(table.Session, table, JET_prep.Replace))
+                                    {
+                                        Api.SetColumn(table.Session, table, table.GetColumnid("Value"), 4);
+                                        update.Save();
+                                    }
+                                }
+                                catch (EsentWriteConflictException e)
+                                {
+                                    exceptedUpdates[1] = true;
+                                }
+                                transaction.Commit(CommitTransactionGrbit.None);
+                            }
+                        }
+                    });
+                    await WaitConcurrentTasks();
+                    Assert.IsFalse(exceptedUpdates[0], "Конфликт обновления 0 в транзакции с повтором");
+                    Assert.IsFalse(exceptedUpdates[1], "Конфликт обновления 1 в транзакции с повтором");
+
+                    SetupConcurrentTask(0, table =>
+                    {
+                        using (var transaction = new Transaction(table.Session))
+                        {
+                            GotoBookmark(table, 0);
+                            try
+                            {
+                                using (var update = new Update(table.Session, table, JET_prep.Replace))
+                                {
+                                    Task.Delay(TimeSpan.FromSeconds(0.25)).Wait();
+                                    Api.SetColumn(table.Session, table, table.GetColumnid("Value"), 3);
+                                    update.Save();
+                                }
+                            }
+                            catch (EsentWriteConflictException e)
+                            {
+                                exceptedUpdates[0] = true;
+                            }
+                            transaction.Commit(CommitTransactionGrbit.None);
+                        }
+                    });
+                    SetupConcurrentTask(1, table =>
+                    {
+                        using (var transaction = new Transaction(table.Session))
+                        {
+                            GotoBookmark(table, 0);
+                            Task.Delay(TimeSpan.FromSeconds(0.25)).Wait();
+                            try
+                            {
+                                using (var update = new Update(table.Session, table, JET_prep.Replace))
+                                {
+                                    Api.SetColumn(table.Session, table, table.GetColumnid("Value"), 4);
+                                    Task.Delay(TimeSpan.FromSeconds(0.25)).Wait();
+                                    update.Save();
+                                }
+                            }
+                            catch (EsentWriteConflictException e)
+                            {
+                                exceptedUpdates[1] = true;
+                            }
+                            if (exceptedUpdates[1])
+                            {
+                                Task.Delay(TimeSpan.FromSeconds(0.75)).Wait();
+                                exceptedUpdates[1] = false;
+                                try
+                                {
+                                    GotoBookmark(table, 0);
+                                    using (var update = new Update(table.Session, table, JET_prep.Replace))
+                                    {
+                                        Api.SetColumn(table.Session, table, table.GetColumnid("Value"), 4);
+                                        update.Save();
+                                    }
+                                }
+                                catch (EsentWriteConflictException e)
+                                {
+                                    exceptedUpdates[1] = true;
+                                }
+                            }
+                            transaction.Commit(CommitTransactionGrbit.None);
+                        }
+                    });
+                    await WaitConcurrentTasks();
+                    Assert.IsFalse(exceptedUpdates[0], "Конфликт обновления 0 в транзакции с повтором (общая транзакция)");
+                    Assert.IsTrue(exceptedUpdates[1], "Конфликт обновления 1 в транзакции с повтором (общая транзакция)");
+                }
+                finally
+                {
+                    disposables[0].Dispose();
+                    disposables[1].Dispose();
                 }
             });
         }

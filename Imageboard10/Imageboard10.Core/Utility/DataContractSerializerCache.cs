@@ -64,7 +64,7 @@ namespace Imageboard10.Core.Utility
                     NoTypeDataJsonSerializers[typeof(T)] = new DataContractJsonSerializer(typeof(T), new DataContractJsonSerializerSettings()
                     {
                         EmitTypeInformation = EmitTypeInformation.Never,
-                        UseSimpleDictionaryFormat = true                        
+                        UseSimpleDictionaryFormat = true
                     });
                 }
                 return NoTypeDataJsonSerializers[typeof(T)];
