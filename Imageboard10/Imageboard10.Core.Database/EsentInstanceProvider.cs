@@ -8,6 +8,7 @@ using Windows.Storage;
 using Imageboard10.Core.Database.UnitTests;
 using Imageboard10.Core.Modules;
 using Imageboard10.Core.Tasks;
+using Imageboard10.Core.Utility;
 using Microsoft.Isam.Esent.Interop;
 using Microsoft.Isam.Esent.Interop.Windows81;
 
@@ -147,7 +148,6 @@ namespace Imageboard10.Core.Database
             try
             {
                 IEsentSession result;
-                bool isCreated = false;
                 if (!File.Exists(databasePath))
                 {
                     var session1 = new Session(instance);
@@ -156,7 +156,6 @@ namespace Imageboard10.Core.Database
                         JET_DBID database;
 
                         Api.JetCreateDatabase(session1, databasePath, null, out database, CreateDatabaseGrbit.None);
-                        isCreated = true;
                     }
                     finally
                     {
@@ -270,7 +269,7 @@ namespace Imageboard10.Core.Database
                 }
             }
 
-            public async ValueTask<IEsentSession> GetAvailableSession()
+            public async ValueTask<(IEsentSession session, IDisposable disposable)> GetAvailableSession(bool autoUse)
             {
                 async Task<Nothing> DoDisposeExccessSessions()
                 {
@@ -290,9 +289,9 @@ namespace Imageboard10.Core.Database
                     lock (Waiters.UsingLock)
                     {
                         var freeSessions = _readonlySessions.Where(s => s.UsingsCount == 0).ToArray();
-                        if (freeSessions.Length > 4)
+                        if (freeSessions.Length > ReserveSessionsCount)
                         {
-                            toDispose.AddRange(freeSessions.Skip(4));
+                            toDispose.AddRange(freeSessions.Skip(ReserveSessionsCount));
                         }
                         foreach (var s in toDispose)
                         {
@@ -313,20 +312,37 @@ namespace Imageboard10.Core.Database
                     var freeSessions = _readonlySessions.Where(s => s.UsingsCount == 0).ToArray();
                     if (freeSessions.Length > 0)
                     {
+                        EsentSession r;
+                        IDisposable d = null;
                         if (freeSessions.Length == 1)
                         {
-                            return freeSessions[0];
+                            r = freeSessions[0];
                         }
-                        return freeSessions[_rnd.Next(0, freeSessions.Length)];
+                        else
+                        {
+                            r = freeSessions[_rnd.Next(0, freeSessions.Length)];
+                        }
+                        if (autoUse)
+                        {
+                            r.UsingsCount++;
+                            d = r.CreateUsageDisposable();
+                        }
+                        return (r, d);
                     }
                 }
                 var newSession = await EsentSession.CreateReadOnlySession(MainSession, Waiters);
+                IDisposable d2 = null;
                 lock (Waiters.UsingLock)
                 {
                     _readonlySessions.Add(newSession);
+                    if (autoUse)
+                    {
+                        newSession.UsingsCount++;
+                        d2 = newSession.CreateUsageDisposable();
+                    }
                 }
                 CoreTaskHelper.RunUnawaitedTaskAsync(DoDisposeExccessSessions);
-                return newSession;
+                return (newSession, d2);
             }
 
             private const int ReserveSessionsCount = 4;
@@ -343,10 +359,36 @@ namespace Imageboard10.Core.Database
         /// Получить сессию только для чтения.
         /// </summary>
         /// <returns>Экземпляр.</returns>
-        public ValueTask<IEsentSession> GetSecondarySession()
+        public async ValueTask<IEsentSession> GetSecondarySession()
         {
             var session = _mainSession;
-            return session.GetAvailableSession();
+            var r = await session.GetAvailableSession(false);
+            return r.session;
+        }
+
+        /// <summary>
+        /// Получить сессию только для чтения.
+        /// </summary>
+        /// <returns>Экземпляр.</returns>
+        public async ValueTask<(IEsentSession session, IDisposable usage)> GetSecondarySessionAndUse()
+        {
+            var session = _mainSession;
+            var r = await session.GetAvailableSession(true);
+            if (r.disposable != null)
+            {
+                return r;
+            }
+            return (r.session, new ActionDisposable(null));
+        }
+
+        /// <summary>
+        /// Получить несколько независимых вторичных сессий.
+        /// </summary>
+        /// <param name="count">Количество сессий.</param>
+        /// <returns>Сессии.</returns>
+        public ValueTask<IEsentSession[]> GetSecondarySessions(int count)
+        {
+            throw new NotImplementedException();
         }
 
         /// <summary>
@@ -516,14 +558,22 @@ namespace Imageboard10.Core.Database
                                         transaction.Commit(grbit);
                                     }
                                     result = r.result;
+                                    break;
                                 }
                             }
                             catch (EsentWriteConflictException)
                             {
-                                // try again
+                                if (TimeSpan.FromMilliseconds(Environment.TickCount - startedTicks) >= waitCount)
+                                {
+                                    throw;
+                                }
                             }
                             catch (EsentVersionStoreOutOfMemoryException)
                             {
+                                if (TimeSpan.FromMilliseconds(Environment.TickCount - startedTicks) >= waitCount)
+                                {
+                                    throw;
+                                }
                                 // wait for transactions to commint and try again
                                 Task.Delay(TimeSpan.FromSeconds(0.1)).Wait(TimeSpan.FromSeconds(0.25));
                             }
@@ -584,17 +634,21 @@ namespace Imageboard10.Core.Database
 
             public IDisposable UseSession()
             {
+                lock (_waiters.UsingLock)
+                {
+                    UsingsCount++;
+                }
+                return CreateUsageDisposable();
+            }
+
+            public IDisposable CreateUsageDisposable()
+            {
                 void OnDispose()
                 {
                     lock (_waiters.UsingLock)
                     {
                         UsingsCount--;
                     }
-                }
-
-                lock (_waiters.UsingLock)
-                {
-                    UsingsCount++;
                 }
                 return new SessionDisposeWaiter(_waiters, OnDispose);
             }

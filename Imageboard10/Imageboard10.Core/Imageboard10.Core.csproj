@@ -142,7 +142,9 @@
     <Compile Include="Tasks\CoreTaskHelper.cs" />
     <Compile Include="Tasks\ThreadAccessGuard.cs" />
     <Compile Include="Tasks\ThreadDisposableAccessGuard.cs" />
+    <Compile Include="Utility\ActionDisposable.cs" />
     <Compile Include="Utility\CharHelper.cs" />
+    <Compile Include="Utility\CompositeDisposable.cs" />
     <Compile Include="Utility\DataContractSerializerCache.cs" />
     <Compile Include="Utility\DatesHelper.cs" />
     <Compile Include="Utility\DebugHelper.cs" />

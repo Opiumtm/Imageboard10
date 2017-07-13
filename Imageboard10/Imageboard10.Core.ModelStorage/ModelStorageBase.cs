@@ -92,7 +92,7 @@ namespace Imageboard10.Core.ModelStorage
             await base.OnAllInitialized();
             try
             {
-                Task<Nothing> DoEnsureTableversion()
+                ValueTask<Nothing> DoEnsureTableversion()
                 {
                     return InMainSessionAsync(EnsureTableversion);
                 }
@@ -154,7 +154,7 @@ namespace Imageboard10.Core.ModelStorage
         /// <typeparam name="T">Тип результата.</typeparam>
         /// <param name="logic">Логика.</param>
         /// <returns>Результат.</returns>
-        protected async Task<T> OpenSessionAsync<T>(Func<IEsentSession, Task<T>> logic)
+        protected async ValueTask<T> OpenSessionAsync<T>(Func<IEsentSession, ValueTask<T>> logic)
         {
             if (logic == null)
             {
@@ -174,7 +174,7 @@ namespace Imageboard10.Core.ModelStorage
         /// <typeparam name="T">Тип результата.</typeparam>
         /// <param name="logic">Логика.</param>
         /// <returns>Результат.</returns>
-        protected async Task<T> OpenSession<T>(Func<IEsentSession, T> logic)
+        protected async ValueTask<T> OpenSession<T>(Func<IEsentSession, T> logic)
         {
             if (logic == null)
             {
@@ -200,17 +200,17 @@ namespace Imageboard10.Core.ModelStorage
         /// <typeparam name="T">Тип результата.</typeparam>
         /// <param name="logic">Логика.</param>
         /// <returns>Результат.</returns>
-        protected async Task<T> InMainSessionAsync<T>(Func<IEsentSession, Task<T>> logic)
+        protected ValueTask<T> InMainSessionAsync<T>(Func<IEsentSession, ValueTask<T>> logic)
         {
             if (logic == null)
             {
-                return default(T);
+                return new ValueTask<T>();
             }
             CheckModuleReady();
             var mainSession = EsentProvider.MainSession;
             using (mainSession.UseSession())
             {
-                return await logic(mainSession);
+                return logic(mainSession);
             }
         }
 
@@ -220,17 +220,82 @@ namespace Imageboard10.Core.ModelStorage
         /// <typeparam name="T">Тип результата.</typeparam>
         /// <param name="logic">Логика.</param>
         /// <returns>Результат.</returns>
-        protected async Task<T> InMainSession<T>(Func<IEsentSession, T> logic)
+        protected ValueTask<T> InMainSession<T>(Func<IEsentSession, T> logic)
         {
             if (logic == null)
             {
-                return default(T);
+                return new ValueTask<T>(default(T));
             }
             CheckModuleReady();
             var mainSession = EsentProvider.MainSession;
             using (mainSession.UseSession())
             {
-                return logic(mainSession);
+                return new ValueTask<T>(logic(mainSession));
+            }
+        }
+
+        /// <summary>
+        /// Параллельная обработка перечисления на разных сессиях.
+        /// </summary>
+        /// <typeparam name="TSrc">Тип данных.</typeparam>
+        /// <typeparam name="T">Тип результата.</typeparam>
+        /// <param name="src">Перечисление.</param>
+        /// <param name="parallelFunc">Функция обоработки.</param>
+        /// <returns>Результат.</returns>
+        protected async ValueTask<T[]> ParallelizeOnSessions<TSrc, T>(IEnumerable<TSrc> src, Func<IEsentSession, TSrc, ValueTask<T>> parallelFunc)
+        {
+            if (src == null) throw new ArgumentNullException(nameof(src));
+            if (parallelFunc == null) throw new ArgumentNullException(nameof(parallelFunc));
+            var tasks = new List<ValueTask<T>>();
+            var toDispose = new CompositeDisposable(null);
+            try
+            {
+                foreach (var el in src)
+                {
+                    var session = await EsentProvider.GetSecondarySessionAndUse();
+                    toDispose.AddDisposable(session.usage);
+                    tasks.Add(parallelFunc(session.session, el));
+                }
+                return await CoreTaskHelper.WhenAllValueTasks(tasks);
+            }
+            finally
+            {
+                toDispose.Dispose();
+            }
+        }
+
+        /// <summary>
+        /// Параллельная обработка перечисления на разных сессиях.
+        /// </summary>
+        /// <typeparam name="TSrc">Тип данных.</typeparam>
+        /// <typeparam name="T">Тип результата.</typeparam>
+        /// <param name="src">Перечисление.</param>
+        /// <param name="parallelFunc">Функция обоработки.</param>
+        /// <returns>Результат.</returns>
+        protected async ValueTask<T[]> ParallelizeOnSessions<TSrc, T>(IEnumerable<TSrc> src, Func<IEsentSession, TSrc, T> parallelFunc)
+        {
+            ValueTask<T> Do(IEsentSession session, TSrc el)
+            {
+                return session.Run(() => parallelFunc(session, el));
+            }
+
+            if (src == null) throw new ArgumentNullException(nameof(src));
+            if (parallelFunc == null) throw new ArgumentNullException(nameof(parallelFunc));
+            var tasks = new List<ValueTask<T>>();
+            var toDispose = new CompositeDisposable(null);
+            try
+            {
+                foreach (var el in src)
+                {
+                    var session = await EsentProvider.GetSecondarySessionAndUse();
+                    toDispose.AddDisposable(session.usage);
+                    tasks.Add(Do(session.session, el));
+                }
+                return await CoreTaskHelper.WhenAllValueTasks(tasks);
+            }
+            finally
+            {
+                toDispose.Dispose();
             }
         }
 
@@ -277,7 +342,7 @@ namespace Imageboard10.Core.ModelStorage
         /// <param name="update">Метод обновления. Если null, то обновление версии производиться не будет, вместо этого метод вернёт актуальную версию таблицы.</param>
         /// <param name="bypassCache">Не использовать кэш версий.</param>
         /// <returns>Версия таблицы.</returns>
-        protected async Task<int> EnsureTable(string tableName, int currentVersion, Action<IEsentSession, JET_TABLEID> initialize, Action<IEsentSession> update, bool bypassCache = false)
+        protected async ValueTask<int> EnsureTable(string tableName, int currentVersion, Action<IEsentSession, JET_TABLEID> initialize, Action<IEsentSession> update, bool bypassCache = false)
         {
             if (tableName == null) throw new ArgumentNullException(nameof(tableName));
             if (tableName.Length > 125)
@@ -289,7 +354,7 @@ namespace Imageboard10.Core.ModelStorage
                 throw new InvalidOperationException("Номер версии таблицы должен быть 1 или выше");
             }
 
-            async Task<int> Do(IEsentSession session)
+            async ValueTask<int> Do(IEsentSession session)
             {
                 bool found = false;
                 await session.Run(() =>
@@ -462,9 +527,9 @@ namespace Imageboard10.Core.ModelStorage
             });
         }
 
-        private async Task<Nothing> EnsureTableversion(IEsentSession session)
+        private ValueTask<Nothing> EnsureTableversion(IEsentSession session)
         {
-            await session.RunInTransaction(() =>
+            return session.RunInTransaction(() =>
             {
                 var sid = session.Session;
                 var dbid = session.Database;
@@ -499,7 +564,6 @@ namespace Imageboard10.Core.ModelStorage
                     Api.JetCloseTable(sid, tvid);
                 }
             });
-            return Nothing.Value;
         }
 
         /// <summary>
@@ -577,7 +641,7 @@ namespace Imageboard10.Core.ModelStorage
         /// </summary>
         /// <param name="tableName">Имя таблицы.</param>
         /// <returns>Результат.</returns>
-        Task<bool> IModelStorageForTests.IsTablePresent(string tableName)
+        ValueTask<bool> IModelStorageForTests.IsTablePresent(string tableName)
         {
             if (tableName == null) throw new ArgumentNullException(nameof(tableName));
             return OpenSession(session =>
@@ -598,7 +662,7 @@ namespace Imageboard10.Core.ModelStorage
         /// </summary>
         /// <param name="tableName">Имя таблицы.</param>
         /// <returns>Версия.</returns>
-        Task<int> IModelStorageForTests.GetTableVersion(string tableName)
+        ValueTask<int> IModelStorageForTests.GetTableVersion(string tableName)
         {
             if (tableName == null) throw new ArgumentNullException(nameof(tableName));
             return EnsureTable(tableName, int.MaxValue, null, null);

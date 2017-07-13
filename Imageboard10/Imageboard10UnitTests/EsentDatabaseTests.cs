@@ -690,7 +690,7 @@ namespace Imageboard10UnitTests
                             {
                                 update.Save();
                             }
-                            catch (EsentWriteConflictException e)
+                            catch (EsentWriteConflictException)
                             {
                                 exceptedUpdates[0] = true;
                             }
@@ -708,7 +708,7 @@ namespace Imageboard10UnitTests
                             {
                                 update.Save();
                             }
-                            catch (EsentWriteConflictException e)
+                            catch (EsentWriteConflictException)
                             {
                                 exceptedUpdates[1] = true;
                             }
@@ -732,7 +732,7 @@ namespace Imageboard10UnitTests
                                     update.Save();
                                 }
                             }
-                            catch (EsentWriteConflictException e)
+                            catch (EsentWriteConflictException)
                             {
                                 exceptedUpdates[0] = true;
                             }
@@ -754,7 +754,7 @@ namespace Imageboard10UnitTests
                                     update.Save();
                                 }
                             }
-                            catch (EsentWriteConflictException e)
+                            catch (EsentWriteConflictException)
                             {
                                 exceptedUpdates[1] = true;
                             }
@@ -779,7 +779,7 @@ namespace Imageboard10UnitTests
                                     update.Save();
                                 }
                             }
-                            catch (EsentWriteConflictException e)
+                            catch (EsentWriteConflictException)
                             {
                                 exceptedUpdates[0] = true;
                             }
@@ -801,7 +801,7 @@ namespace Imageboard10UnitTests
                                     update.Save();
                                 }
                             }
-                            catch (EsentWriteConflictException e)
+                            catch (EsentWriteConflictException)
                             {
                                 exceptedUpdates[1] = true;
                             }
@@ -822,7 +822,7 @@ namespace Imageboard10UnitTests
                                         update.Save();
                                     }
                                 }
-                                catch (EsentWriteConflictException e)
+                                catch (EsentWriteConflictException)
                                 {
                                     exceptedUpdates[1] = true;
                                 }
@@ -848,7 +848,7 @@ namespace Imageboard10UnitTests
                                     update.Save();
                                 }
                             }
-                            catch (EsentWriteConflictException e)
+                            catch (EsentWriteConflictException)
                             {
                                 exceptedUpdates[0] = true;
                             }
@@ -870,7 +870,7 @@ namespace Imageboard10UnitTests
                                     update.Save();
                                 }
                             }
-                            catch (EsentWriteConflictException e)
+                            catch (EsentWriteConflictException)
                             {
                                 exceptedUpdates[1] = true;
                             }
@@ -887,7 +887,7 @@ namespace Imageboard10UnitTests
                                         update.Save();
                                     }
                                 }
-                                catch (EsentWriteConflictException e)
+                                catch (EsentWriteConflictException)
                                 {
                                     exceptedUpdates[1] = true;
                                 }

@@ -10,7 +10,10 @@
     <Grid Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
         <StackPanel>
             <TextBlock x:Name="Results" TextWrapping="Wrap"></TextBlock>
-            <Button x:Name="ThreadSaveButton" Click="ThreadSaveButton_OnClick">Thread save</Button>
+            <StackPanel Orientation="Horizontal">
+                <TextBox Margin="3" VerticalAlignment="Center" x:Name="UpdateThreadsEdit" Text="5" />
+                <Button x:Name="ThreadSaveButton" Click="ThreadSaveButton_OnClick" Margin="3" VerticalAlignment="Center">Thread save</Button>
+            </StackPanel>
         </StackPanel>
     </Grid>
 </Page>

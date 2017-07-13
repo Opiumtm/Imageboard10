@@ -36,6 +36,36 @@ namespace Imageboard10.Core.Utility
         }
 
         /// <summary>
+        /// Разделить перечисление на части с ограничением по размеру.
+        /// </summary>
+        /// <typeparam name="T">Тип элемента.</typeparam>
+        /// <param name="src">Исходное перечисление.</param>
+        /// <param name="minCount">Минимальное количество элеменов.</param>
+        /// <param name="maxCount">Максимальное количество элементов.</param>
+        /// <returns>Результат.</returns>
+        public static IEnumerable<IEnumerable<T>> SplitSetRandomized<T>(this IEnumerable<T> src, int minCount, int maxCount)
+        {
+            if (src == null) throw new ArgumentNullException(nameof(src));
+            var rnd = new Random();
+            var curCnt = rnd.Next(minCount, maxCount+1);
+            var buffer = new List<T>(curCnt);
+            foreach (var el in src)
+            {
+                buffer.Add(el);
+                if (buffer.Count >= curCnt)
+                {
+                    yield return buffer;
+                    curCnt = rnd.Next(minCount, maxCount + 1);
+                    buffer = new List<T>(curCnt);
+                }
+            }
+            if (buffer.Count > 0)
+            {
+                yield return buffer;
+            }
+        }
+
+        /// <summary>
         /// Распределить для параллельной обработки.
         /// </summary>
         /// <typeparam name="T">Тип объекта.</typeparam>

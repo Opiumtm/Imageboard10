@@ -31,7 +31,16 @@ namespace Imageboard10PerformanceTests
         private async void ThreadSaveButton_OnClick(object sender, RoutedEventArgs e)
         {
             var tester = new ThreadSaveTest();
-            await tester.Initilize();
+            int pt;
+            if (!int.TryParse(UpdateThreadsEdit.Text?.Trim(), out pt))
+            {
+                pt = 5;
+            }
+            if (pt < 2)
+            {
+                pt = 1;
+            }
+            await tester.Initilize(pt);
             try
             {
                 await tester.SaveThreadToStoreBenhcmark(msg =>

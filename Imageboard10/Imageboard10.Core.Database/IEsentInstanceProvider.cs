@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using System;
+using System.Threading.Tasks;
 
 namespace Imageboard10.Core.Database
 {
@@ -15,10 +16,15 @@ namespace Imageboard10.Core.Database
         /// <summary>
         /// Получить вторичную сессию.
         /// </summary>
-        /// <returns>Экземпляр.</returns>
+        /// <returns>Сессия..</returns>
         ValueTask<IEsentSession> GetSecondarySession();
 
-      
+        /// <summary>
+        /// Получить вторичную сессию.
+        /// </summary>
+        /// <returns>Сессия.</returns>
+        ValueTask<(IEsentSession session, IDisposable usage)> GetSecondarySessionAndUse();
+
         /// <summary>
         /// Путь к базе данных.
         /// </summary>

@@ -36,14 +36,14 @@ namespace Imageboard10.Core.ModelStorage
         /// Один раз вызвать инициализацию таблицы tableversion или ждать, если инициализация уже запущена.
         /// </summary>
         /// <param name="initFunc">Функция инициализации.</param>
-        public async Task InitializeTableVersionOnce(Func<Task<Nothing>> initFunc)
+        public async Task InitializeTableVersionOnce(Func<ValueTask<Nothing>> initFunc)
         {
             if (initFunc == null) throw new ArgumentNullException(nameof(initFunc));
             if (Interlocked.Exchange(ref _isProcessing, 1) == 0)
             {
                 try
                 {
-                    await CoreTaskHelper.RunAsyncFuncOnNewThread(initFunc);
+                    await CoreTaskHelper.RunAsyncFuncOnNewThreadValueTask(initFunc);
                     _tcs.SetResult(Nothing.Value);
                 }
                 catch (Exception ex)

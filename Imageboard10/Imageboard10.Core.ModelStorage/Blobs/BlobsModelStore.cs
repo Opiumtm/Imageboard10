@@ -1235,7 +1235,7 @@ namespace Imageboard10.Core.ModelStorage.Blobs
                         var f = await _filestreamFolder.GetFileAsync(BlobFileName(id.Id));
                         await f.DeleteAsync();
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                         if (Debugger.IsAttached)
                         {
@@ -1280,7 +1280,7 @@ namespace Imageboard10.Core.ModelStorage.Blobs
             });
         }
 
-        private Task<Nothing> DoDeleteAllUncompletedBlobs()
+        private ValueTask<Nothing> DoDeleteAllUncompletedBlobs()
         {
             return InMainSessionAsync(async session =>
             {
@@ -1315,7 +1315,7 @@ namespace Imageboard10.Core.ModelStorage.Blobs
                         var f = await _filestreamFolder.GetFileAsync(BlobFileName(id.Id));
                         await f.DeleteAsync();
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                         if (Debugger.IsAttached)
                         {
@@ -1324,11 +1324,11 @@ namespace Imageboard10.Core.ModelStorage.Blobs
                     }
                 }
 
-                filestream = filestream.Where(f => f.Id >= 0).ToList();
+                var filestream1 = filestream.Where(f => f.Id >= 0).ToList();
 
-                if (filestream.Count > 0)
+                if (filestream1.Count > 0)
                 {
-                    await Task.WhenAll(filestream.Select(DeleteFilestream).ToArray());
+                    await Task.WhenAll(filestream1.Select(DeleteFilestream).ToArray());
                 }
                 return Nothing.Value;
             });

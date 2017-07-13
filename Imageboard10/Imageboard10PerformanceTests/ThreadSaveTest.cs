@@ -32,14 +32,14 @@ namespace Imageboard10PerformanceTests
         private IModuleProvider _provider;
         private IBoardPostStore _store;
 
-        public async Task Initilize()
+        public async Task Initilize(int parallelTasks)
         {
             _collection = new ModuleCollection();
 
             ModelsRegistration.RegisterModules(_collection);
             PostModelsRegistration.RegisterModules(_collection);
             _collection.RegisterModule<EsentInstanceProvider, IEsentInstanceProvider>(new EsentInstanceProvider(true));
-            _collection.RegisterModule<PostModelStore, IBoardPostStore>(new PostModelStore("makaba"));
+            _collection.RegisterModule<PostModelStore, IBoardPostStore>(new PostModelStore("makaba", parallelTasks));
             _collection.RegisterModule<MakabaBoardReferenceDtoParsers, INetworkDtoParsers>();
             _collection.RegisterModule<MakabaBoardReferenceDtoParsers, INetworkDtoParsers>();
             _collection.RegisterModule<YoutubeIdService, IYoutubeIdService>();

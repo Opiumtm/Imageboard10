@@ -27,10 +27,17 @@ namespace Imageboard10.Core.ModelStorage.Posts
         /// Конструктор.
         /// </summary>
         /// <param name="engineId">Идентификатор движка.</param>
-        public PostModelStore(string engineId)
+        /// <param name="uploadParallelism">Количество потоков для загрузки данных в базу.</param>
+        public PostModelStore(string engineId, int uploadParallelism = 5)
         {
             EngineId = engineId ?? throw new ArgumentNullException(nameof(engineId));
+            UploadParallelism = uploadParallelism;
         }
+
+        /// <summary>
+        /// Количество потоков для загрузки данных в базу.
+        /// </summary>
+        protected readonly int UploadParallelism;
 
         /// <summary>
         /// Создать или обновить таблицы.
@@ -494,7 +501,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
                             }
                         }
                         return true;
-                    });
+                    }, 1, CommitTransactionGrbit.LazyFlush);
                     return Nothing.Value;
                 });
             }
@@ -635,7 +642,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
                             }
                         }
                         return true;
-                    });
+                    }, 1, CommitTransactionGrbit.LazyFlush);
                     return Nothing.Value;
                 });
             }
@@ -861,7 +868,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
                                 else foundAny = false;
                             }
                             return true;
-                        });
+                        }, 1, CommitTransactionGrbit.None);
                         return Nothing.Value;
                     });
                 } while (foundAny);

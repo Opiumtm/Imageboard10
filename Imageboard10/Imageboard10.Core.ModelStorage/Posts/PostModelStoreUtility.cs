@@ -42,7 +42,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
                         }
                     }
                     return true;
-                });
+                }, 1, CommitTransactionGrbit.None);
             }
 
             var split = toDelete.SplitSet(100).Select(s => s.ToArray());
@@ -533,7 +533,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
                         }
                     }
                     return true;
-                });
+                }, 1, CommitTransactionGrbit.LazyFlush);
                 return Nothing.Value;
             });
         }
