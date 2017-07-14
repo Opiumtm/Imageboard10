@@ -220,7 +220,7 @@ namespace Imageboard10.Core.ModelStorage.Blobs
             CheckModuleReady();
             await WaitForTablesInitialize();
 
-            return await InMainSessionAsync(async session =>
+            return await OpenSessionAsync(async session =>
             {
                 token.ThrowIfCancellationRequested();
 
@@ -238,7 +238,7 @@ namespace Imageboard10.Core.ModelStorage.Blobs
                     {                        
                         var frs = await session.RunInTransaction(() =>
                         {
-                            using (var table = session.OpenTable(BlobsTable, OpenTableGrbit.DenyWrite))
+                            using (var table = session.OpenTable(BlobsTable, OpenTableGrbit.None))
                             {
                                 var sid = table.Session;
                                 var columnMap = Api.GetColumnDictionary(sid, table);
@@ -327,7 +327,7 @@ namespace Imageboard10.Core.ModelStorage.Blobs
                                 await session.RunInTransaction(() =>
                                 {
                                     token.ThrowIfCancellationRequested();
-                                    using (var table = session.OpenTable(BlobsTable, OpenTableGrbit.DenyWrite))
+                                    using (var table = session.OpenTable(BlobsTable, OpenTableGrbit.None))
                                     {
                                         var sid = table.Session;
                                         var columnMap = Api.GetColumnDictionary(sid, table);
@@ -370,7 +370,7 @@ namespace Imageboard10.Core.ModelStorage.Blobs
 
                     await session.RunInTransaction(() =>
                     {
-                        using (var table = session.OpenTable(BlobsTable, OpenTableGrbit.DenyWrite))
+                        using (var table = session.OpenTable(BlobsTable, OpenTableGrbit.None))
                         {
                             var sid = table.Session;
                             var columnMap = Api.GetColumnDictionary(sid, table);
@@ -399,7 +399,7 @@ namespace Imageboard10.Core.ModelStorage.Blobs
                     {
                         await session.RunInTransaction(() =>
                         {
-                            using (var table = session.OpenTable(BlobsTable, OpenTableGrbit.DenyWrite))
+                            using (var table = session.OpenTable(BlobsTable, OpenTableGrbit.None))
                             {
                                 if (Api.TryGotoBookmark(table.Session, table, bookmark, bookmarkSize))
                                 {
@@ -426,7 +426,7 @@ namespace Imageboard10.Core.ModelStorage.Blobs
                     {
                         await session.RunInTransaction(() =>
                         {
-                            using (var table = session.OpenTable(BlobsTable, OpenTableGrbit.DenyWrite))
+                            using (var table = session.OpenTable(BlobsTable, OpenTableGrbit.None))
                             {
                                 if (Api.TryGotoBookmark(table.Session, table, bookmark, bookmarkSize))
                                 {
@@ -570,14 +570,14 @@ namespace Imageboard10.Core.ModelStorage.Blobs
         {
             CheckModuleReady();
             await WaitForTablesInitialize();
-            return await InMainSessionAsync(async session =>
+            return await OpenSessionAsync(async session =>
             {
                 bool isFileStream = false;
                 byte[] bookmark = null;
                 bool result = false;
                 await session.RunInTransaction(() =>
                 {
-                    using (var table = session.OpenTable(BlobsTable, OpenTableGrbit.DenyWrite))
+                    using (var table = session.OpenTable(BlobsTable, OpenTableGrbit.None))
                     {
                         Api.MakeKey(table.Session, table, id.Id, MakeKeyGrbit.NewKey);
                         if (Api.TrySeek(table.Session, table.Table, SeekGrbit.SeekEQ))
@@ -612,7 +612,7 @@ namespace Imageboard10.Core.ModelStorage.Blobs
                     {
                         await session.RunInTransaction(() =>
                         {
-                            using (var table = session.OpenTable(BlobsTable, OpenTableGrbit.DenyWrite))
+                            using (var table = session.OpenTable(BlobsTable, OpenTableGrbit.None))
                             {
                                 if (Api.TryGotoBookmark(table.Session, table, bookmark, bookmark.Length))
                                 {
@@ -637,13 +637,13 @@ namespace Imageboard10.Core.ModelStorage.Blobs
         {
             CheckModuleReady();
             await WaitForTablesInitialize();
-            return await InMainSessionAsync(async session =>
+            return await OpenSessionAsync(async session =>
             {
                 var result = new List<BlobId>();
                 var filestream = new List<(BlobId id, byte[] bookmark)>();
                 await session.RunInTransaction(() =>
                 {
-                    using (var table = session.OpenTable(BlobsTable, OpenTableGrbit.DenyWrite))
+                    using (var table = session.OpenTable(BlobsTable, OpenTableGrbit.None))
                     {
                         foreach (var id in idArray)
                         {
@@ -688,7 +688,7 @@ namespace Imageboard10.Core.ModelStorage.Blobs
                     var bookmark = rid.bookmark;
                     await session.RunInTransaction(() =>
                     {
-                        using (var table = session.OpenTable(BlobsTable, OpenTableGrbit.DenyWrite))
+                        using (var table = session.OpenTable(BlobsTable, OpenTableGrbit.None))
                         {
                             if (Api.TryGotoBookmark(table.Session, table, bookmark, bookmark.Length))
                             {
@@ -1114,11 +1114,11 @@ namespace Imageboard10.Core.ModelStorage.Blobs
         {
             CheckModuleReady();
             await WaitForTablesInitialize();
-            await InMainSessionAsync(async session =>
+            await OpenSessionAsync(async session =>
             {
                 await session.RunInTransaction(() =>
                 {
-                    using (var table = session.OpenTable(ReferencesTable, OpenTableGrbit.DenyWrite))
+                    using (var table = session.OpenTable(ReferencesTable, OpenTableGrbit.None))
                     {
                         Api.MakeKey(table.Session, table, referenceId, MakeKeyGrbit.NewKey);
                         if (!Api.TrySeek(table.Session, table, SeekGrbit.SeekEQ))
@@ -1144,11 +1144,11 @@ namespace Imageboard10.Core.ModelStorage.Blobs
         {
             CheckModuleReady();
             await WaitForTablesInitialize();
-            await InMainSessionAsync(async session =>
+            await OpenSessionAsync(async session =>
             {
                 await session.RunInTransaction(() =>
                 {
-                    using (var table = session.OpenTable(ReferencesTable, OpenTableGrbit.DenyWrite))
+                    using (var table = session.OpenTable(ReferencesTable, OpenTableGrbit.None))
                     {
                         Api.MakeKey(table.Session, table, referenceId, MakeKeyGrbit.NewKey);
                         if (Api.TrySeek(table.Session, table, SeekGrbit.SeekEQ))
@@ -1203,12 +1203,12 @@ namespace Imageboard10.Core.ModelStorage.Blobs
             CheckModuleReady();
             await WaitForTablesInitialize();
 
-            await InMainSessionAsync(async session =>
+            await OpenSessionAsync(async session =>
             {
                 var filestream = new List<BlobId>();
                 await session.RunInTransaction(() =>
                 {
-                    using (var table = session.OpenTable(BlobsTable, OpenTableGrbit.DenyWrite))
+                    using (var table = session.OpenTable(BlobsTable, OpenTableGrbit.None))
                     {
                         if (Api.TryMoveFirst(table.Session, table))
                         {
@@ -1260,11 +1260,11 @@ namespace Imageboard10.Core.ModelStorage.Blobs
         {
             CheckModuleReady();
             await WaitForTablesInitialize();
-            await InMainSessionAsync(async session =>
+            await OpenSessionAsync(async session =>
             {
                 await session.RunInTransaction(() =>
                 {
-                    using (var table = session.OpenTable(ReferencesTable, OpenTableGrbit.DenyWrite))
+                    using (var table = session.OpenTable(ReferencesTable, OpenTableGrbit.None))
                     {
                         if (Api.TryMoveFirst(table.Session, table))
                         {
@@ -1282,12 +1282,12 @@ namespace Imageboard10.Core.ModelStorage.Blobs
 
         private ValueTask<Nothing> DoDeleteAllUncompletedBlobs()
         {
-            return InMainSessionAsync(async session =>
+            return OpenSessionAsync(async session =>
             {
                 var filestream = new List<BlobId>();
                 await session.RunInTransaction(() =>
                 {
-                    using (var table = session.OpenTable(BlobsTable, OpenTableGrbit.DenyWrite))
+                    using (var table = session.OpenTable(BlobsTable, OpenTableGrbit.None))
                     {
                         Api.JetSetCurrentIndex(table.Session, table, BlobsTableIndexes.IsCompleted);
                         Api.MakeKey(table.Session, table, false, MakeKeyGrbit.NewKey);
@@ -1518,12 +1518,12 @@ namespace Imageboard10.Core.ModelStorage.Blobs
         {
             CheckModuleReady();
             await WaitForTablesInitialize();
-            return await InMainSessionAsync(async session =>
+            return await OpenSessionAsync(async session =>
             {
                 var result = false;
                 await session.RunInTransaction(() =>
                 {
-                    using (var table = session.OpenTable(BlobsTable, OpenTableGrbit.DenyWrite))
+                    using (var table = session.OpenTable(BlobsTable, OpenTableGrbit.None))
                     {
                         var columnMap = Api.GetColumnDictionary(table.Session, table);
                         if (SeekBlob(table, id, false))

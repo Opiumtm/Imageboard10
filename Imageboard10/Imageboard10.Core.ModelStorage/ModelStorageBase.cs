@@ -512,7 +512,7 @@ namespace Imageboard10.Core.ModelStorage
                 {
                     var sid = session.Session;
                     var dbid = session.Database;
-                    using (var table = session.OpenTable(TableVersionTable, OpenTableGrbit.DenyWrite))
+                    using (var table = session.OpenTable(TableVersionTable, OpenTableGrbit.None))
                     {
                         Api.JetDeleteTable(sid, dbid, tableName);
                         Api.MakeKey(table.Session, table, tableName, Encoding.Unicode, MakeKeyGrbit.NewKey);

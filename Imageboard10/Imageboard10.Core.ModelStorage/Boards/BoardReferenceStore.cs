@@ -780,11 +780,11 @@ namespace Imageboard10.Core.ModelStorage.Boards
         {
             CheckModuleReady();
             await WaitForTablesInitialize();
-            await InMainSessionAsync(async session =>
+            await OpenSessionAsync(async session =>
             {
                 await session.RunInTransaction(() =>
                 {
-                    using (var table = session.OpenTable(TableName, OpenTableGrbit.DenyWrite))
+                    using (var table = session.OpenTable(TableName, OpenTableGrbit.None))
                     {
                         DeleteAllRows(table);
                     }
@@ -880,11 +880,11 @@ namespace Imageboard10.Core.ModelStorage.Boards
             if (reference == null) throw new ArgumentNullException(nameof(reference));
             CheckModuleReady();
             await WaitForTablesInitialize();
-            await InMainSessionAsync(async session =>
+            await OpenSessionAsync(async session =>
             {
                 await session.RunInTransaction(() =>
                 {
-                    using (var table = session.OpenTable(TableName, OpenTableGrbit.DenyWrite))
+                    using (var table = session.OpenTable(TableName, OpenTableGrbit.None))
                     {
                         DoUpdateOneRow(table, reference, false);
                     }
@@ -956,11 +956,11 @@ namespace Imageboard10.Core.ModelStorage.Boards
                 return;
             }
             await WaitForTablesInitialize();
-            await InMainSessionAsync(async session =>
+            await OpenSessionAsync(async session =>
             {
                 await session.Run(() =>
                 {
-                    using (var table = session.OpenTable(TableName, OpenTableGrbit.DenyWrite))
+                    using (var table = session.OpenTable(TableName, OpenTableGrbit.None))
                     {
                         if (clearPrevious)
                         {

@@ -1080,7 +1080,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
                         PostStoreEntityId newId;
                         (var boardId, var sequenceId) = ExtractBoardPageLinkData(collection2.Link);
 
-                        using (var table = session.OpenTable(TableName, OpenTableGrbit.DenyWrite))
+                        using (var table = session.OpenTable(TableName, OpenTableGrbit.None))
                         {
                             var colids = Api.GetColumnDictionary(table.Session, table);
                             if (collection2.EntityType == PostStoreEntityType.BoardPage)

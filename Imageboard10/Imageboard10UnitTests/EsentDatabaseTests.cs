@@ -480,8 +480,9 @@ namespace Imageboard10UnitTests
 
                         async Task TestTask()
                         {
-                            (var mainSession, var usage) = await provider.GetSecondarySessionAndUse();
-                            using (usage)
+                            var r = await provider.GetSecondarySessionAndUse();
+                            var mainSession = r.session;
+                            using (r.usage)
                             {
                                 await Task.Delay(TimeSpan.FromSeconds(0.2));
                                 tcs.SetResult(Nothing.Value);
