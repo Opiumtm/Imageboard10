@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Imageboard10.Core;
 using Imageboard10.Core.Database;
 using Imageboard10.Core.ModelInterface.Boards;
+using Imageboard10.Core.ModelInterface.Links;
 using Imageboard10.Core.ModelInterface.Posts;
 using Imageboard10.Core.ModelInterface.Posts.Store;
 using Imageboard10.Core.Models;
@@ -73,7 +74,7 @@ namespace Imageboard10UnitTests
             _store = null;
         }
 
-        private async Task<IBoardPostCollection> ReadThread(string resourceFile)
+        private async Task<IBoardPostCollection> ReadThread(string resourceFile, ThreadLink link = null)
         {
             var jsonStr = await TestResources.ReadTestTextFile(resourceFile);
             var dto = JsonConvert.DeserializeObject<BoardEntity2>(jsonStr);
@@ -82,7 +83,7 @@ namespace Imageboard10UnitTests
             Assert.IsNotNull(parser, "parser != null");
             var param = new ThreadData()
             {
-                Link = new ThreadLink() { Board = "mobi", Engine = MakabaConstants.MakabaEngineId, OpPostNum = 1153568 },
+                Link = link ?? new ThreadLink() { Board = "mobi", Engine = MakabaConstants.MakabaEngineId, OpPostNum = 1153568 },
                 Etag = "##etag##",
                 LoadedTime = DateTimeOffset.Now,
                 Entity = dto
@@ -271,6 +272,28 @@ namespace Imageboard10UnitTests
             var updateTimeDiff = lastPost.LoadedTime - accessInfo.LastUpdate.Value;
             Assert.IsTrue(Math.Abs(updateTimeDiff.TotalSeconds) < 1.5, "accessInfo.LastUpdate");
             Assert.AreEqual(collection.Posts.Count, accessInfo.NumberOfLoadedPosts, "accessInfo.NumberOfLoadedPosts");
+        }
+
+        [TestMethod]
+        public async Task CheckThreadAccessInfo()
+        {
+            var collection1 = await ReadThread("mobi_thread_2.json");
+            var collectionId1 = await _store.SaveCollection(collection1, BoardPostCollectionUpdateMode.Replace, null, null);
+            var collection2 = await ReadThread("po_thread.json", new ThreadLink() { Engine = MakabaConstants.MakabaEngineId, Board = "po", OpPostNum = 23334842 });
+            var collectionId2 = await _store.SaveCollection(collection2, BoardPostCollectionUpdateMode.Replace, null, null);
+
+            var accessInfo1 = await _store.GetAccessInfo(collectionId1);
+            Assert.IsNotNull(accessInfo1, "accessInfo1 != null");
+            var accessInfo2 = await _store.GetAccessInfo(collectionId2);
+            Assert.IsNotNull(accessInfo2, "accessInfo2 != null");
+
+            var lastPost1 = collection1.Posts.OrderByDescending(p => p.Link, BoardLinkComparer.Instance).First();
+            var lastPost2 = collection2.Posts.OrderByDescending(p => p.Link, BoardLinkComparer.Instance).First();
+
+            Assert.AreEqual(lastPost1.Link.GetLinkHash(), accessInfo1.LastLoadedPost?.GetLinkHash(), "accessInfo1.LastLoadedPost");
+            Assert.AreEqual(lastPost2.Link.GetLinkHash(), accessInfo2.LastLoadedPost?.GetLinkHash(), "accessInfo2.LastLoadedPost");
+            Assert.AreEqual(collection1.Posts.Count, accessInfo1.NumberOfLoadedPosts, "accessInfo1.NumberOfLoadedPosts");
+            Assert.AreEqual(collection2.Posts.Count, accessInfo2.NumberOfLoadedPosts, "accessInfo2.NumberOfLoadedPosts");
         }
 
         [TestMethod]
