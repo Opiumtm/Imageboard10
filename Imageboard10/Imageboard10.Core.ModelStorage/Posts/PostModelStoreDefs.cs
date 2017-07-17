@@ -264,6 +264,19 @@ namespace Imageboard10.Core.ModelStorage.Posts
             };
 
             /// <summary>
+            /// Флаги.
+            /// </summary>
+            public static readonly IndexDefinition DirectParentFlags = new IndexDefinition()
+            {
+                Fields = new[]
+                {
+                    "+" + ColumnNames.DirectParentId,
+                    "+" + ColumnNames.Flags
+                },
+                Grbit = CreateIndexGrbit.IndexIgnoreAnyNull
+            };
+
+            /// <summary>
             /// Цитаты.
             /// </summary>
             public static readonly IndexDefinition QuotedPosts = new IndexDefinition()
@@ -317,20 +330,27 @@ namespace Imageboard10.Core.ModelStorage.Posts
         protected static class AccessLogIndexes
         {
             /// <summary>
-            /// Сущность.
+            /// Сущность и время доступа.
             /// </summary>
             public static readonly IndexDefinition EntityId = new IndexDefinition()
             {
-                Fields = new[] {"+" + AccessLogColumnNames.EntityId},
+                Fields = new[]
+                {
+                    "+" + AccessLogColumnNames.EntityId,
+                },
                 Grbit = CreateIndexGrbit.None
             };
 
             /// <summary>
-            /// Время доступа.
+            /// Сущность и время доступа.
             /// </summary>
-            public static readonly IndexDefinition AccessTime = new IndexDefinition()
+            public static readonly IndexDefinition EntityIdAndAccessTime = new IndexDefinition()
             {
-                Fields = new[] {"+" + AccessLogColumnNames.AccessTime},
+                Fields = new[]
+                {
+                    "+" + AccessLogColumnNames.EntityId,
+                    "+" + AccessLogColumnNames.AccessTime
+                },
                 Grbit = CreateIndexGrbit.None
             };
         }
@@ -582,6 +602,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
             CreateIndex(sid, tableid, TableName, nameof(Indexes.TypeAndId), Indexes.TypeAndId);
             CreateIndex(sid, tableid, TableName, nameof(Indexes.TypeAndPostId), Indexes.TypeAndPostId);
             CreateIndex(sid, tableid, TableName, nameof(Indexes.InThreadPostLink), Indexes.InThreadPostLink);
+            CreateIndex(sid, tableid, TableName, nameof(Indexes.DirectParentFlags), Indexes.DirectParentFlags);
         }
 
         /// <summary>
@@ -611,8 +632,8 @@ namespace Imageboard10.Core.ModelStorage.Posts
 
             var pkDef = $"+{AccessLogColumnNames.Id}\0\0";
             Api.JetCreateIndex(sid, tableid, AccessLogPkName, CreateIndexGrbit.IndexUnique | CreateIndexGrbit.IndexPrimary, pkDef, pkDef.Length, 100);
+            CreateIndex(sid, tableid, AccessLogTableName, nameof(AccessLogIndexes.EntityIdAndAccessTime), AccessLogIndexes.EntityIdAndAccessTime);
             CreateIndex(sid, tableid, AccessLogTableName, nameof(AccessLogIndexes.EntityId), AccessLogIndexes.EntityId);
-            CreateIndex(sid, tableid, AccessLogTableName, nameof(AccessLogIndexes.AccessTime), AccessLogIndexes.AccessTime);
         }
 
         /// <summary>

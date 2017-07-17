@@ -124,10 +124,13 @@
     <Compile Include="Boards\DataContracts\BoardShortInfo.cs" />
     <Compile Include="IndexDefinition.cs" />
     <Compile Include="Posts\PostModelStore.cs" />
+    <Compile Include="Posts\PostModelStoreBareEntity.cs" />
     <Compile Include="Posts\PostModelStoreDefs.cs" />
+    <Compile Include="Posts\PostModelStoreLoad.cs" />
     <Compile Include="Posts\PostModelStoreUpload.cs" />
     <Compile Include="Posts\PostModelStoreUtility.cs" />
     <Compile Include="Posts\PostOtherData.cs" />
+    <Compile Include="Posts\PostStoreAccessInfo.cs" />
     <Compile Include="UnitTests\BlobStreamInfo.cs" />
     <Compile Include="UnitTests\IBoardReferenceStoreForTests.cs" />
     <Compile Include="UnitTests\IModelStorageForTests.cs" />

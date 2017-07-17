@@ -423,24 +423,167 @@ namespace Imageboard10.Core.ModelStorage.Posts
             return Do().AsAsyncOperation();
         }
 
+        /// <summary>
+        /// Получить информацию о доступе.
+        /// </summary>
+        /// <param name="id">Идентификатор.</param>
+        /// <returns>Результат.</returns>
         public IAsyncOperation<IBoardPostStoreAccessInfo> GetAccessInfo(PostStoreEntityId id)
         {
-            throw new NotImplementedException();
+            async Task<IBoardPostStoreAccessInfo> Do()
+            {
+                CheckModuleReady();
+                await WaitForTablesInitialize();
+
+                return await OpenSession(session =>
+                {
+                    using (var table = session.OpenTable(TableName, OpenTableGrbit.ReadOnly))
+                    {
+                        if (GotoEntityId(table, id))
+                        {
+                            return LoadAccessInfo(session, table, table.GetColumnDictionary());
+                        }
+                        return null;
+                    }
+                });
+            }
+
+            return Do().AsAsyncOperation();
         }
 
+        /// <summary>
+        /// Получить информацию о доступе.
+        /// </summary>
+        /// <param name="ids">Идентификаторы.</param>
+        /// <returns>Результат.</returns>
         public IAsyncOperation<IList<IBoardPostStoreAccessInfo>> GetAccessInfos(IList<PostStoreEntityId> ids)
         {
-            throw new NotImplementedException();
+            async Task<IList<IBoardPostStoreAccessInfo>> Do()
+            {
+                CheckModuleReady();
+                if (ids == null) throw new ArgumentNullException(nameof(ids));
+                await WaitForTablesInitialize();
+
+                var result = new List<IBoardPostStoreAccessInfo>();
+
+                return await OpenSession(session =>
+                {
+                    using (var table = session.OpenTable(TableName, OpenTableGrbit.ReadOnly))
+                    {
+                        foreach (var id in ids.Distinct(PostStoreEntityIdEqualityComparer.Instance))
+                        {
+                            if (GotoEntityId(table, id))
+                            {
+                                result.Add(LoadAccessInfo(session, table, table.GetColumnDictionary()));
+                            }
+                        }
+                        return result;
+                    }
+                });
+            }
+
+            return Do().AsAsyncOperation();
         }
 
-        public IAsyncOperation<IList<IBoardPostStoreAccessInfo>> GetAllAccessInfos()
+        /// <summary>
+        /// Получить информацию о доступе для всех коллекций.
+        /// </summary>
+        /// <param name="entityType">Тип сущности.</param>
+        /// <returns>Результат.</returns>
+        public IAsyncOperation<IList<IBoardPostStoreAccessInfo>> GetAllAccessInfos(PostStoreEntityType entityType)
         {
-            throw new NotImplementedException();
+            async Task<IList<IBoardPostStoreAccessInfo>> Do()
+            {
+                CheckModuleReady();
+                await WaitForTablesInitialize();
+
+                var result = new List<IBoardPostStoreAccessInfo>();
+
+                return await OpenSession(session =>
+                {
+                    using (var table = session.OpenTable(TableName, OpenTableGrbit.ReadOnly))
+                    {
+                        Api.JetSetCurrentIndex(table.Session, table, GetIndexName(TableName, nameof(Indexes.Type)));
+                        Api.MakeKey(table.Session, table, (byte)entityType, MakeKeyGrbit.NewKey);
+                        if (Api.TrySeek(table.Session, table, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange))
+                        {
+                            do
+                            {
+                                result.Add(LoadAccessInfo(session, table, table.GetColumnDictionary()));
+                            } while (Api.TryMoveNext(table.Session, table));
+                        }
+                        return result;
+                    }
+                });
+            }
+
+            return Do().AsAsyncOperation();
         }
 
+        /// <summary>
+        /// Обновить информация об использовании. Вызов этого метода производит запись в лог доступа.
+        /// </summary>
+        /// <param name="id">Идентификатор.</param>
+        /// <param name="accessTime">Время использования (null - текущее).</param>
         public IAsyncAction Touch(PostStoreEntityId id, DateTimeOffset? accessTime)
         {
-            throw new NotImplementedException();
+            async Task Do()
+            {
+                CheckModuleReady();
+                await WaitForTablesInitialize();
+
+                await OpenSessionAsync(async session =>
+                {
+                    await session.RunInTransaction(() =>
+                    {
+                        using (var table = session.OpenTable(TableName, OpenTableGrbit.None))
+                        {
+                            Api.MakeKey(table.Session, table, id.Id, MakeKeyGrbit.NewKey);
+                            if (Api.TrySeek(table.Session, table, SeekGrbit.SeekEQ))
+                            {
+                                var pt = (PostStoreEntityType) (Api.RetrieveColumnAsByte(table.Session, table.Table, table.GetColumnid(ColumnNames.EntityType)) ?? 0);
+                                var pt2 = ToGenericEntityType(pt);
+                                if (pt2 == GenericPostStoreEntityType.Post)
+                                {
+                                    throw new InvalidOperationException($"Нельзя выполнять операцию для типа сущности {pt}");
+                                }
+                                int? rp = null;
+                                if (pt == PostStoreEntityType.Thread)
+                                {
+                                    using (var postTable = session.OpenTable(TableName, OpenTableGrbit.ReadOnly))
+                                    {
+                                        rp = CountDirectParent(postTable, id) - CountDirectParentWithFlag(postTable, id, BoardPostFlags.IsDeletedOnServer);
+                                    }
+                                }
+                                var accTime = accessTime?.UtcDateTime ?? DateTime.Now.ToUniversalTime();
+                                if (rp != null)
+                                {
+                                    using (var update = table.Update(JET_prep.Replace))
+                                    {
+                                        Api.SetColumn(table.Session, table, table.GetColumnid(ColumnNames.NumberOfReadPosts), rp.Value);
+                                        update.Save();
+                                    }
+                                }
+                                using (var accessTable = session.OpenTable(AccessLogTableName, OpenTableGrbit.None))
+                                {
+                                    var colids = accessTable.GetColumnDictionary();
+                                    using (var update = accessTable.Update(JET_prep.Insert))
+                                    {
+                                        Api.SetColumn(accessTable.Session, accessTable, colids[AccessLogColumnNames.Id], Guid.NewGuid());
+                                        Api.SetColumn(accessTable.Session, accessTable, colids[AccessLogColumnNames.EntityId], id.Id);
+                                        Api.SetColumn(accessTable.Session, accessTable, colids[AccessLogColumnNames.AccessTime], accTime);
+                                        update.Save();
+                                    }
+                                }
+                            }
+                        }
+                        return true;
+                    }, 2, CommitTransactionGrbit.LazyFlush);
+                    return Nothing.Value;
+                });
+            }
+
+            return Do().AsAsyncAction();
         }
 
         /// <summary>

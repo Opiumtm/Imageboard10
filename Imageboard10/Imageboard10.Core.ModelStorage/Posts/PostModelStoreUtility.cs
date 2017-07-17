@@ -29,15 +29,39 @@ namespace Imageboard10.Core.ModelStorage.Posts
             {
                 await session.RunInTransaction(() =>
                 {
-                    using (var table = session.OpenTable(TableName, OpenTableGrbit.Updatable))
+                    using (var table = session.OpenTable(TableName, OpenTableGrbit.None))
                     {
-                        foreach (var id in toDeletePart)
+                        using (var accTable = session.OpenTable(AccessLogTableName, OpenTableGrbit.None))
                         {
-                            Api.MakeKey(table.Session, table, id.Id, MakeKeyGrbit.NewKey);
-                            if (Api.TrySeek(table.Session, table, SeekGrbit.SeekEQ))
+                            using (var mediaTable = session.OpenTable(MediaFilesTableName, OpenTableGrbit.None))
                             {
-                                Api.JetDelete(table.Session, table);
-                                result.Add(id);
+                                foreach (var id in toDeletePart)
+                                {
+                                    Api.MakeKey(table.Session, table, id.Id, MakeKeyGrbit.NewKey);
+                                    if (Api.TrySeek(table.Session, table, SeekGrbit.SeekEQ))
+                                    {
+                                        Api.JetDelete(table.Session, table);
+                                        result.Add(id);
+                                    }
+                                    Api.JetSetCurrentIndex(accTable.Session, accTable.Table, GetIndexName(AccessLogTableName, nameof(AccessLogIndexes.EntityId)));
+                                    Api.MakeKey(accTable.Session, accTable, id.Id, MakeKeyGrbit.NewKey);
+                                    if (Api.TrySeek(accTable.Session, accTable, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange))
+                                    {
+                                        do
+                                        {
+                                            Api.JetDelete(accTable.Session, accTable);
+                                        } while (Api.TryMoveNext(accTable.Session, accTable));
+                                    }
+                                    Api.JetSetCurrentIndex(mediaTable.Session, mediaTable.Table, GetIndexName(MediaFilesTableName, nameof(MediaFilesIndexes.EntityReferences)));
+                                    Api.MakeKey(mediaTable.Session, mediaTable, id.Id, MakeKeyGrbit.NewKey);
+                                    if (Api.TrySeek(mediaTable.Session, mediaTable, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange))
+                                    {
+                                        do
+                                        {
+                                            Api.JetDelete(mediaTable.Session, mediaTable);
+                                        } while (Api.TryMoveNext(mediaTable.Session, mediaTable));
+                                    }
+                                }
                             }
                         }
                     }
@@ -45,7 +69,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
                 }, 1);
             }
 
-            var split = toDelete.SplitSet(100).Select(s => s.ToArray());
+            var split = toDelete.SplitSet(20).Select(s => s.ToArray());
             foreach (var part in split)
             {
                 await Delete(part);
@@ -608,6 +632,60 @@ namespace Imageboard10.Core.ModelStorage.Posts
         {
             (var entityType, var boardId, var sequenceId, var parentSequenceId) = ExtractLinkData(table, colids);
             return ConstructLink(entityType, boardId, sequenceId, parentSequenceId);
+        }
+
+        private int CountDirectParentWithFlag(EsentTable table, PostStoreEntityId directParentId, Guid flag)
+        {
+            Api.JetSetCurrentIndex(table.Session, table.Table, GetIndexName(TableName, nameof(Indexes.DirectParentFlags)));
+            Api.MakeKey(table.Session, table, directParentId.Id, MakeKeyGrbit.NewKey);
+            Api.MakeKey(table.Session, table, flag, MakeKeyGrbit.None);
+            if (Api.TrySeek(table.Session, table, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange))
+            {
+                int r;
+                Api.JetIndexRecordCount(table.Session, table, out r, int.MaxValue);
+                return r;
+            }
+            return 0;
+        }
+
+        private int CountDirectParent(EsentTable table, PostStoreEntityId directParentId)
+        {
+            Api.JetSetCurrentIndex(table.Session, table.Table, GetIndexName(TableName, nameof(Indexes.DirectParentFlags)));
+            Api.MakeKey(table.Session, table, directParentId.Id, MakeKeyGrbit.NewKey | MakeKeyGrbit.FullColumnStartLimit);
+            if (Api.TrySeek(table.Session, table, SeekGrbit.SeekGE))
+            {
+                Api.MakeKey(table.Session, table, directParentId.Id, MakeKeyGrbit.NewKey | MakeKeyGrbit.FullColumnEndLimit);
+                if (Api.TrySetIndexRange(table.Session, table, SetIndexRangeGrbit.RangeUpperLimit))
+                {
+                    int r;
+                    Api.JetIndexRecordCount(table.Session, table, out r, int.MaxValue);
+                    return r;
+                }
+            }
+            return 0;
+        }
+
+        private int CountDirectParentWithFlag(IEsentSession session, PostStoreEntityId directParentId, Guid flag)
+        {
+            using (var table = session.OpenTable(TableName, OpenTableGrbit.ReadOnly))
+            {
+                return CountDirectParentWithFlag(table, directParentId, flag);
+            }
+        }
+
+        private int CountDirectParent(IEsentSession session, PostStoreEntityId directParentId)
+        {
+            using (var table = session.OpenTable(TableName, OpenTableGrbit.ReadOnly))
+            {
+                return CountDirectParent(table, directParentId);
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private bool GotoEntityId(EsentTable table, PostStoreEntityId id)
+        {
+            Api.MakeKey(table.Session, table, id.Id, MakeKeyGrbit.NewKey);
+            return Api.TrySeek(table.Session, table, SeekGrbit.SeekEQ);
         }
     }
 }

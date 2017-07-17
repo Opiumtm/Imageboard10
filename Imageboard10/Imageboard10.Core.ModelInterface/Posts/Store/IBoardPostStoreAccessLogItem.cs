@@ -21,6 +21,6 @@ namespace Imageboard10.Core.ModelInterface.Posts.Store
         /// <summary>
         /// Время доступа.
         /// </summary>
-        DateTimeOffset AccessTime { get; }
+        DateTimeOffset? AccessTime { get; }
     }
 }

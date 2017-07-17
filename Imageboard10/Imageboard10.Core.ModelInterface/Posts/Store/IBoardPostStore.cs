@@ -117,8 +117,9 @@ namespace Imageboard10.Core.ModelInterface.Posts.Store
         /// <summary>
         /// Получить информацию о доступе для всех коллекций.
         /// </summary>
+        /// <param name="entityType">Тип сущности.</param>
         /// <returns>Результат.</returns>
-        IAsyncOperation<IList<IBoardPostStoreAccessInfo>> GetAllAccessInfos();
+        IAsyncOperation<IList<IBoardPostStoreAccessInfo>> GetAllAccessInfos(PostStoreEntityType entityType);
 
         /// <summary>
         /// Обновить информация об использовании. Вызов этого метода производит запись в лог доступа.

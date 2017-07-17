@@ -12,10 +12,5 @@ namespace Imageboard10.Core.ModelInterface.Posts
         /// Посты.
         /// </summary>
         IList<IThreadPreviewPostCollection> Threads { get; }
-
-        /// <summary>
-        /// Штамп изменений.
-        /// </summary>
-        string Etag { get; }
     }
 }
