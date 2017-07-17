@@ -789,7 +789,7 @@ namespace Imageboard10.Core.ModelStorage.Boards
                         DeleteAllRows(table);
                     }
                     return true;
-                });
+                }, 1.5);
                 return Nothing.Value;
             });
         }
@@ -889,7 +889,7 @@ namespace Imageboard10.Core.ModelStorage.Boards
                         DoUpdateOneRow(table, reference, false);
                     }
                     return true;
-                });
+                }, 1.5);
                 return Nothing.Value;
             });
         }
@@ -958,34 +958,37 @@ namespace Imageboard10.Core.ModelStorage.Boards
             await WaitForTablesInitialize();
             await OpenSessionAsync(async session =>
             {
-                await session.Run(() =>
+                if (clearPrevious)
                 {
-                    using (var table = session.OpenTable(TableName, OpenTableGrbit.None))
+                    await session.RunInTransaction(() =>
                     {
-                        if (clearPrevious)
+                        using (var table = session.OpenTable(TableName, OpenTableGrbit.None))
                         {
-                            using (var transaction = new Transaction(table.Session))
-                            {
-                                DeleteAllRows(table);
-                                transaction.Commit(CommitTransactionGrbit.None);
-                            }
+                            DeleteAllRows(table);
+                            return true;
                         }
-                        foreach (var references1 in references.Where(r => r != null).SplitSet(5))
-                        {
-                            using (var transaction = new Transaction(table.Session))
-                            {
-                                foreach (var reference in references1)
-                                {
-                                    DoUpdateOneRow(table, reference, clearPrevious);
-                                }
-                                transaction.Commit(CommitTransactionGrbit.None);
-                            }
-                        }
-                    }
-                });
+                    }, 2);
+                }
                 return Nothing.Value;
             });
-
+            await ParallelizeOnSessions(references.Where(r => r != null).SplitSet(15).DistributeToProcess(5), async (session, list) =>
+            {
+                foreach (var refs in list)
+                {
+                    var r = refs.ToArray();
+                    await session.RunInTransaction(() =>
+                    {
+                        using (var table = session.OpenTable(TableName, OpenTableGrbit.None))
+                        {
+                            foreach (var reference in r)
+                            {
+                                DoUpdateOneRow(table, reference, clearPrevious);
+                            }
+                        }
+                        return true;
+                    }, 1.5, CommitTransactionGrbit.LazyFlush);
+                }
+            });
         }
 
         /// <summary>

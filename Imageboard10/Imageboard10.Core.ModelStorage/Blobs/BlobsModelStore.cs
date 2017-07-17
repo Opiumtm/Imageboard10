@@ -352,7 +352,7 @@ namespace Imageboard10.Core.ModelStorage.Blobs
 
                                         return true;
                                     }
-                                });
+                                }, 1.5);
 
                                 counter += sz;
                                 if (sz < buffer.Length)
@@ -387,7 +387,7 @@ namespace Imageboard10.Core.ModelStorage.Blobs
                             }
                             return true;
                         }
-                    });
+                    }, 1.5);
                 }
                 catch (OperationCanceledException)
                 {
@@ -407,7 +407,7 @@ namespace Imageboard10.Core.ModelStorage.Blobs
                                 }
                                 return true;
                             }
-                        });
+                        }, 1.5);
                     }
                     catch (Exception e2)
                     {
@@ -434,7 +434,7 @@ namespace Imageboard10.Core.ModelStorage.Blobs
                                 }
                                 return true;
                             }
-                        });
+                        }, 1.5);
                     }
                     catch (Exception e2)
                     {
@@ -595,7 +595,7 @@ namespace Imageboard10.Core.ModelStorage.Blobs
                         }
                         return true;
                     }
-                });
+                }, 1.5);
                 if (isFileStream)
                 {
                     bool isDeleted;
@@ -621,7 +621,7 @@ namespace Imageboard10.Core.ModelStorage.Blobs
                                 }
                             }
                             return true;
-                        });
+                        }, 1.5);
                     }
                 }
                 return result;
@@ -664,7 +664,7 @@ namespace Imageboard10.Core.ModelStorage.Blobs
                         }
                     }
                     return true;
-                });
+                }, 1.5);
 
                 async Task<(BlobId? id, byte[] bookmark)> DeleteFilestream(BlobId id, byte[] bookmark)
                 {
@@ -697,7 +697,7 @@ namespace Imageboard10.Core.ModelStorage.Blobs
                             }
                         }
                         return true;
-                    });
+                    }, 1.5);
                 }
 
                 return result.ToArray();
@@ -1131,7 +1131,7 @@ namespace Imageboard10.Core.ModelStorage.Blobs
                         }
                     }
                     return true;
-                });
+                }, 1.5);
                 return Nothing.Value;
             });
         }
@@ -1157,7 +1157,7 @@ namespace Imageboard10.Core.ModelStorage.Blobs
                         }
                     }
                     return true;
-                });
+                }, 1.5);
                 return Nothing.Value;
             });
         }
@@ -1190,7 +1190,7 @@ namespace Imageboard10.Core.ModelStorage.Blobs
                         }
                         return false;
                     }
-                });
+                }, 1.5);
                 return result.ToArray();
             });
         }
@@ -1226,7 +1226,7 @@ namespace Imageboard10.Core.ModelStorage.Blobs
                         }
                     }
                     return true;
-                });
+                }, 1.5);
 
                 async Task DeleteFilestream(BlobId id)
                 {
@@ -1275,7 +1275,7 @@ namespace Imageboard10.Core.ModelStorage.Blobs
                         }
                     }
                     return true;
-                });
+                }, 1.5);
                 return Nothing.Value;
             });
         }
@@ -1307,7 +1307,7 @@ namespace Imageboard10.Core.ModelStorage.Blobs
                         }
                     }
                     return true;
-                });
+                }, 1.5);
                 async Task DeleteFilestream(BlobId id)
                 {
                     try
@@ -1537,7 +1537,7 @@ namespace Imageboard10.Core.ModelStorage.Blobs
                         }
                     }
                     return true;
-                });
+                }, 1.5);
                 return result;
             });
         }
