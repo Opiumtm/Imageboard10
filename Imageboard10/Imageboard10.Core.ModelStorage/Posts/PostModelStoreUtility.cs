@@ -650,7 +650,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
 
         private int CountDirectParent(EsentTable table, PostStoreEntityId directParentId)
         {
-            Api.JetSetCurrentIndex(table.Session, table.Table, GetIndexName(TableName, nameof(Indexes.DirectParentFlags)));
+            Api.JetSetCurrentIndex(table.Session, table.Table, GetIndexName(TableName, nameof(Indexes.InThreadPostLink)));
             Api.MakeKey(table.Session, table, directParentId.Id, MakeKeyGrbit.NewKey | MakeKeyGrbit.FullColumnStartLimit);
             if (Api.TrySeek(table.Session, table, SeekGrbit.SeekGE))
             {

@@ -256,6 +256,21 @@ namespace Imageboard10UnitTests
                 AssertMedia(origMedia[i], gotMedia[i]);
             }
 
+            var accessInfo = await _store.GetAccessInfo(collectionId);
+            Assert.IsNotNull(accessInfo, "accessInfo != null");
+            Assert.AreEqual("##etag##-2", accessInfo.Etag, "accessInfo.Etag");
+            Assert.IsFalse(accessInfo.IsArchived, "accessInfo.IsArchived");
+            Assert.IsFalse(accessInfo.IsFavorite, "accessInfo.IsFavorite");
+            var lastPost = collection.Posts.OrderByDescending(p => p.Link, BoardLinkComparer.Instance).First();
+            Assert.IsNotNull(accessInfo.LastDownload, "accessInfo.LastDownload");
+            var loadedTimeDiff = lastPost.LoadedTime - accessInfo.LastDownload.Value;
+            Assert.IsTrue(Math.Abs(loadedTimeDiff.TotalSeconds) < 1.5, "accessInfo.LastDownload");
+            Assert.AreEqual(lastPost.Link.GetLinkHash(), accessInfo.LastLoadedPost?.GetLinkHash(), "accessInfo.LastLoadedPost");
+            Assert.AreEqual(lastPost.Link.GetLinkHash(), accessInfo.LastPost?.GetLinkHash(), "accessInfo.LastLoadedPost");
+            Assert.IsNotNull(accessInfo.LastUpdate, "accessInfo.LastUpdate");
+            var updateTimeDiff = lastPost.LoadedTime - accessInfo.LastUpdate.Value;
+            Assert.IsTrue(Math.Abs(updateTimeDiff.TotalSeconds) < 1.5, "accessInfo.LastUpdate");
+            Assert.AreEqual(collection.Posts.Count, accessInfo.NumberOfLoadedPosts, "accessInfo.NumberOfLoadedPosts");
         }
 
         [TestMethod]

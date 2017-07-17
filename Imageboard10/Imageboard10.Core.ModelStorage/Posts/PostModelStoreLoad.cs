@@ -138,8 +138,10 @@ namespace Imageboard10.Core.ModelStorage.Posts
 
         private ILink LoadLastPostOnServer(EsentTable table, IDictionary<string, JET_COLUMNID> colids)
         {
-            var str = Api.RetrieveColumnAsString(table.Session, table, colids[ColumnNames.LastPostLinkOnServer]);
-            return LinkSerialization.Deserialize(str);
+            var boardId = Api.RetrieveColumnAsString(table.Session, table, colids[ColumnNames.BoardId]) ?? "";
+            var seqId = Api.RetrieveColumnAsInt32(table.Session, table, colids[ColumnNames.SequenceNumber]) ?? 0;
+            var id = Api.RetrieveColumnAsInt32(table.Session, table, colids[ColumnNames.LastPostLinkOnServer]) ?? seqId;
+            return new PostLink() { Engine = EngineId, Board = boardId, OpPostNum = seqId, PostNum = id };
         }
 
         private ILink LoadThreadLastLoadedPost(IEsentSession session, PostStoreEntityId directParentId)
@@ -150,6 +152,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
                 Api.MakeKey(table.Session, table, directParentId.Id, MakeKeyGrbit.NewKey | MakeKeyGrbit.FullColumnStartLimit);
                 if (Api.TrySeek(table.Session, table, SeekGrbit.SeekGE))
                 {
+                    Api.MakeKey(table.Session, table, directParentId.Id, MakeKeyGrbit.NewKey | MakeKeyGrbit.FullColumnEndLimit);
                     if (Api.TrySetIndexRange(table.Session, table, SetIndexRangeGrbit.RangeUpperLimit))
                     {
                         if (Api.TryMoveLast(table.Session, table))
