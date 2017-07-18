@@ -277,10 +277,25 @@ namespace Imageboard10UnitTests
         [TestMethod]
         public async Task CheckThreadAccessInfo()
         {
-            var collection1 = await ReadThread("mobi_thread_2.json");
-            var collectionId1 = await _store.SaveCollection(collection1, BoardPostCollectionUpdateMode.Replace, null, null);
-            var collection2 = await ReadThread("po_thread.json", new ThreadLink() { Engine = MakabaConstants.MakabaEngineId, Board = "po", OpPostNum = 23334842 });
-            var collectionId2 = await _store.SaveCollection(collection2, BoardPostCollectionUpdateMode.Replace, null, null);
+            async Task<(IBoardPostCollection collection, PostStoreEntityId collectionId)> LoadCollection(string fileName, ThreadLink link = null)
+            {
+                var collection = await ReadThread("mobi_thread_2.json", link);
+                var collectionId = await _store.SaveCollection(collection, BoardPostCollectionUpdateMode.Replace, null, null);
+                return (collection, collectionId);
+            }
+
+            var tasks = new[]
+            {
+                LoadCollection("mobi_thread_2.json"),
+                LoadCollection("po_thread.json", new ThreadLink() { Engine = MakabaConstants.MakabaEngineId, Board = "po", OpPostNum = 23334842 })
+            };
+
+            var taskResults = await Task.WhenAll(tasks);
+
+            var collection1 = taskResults[0].collection;
+            var collectionId1 = taskResults[0].collectionId;
+            var collection2 = taskResults[1].collection;
+            var collectionId2 = taskResults[1].collectionId;
 
             var accessInfo1 = await _store.GetAccessInfo(collectionId1);
             Assert.IsNotNull(accessInfo1, "accessInfo1 != null");
@@ -289,11 +304,84 @@ namespace Imageboard10UnitTests
 
             var lastPost1 = collection1.Posts.OrderByDescending(p => p.Link, BoardLinkComparer.Instance).First();
             var lastPost2 = collection2.Posts.OrderByDescending(p => p.Link, BoardLinkComparer.Instance).First();
-
+            
             Assert.AreEqual(lastPost1.Link.GetLinkHash(), accessInfo1.LastLoadedPost?.GetLinkHash(), "accessInfo1.LastLoadedPost");
             Assert.AreEqual(lastPost2.Link.GetLinkHash(), accessInfo2.LastLoadedPost?.GetLinkHash(), "accessInfo2.LastLoadedPost");
             Assert.AreEqual(collection1.Posts.Count, accessInfo1.NumberOfLoadedPosts, "accessInfo1.NumberOfLoadedPosts");
             Assert.AreEqual(collection2.Posts.Count, accessInfo2.NumberOfLoadedPosts, "accessInfo2.NumberOfLoadedPosts");
+            Assert.AreEqual(collection1.Posts.Count, accessInfo1.NumberOfPosts, "accessInfo1.NumberOfPosts");
+            Assert.AreEqual(collection2.Posts.Count, accessInfo2.NumberOfPosts, "accessInfo2.NumberOfPosts");
+            Assert.IsNull(accessInfo1.NumberOfReadPosts, "accessInfo1.NumberOfReadPosts");
+            Assert.IsNull(accessInfo2.NumberOfReadPosts, "accessInfo2.NumberOfReadPosts");
+
+            Assert.IsNotNull(accessInfo1.Entity, "accessInfo1.Entity != null");
+            Assert.IsNotNull(accessInfo2.Entity, "accessInfo1.Entity != null");
+
+            var thumbnail1 = collection1.Thumbnail;
+            var thumbnail2 = collection2.Thumbnail;
+
+            Assert.IsNotNull(accessInfo1.Entity.Thumbnail, "accessInfo1.Entity.Thumbnail != null");
+            Assert.IsNotNull(accessInfo2.Entity.Thumbnail, "accessInfo2.Entity.Thumbnail != null");
+            Assert.AreEqual(thumbnail1.Size, accessInfo1.Entity.Thumbnail.Size, "accessInfo1.Entity.Thumbnail.Size");
+            Assert.AreEqual(thumbnail2.Size, accessInfo2.Entity.Thumbnail.Size, "accessInfo2.Entity.Thumbnail.Size");
+            Assert.AreEqual(thumbnail1.FileSize, accessInfo1.Entity.Thumbnail.FileSize, "accessInfo1.Entity.Thumbnail.FileSize");
+            Assert.AreEqual(thumbnail2.FileSize, accessInfo2.Entity.Thumbnail.FileSize, "accessInfo2.Entity.Thumbnail.FileSize");
+            Assert.AreEqual(thumbnail1.MediaLink.GetLinkHash(), accessInfo1.Entity.Thumbnail.MediaLink?.GetLinkHash(), "accessInfo1.Entity.Thumbnail.MediaLink");
+            Assert.AreEqual(thumbnail2.MediaLink.GetLinkHash(), accessInfo2.Entity.Thumbnail.MediaLink?.GetLinkHash(), "accessInfo2.Entity.Thumbnail.MediaLink");
+            Assert.AreEqual(thumbnail1.MediaType, accessInfo1.Entity.Thumbnail.MediaType, "accessInfo1.Entity.Thumbnail.MediaType");
+            Assert.AreEqual(thumbnail2.MediaType, accessInfo2.Entity.Thumbnail.MediaType, "accessInfo2.Entity.Thumbnail.MediaType");
+            Assert.AreEqual(collection1.Subject, accessInfo1.Entity.Subject, "accessInfo1.Entity.Subject");
+            Assert.AreEqual(collection2.Subject, accessInfo2.Entity.Subject, "accessInfo2.Entity.Subject");
+            Assert.AreEqual(collection1.Link.GetLinkHash(), accessInfo1.Entity.Link?.GetLinkHash(), "accessInfo1.Entity.Link");
+            Assert.AreEqual(collection2.Link.GetLinkHash(), accessInfo2.Entity.Link?.GetLinkHash(), "accessInfo2.Entity.Link");
+            Assert.AreEqual(collection1.ParentLink.GetLinkHash(), accessInfo1.Entity.ParentLink?.GetLinkHash(), "accessInfo1.Entity.ParentLink");
+            Assert.AreEqual(collection2.ParentLink.GetLinkHash(), accessInfo2.Entity.ParentLink?.GetLinkHash(), "accessInfo1.Entity.ParentLink");
+            Assert.AreEqual(collectionId1, accessInfo1.Entity.StoreId, "accessInfo1.Entity.StoreId");
+            Assert.AreEqual(collectionId2, accessInfo2.Entity.StoreId, "accessInfo2.Entity.StoreId");
+            Assert.IsNull(accessInfo1.Entity.StoreParentId, "accessInfo1.Entity.StoreParentId");
+            Assert.IsNull(accessInfo2.Entity.StoreParentId, "accessInfo2.Entity.StoreParentId");
+            Assert.IsNull(accessInfo1.LogEntryId, "accessInfo1.LogEntryId");
+            Assert.IsNull(accessInfo2.LogEntryId, "accessInfo2.LogEntryId");
+
+            var etag1 = Guid.NewGuid().ToString();
+            var etag2 = Guid.NewGuid().ToString();
+            await _store.UpdateEtag(collectionId1, etag1);
+            await _store.UpdateEtag(collectionId2, etag2);
+
+            accessInfo1 = await _store.GetAccessInfo(collectionId1);
+            accessInfo2 = await _store.GetAccessInfo(collectionId2);
+            Assert.AreEqual(etag1, accessInfo1.Etag, "accessInfo1.Etag");
+            Assert.AreEqual(etag2, accessInfo2.Etag, "accessInfo2.Etag");
+
+            var dt1 = collection1.Posts[0].Date;
+            var dt2 = collection2.Posts[0].Date;
+            var logId1 = await _store.Touch(collectionId1, dt1);
+            var logId2 = await _store.Touch(collectionId2, dt2);
+            Assert.IsNotNull(logId1, "logId1 != null");
+            Assert.IsNotNull(logId2, "logId2 != null");
+            accessInfo1 = await _store.GetAccessInfo(collectionId1);
+            accessInfo2 = await _store.GetAccessInfo(collectionId2);
+            Assert.AreEqual(logId1.Value, accessInfo1.LogEntryId, "accessInfo1.LogEntryId");
+            Assert.AreEqual(logId2.Value, accessInfo2.LogEntryId, "accessInfo2.LogEntryId");
+            Assert.IsNotNull(accessInfo1.AccessTime, "accessInfo1.AccessTime != null");
+            Assert.IsNotNull(accessInfo2.AccessTime, "accessInfo2.AccessTime != null");
+            Assert.IsTrue(Math.Abs((dt1 - accessInfo1.AccessTime.Value).TotalSeconds) < 1.5, "accessInfo1.AccessTime");
+            Assert.IsTrue(Math.Abs((dt2 - accessInfo2.AccessTime.Value).TotalSeconds) < 1.5, "accessInfo2.AccessTime");
+
+            dt1 = dt1.AddDays(1);
+            dt2 = dt2.AddDays(1);
+            logId1 = await _store.Touch(collectionId1, dt1);
+            logId2 = await _store.Touch(collectionId2, dt2);
+            Assert.IsNotNull(logId1, "logId1 != null (second update)");
+            Assert.IsNotNull(logId2, "logId2 != null (second update)");
+            accessInfo1 = await _store.GetAccessInfo(collectionId1);
+            accessInfo2 = await _store.GetAccessInfo(collectionId2);
+            Assert.AreEqual(logId1.Value, accessInfo1.LogEntryId, "accessInfo1.LogEntryId (second update)");
+            Assert.AreEqual(logId2.Value, accessInfo2.LogEntryId, "accessInfo2.LogEntryId (second update)");
+            Assert.IsNotNull(accessInfo1.AccessTime, "accessInfo1.AccessTime != null (second update)");
+            Assert.IsNotNull(accessInfo2.AccessTime, "accessInfo2.AccessTime != null (second update)");
+            Assert.IsTrue(Math.Abs((dt1 - accessInfo1.AccessTime.Value).TotalSeconds) < 1.5, "accessInfo1.AccessTime (second update)");
+            Assert.IsTrue(Math.Abs((dt2 - accessInfo2.AccessTime.Value).TotalSeconds) < 1.5, "accessInfo2.AccessTime (second update)");
         }
 
         [TestMethod]

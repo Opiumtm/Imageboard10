@@ -119,18 +119,11 @@ namespace Imageboard10.Core.ModelStorage.Posts
             using (var accTable = session.OpenTable(AccessLogTableName, OpenTableGrbit.ReadOnly))
             {
                 Api.JetSetCurrentIndex(accTable.Session, accTable, GetIndexName(AccessLogTableName, nameof(AccessLogIndexes.EntityIdAndAccessTime)));
-                Api.MakeKey(accTable.Session, accTable, id.Id, MakeKeyGrbit.NewKey | MakeKeyGrbit.FullColumnStartLimit);
-                if (Api.TrySeek(accTable.Session, accTable, SeekGrbit.SeekGE))
+                Api.MakeKey(accTable.Session, accTable, id.Id, MakeKeyGrbit.NewKey | MakeKeyGrbit.FullColumnEndLimit);
+                if (Api.TrySeek(accTable.Session, accTable, SeekGrbit.SeekLE))
                 {
-                    Api.MakeKey(accTable.Session, accTable, id.Id, MakeKeyGrbit.NewKey | MakeKeyGrbit.FullColumnEndLimit);
-                    if (Api.TrySetIndexRange(accTable.Session, accTable, SetIndexRangeGrbit.RangeUpperLimit))
-                    {
-                        if (Api.TryMoveLast(accTable.Session, accTable.Table))
-                        {
-                            lastAccessUtc = Api.RetrieveColumnAsDateTime(accTable.Session, accTable, accTable.GetColumnid(AccessLogColumnNames.AccessTime));
-                            lastAcessEntry = Api.RetrieveColumnAsGuid(accTable.Session, accTable, accTable.GetColumnid(AccessLogColumnNames.Id));
-                        }
-                    }
+                    lastAccessUtc = Api.RetrieveColumnAsDateTime(accTable.Session, accTable, accTable.GetColumnid(AccessLogColumnNames.AccessTime));
+                    lastAcessEntry = Api.RetrieveColumnAsGuid(accTable.Session, accTable, accTable.GetColumnid(AccessLogColumnNames.Id));
                 }
             }
             return (lastAcessEntry, lastAccessUtc);
@@ -149,18 +142,11 @@ namespace Imageboard10.Core.ModelStorage.Posts
             using (var table = session.OpenTable(TableName, OpenTableGrbit.ReadOnly))
             {
                 Api.JetSetCurrentIndex(table.Session, table, GetIndexName(TableName, nameof(Indexes.InThreadPostLink)));
-                Api.MakeKey(table.Session, table, directParentId.Id, MakeKeyGrbit.NewKey | MakeKeyGrbit.FullColumnStartLimit);
-                if (Api.TrySeek(table.Session, table, SeekGrbit.SeekGE))
+                Api.MakeKey(table.Session, table, directParentId.Id, MakeKeyGrbit.NewKey | MakeKeyGrbit.FullColumnEndLimit);
+                if (Api.TrySeek(table.Session, table, SeekGrbit.SeekLE))
                 {
-                    Api.MakeKey(table.Session, table, directParentId.Id, MakeKeyGrbit.NewKey | MakeKeyGrbit.FullColumnEndLimit);
-                    if (Api.TrySetIndexRange(table.Session, table, SetIndexRangeGrbit.RangeUpperLimit))
-                    {
-                        if (Api.TryMoveLast(table.Session, table))
-                        {
-                            var links = LoadEntityLinks(table, table.GetColumnDictionary(), GenericPostStoreEntityType.Post);
-                            return links.link;
-                        }
-                    }
+                    var links = LoadEntityLinks(table, table.GetColumnDictionary(), GenericPostStoreEntityType.Post);
+                    return links.link;
                 }
             }
             return null;

@@ -126,7 +126,8 @@ namespace Imageboard10.Core.ModelInterface.Posts.Store
         /// </summary>
         /// <param name="id">Идентификатор.</param>
         /// <param name="accessTime">Время использования (null - текущее).</param>
-        IAsyncAction Touch(PostStoreEntityId id, DateTimeOffset? accessTime);
+        /// <returns>Идентификатор записи лога доступа.</returns>
+        IAsyncOperation<Guid?> Touch(PostStoreEntityId id, DateTimeOffset? accessTime);
 
         /// <summary>
         /// Получить ETAG коллекции.

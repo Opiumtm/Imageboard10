@@ -525,15 +525,17 @@ namespace Imageboard10.Core.ModelStorage.Posts
         /// </summary>
         /// <param name="id">Идентификатор.</param>
         /// <param name="accessTime">Время использования (null - текущее).</param>
-        public IAsyncAction Touch(PostStoreEntityId id, DateTimeOffset? accessTime)
+        /// <returns>Идентификатор записи лога доступа.</returns>
+        public IAsyncOperation<Guid?> Touch(PostStoreEntityId id, DateTimeOffset? accessTime)
         {
-            async Task Do()
+            async Task<Guid?> Do()
             {
                 CheckModuleReady();
                 await WaitForTablesInitialize();
 
-                await OpenSessionAsync(async session =>
+                return await OpenSessionAsync(async session =>
                 {
+                    Guid? result = null;
                     await session.RunInTransaction(() =>
                     {
                         using (var table = session.OpenTable(TableName, OpenTableGrbit.None))
@@ -569,7 +571,9 @@ namespace Imageboard10.Core.ModelStorage.Posts
                                     var colids = accessTable.GetColumnDictionary();
                                     using (var update = accessTable.Update(JET_prep.Insert))
                                     {
-                                        Api.SetColumn(accessTable.Session, accessTable, colids[AccessLogColumnNames.Id], Guid.NewGuid());
+                                        var newId = Guid.NewGuid();
+                                        result = newId;
+                                        Api.SetColumn(accessTable.Session, accessTable, colids[AccessLogColumnNames.Id], newId);
                                         Api.SetColumn(accessTable.Session, accessTable, colids[AccessLogColumnNames.EntityId], id.Id);
                                         Api.SetColumn(accessTable.Session, accessTable, colids[AccessLogColumnNames.AccessTime], accTime);
                                         update.Save();
@@ -579,11 +583,11 @@ namespace Imageboard10.Core.ModelStorage.Posts
                         }
                         return true;
                     }, 2, CommitTransactionGrbit.LazyFlush);
-                    return Nothing.Value;
+                    return result;
                 });
             }
 
-            return Do().AsAsyncAction();
+            return Do().AsAsyncOperation();
         }
 
         /// <summary>
