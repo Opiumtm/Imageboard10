@@ -198,6 +198,30 @@ namespace Imageboard10.Core.ModelStorage.Posts
         }
 
         /// <summary>
+        /// Получить порядковый номер поста в треде.
+        /// </summary>
+        /// <param name="postLink">Ссылка на пост.</param>
+        /// <param name="threadId">Идентификатор треда.</param>
+        /// <returns>Результат.</returns>
+        public IAsyncOperation<int?> GetPostCounterNumber(ILink postLink, PostStoreEntityId threadId)
+        {
+            async Task<int?> Do()
+            {
+                CheckModuleReady();
+                if (postLink == null) throw new ArgumentNullException(nameof(postLink));
+                await WaitForTablesInitialize();
+
+                return await OpenSession(session =>
+                {
+                    var linkData = ExtractPostLinkData(postLink);
+                    return GetPostCounterNumber(session, threadId, linkData.postId);
+                });
+            }
+
+            return Do().AsAsyncOperation();
+        }
+
+        /// <summary>
         /// Статус загрузки дочерних сущностей.
         /// </summary>
         /// <param name="collectionId">Коллекция.</param>
@@ -582,7 +606,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
                             }
                         }
                         return true;
-                    }, 2, CommitTransactionGrbit.LazyFlush);
+                    }, 2);
                     return result;
                 });
             }
@@ -648,7 +672,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
                             }
                         }
                         return true;
-                    }, 1, CommitTransactionGrbit.LazyFlush);
+                    }, 1);
                     return Nothing.Value;
                 });
             }
@@ -789,7 +813,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
                             }
                         }
                         return true;
-                    }, 1, CommitTransactionGrbit.LazyFlush);
+                    }, 1);
                     return Nothing.Value;
                 });
             }

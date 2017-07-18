@@ -986,7 +986,7 @@ namespace Imageboard10.Core.ModelStorage.Boards
                             }
                         }
                         return true;
-                    }, 1.5, CommitTransactionGrbit.LazyFlush);
+                    }, 1.5);
                 }
             });
         }

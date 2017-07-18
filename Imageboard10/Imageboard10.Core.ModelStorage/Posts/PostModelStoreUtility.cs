@@ -557,7 +557,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
                         }
                     }
                     return true;
-                }, 1, CommitTransactionGrbit.LazyFlush);
+                }, 1);
                 return Nothing.Value;
             });
         }

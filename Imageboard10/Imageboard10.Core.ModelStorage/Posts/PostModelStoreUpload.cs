@@ -768,7 +768,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
                                     }
                                 }
                                 return (true, toAdd);
-                            }, 2, CommitTransactionGrbit.LazyFlush);
+                            }, 2);
                             foreach (var id in saved)
                             {
                                 addedEntities.Add(id);
@@ -841,7 +841,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
                                         }
 
                                         return true;
-                                    }, 2, CommitTransactionGrbit.LazyFlush);
+                                    }, 2);
                                     return Nothing.Value;
                                 });
                             }
@@ -884,7 +884,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
                                         }
 
                                         return true;
-                                    }, 2, CommitTransactionGrbit.LazyFlush);
+                                    }, 2);
                                     return Nothing.Value;
                                 });
                             }
@@ -948,7 +948,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
 
                             return (true, newId);
                         }
-                    }, 2, CommitTransactionGrbit.LazyFlush);
+                    }, 2);
                 });
 
                 await CleanChildPostsOnReplace(collection2, collectionId, exists);
@@ -1101,7 +1101,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
 
                             return (true, newId);
                         }
-                    }, 2, CommitTransactionGrbit.LazyFlush);
+                    }, 2);
                 });
 
                 await CleanChildThreadsOnReplace(collection2, collectionId, exists);

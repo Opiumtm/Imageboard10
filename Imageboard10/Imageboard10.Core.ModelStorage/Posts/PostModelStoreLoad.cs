@@ -34,6 +34,30 @@ namespace Imageboard10.Core.ModelStorage.Posts
             };
         }
 
+        private int? GetPostCounterNumber(IEsentSession session, PostStoreEntityId directParentId, int sequenceNumber)
+        {
+            using (var table = session.OpenTable(TableName, OpenTableGrbit.ReadOnly))
+            {
+                JET_RECPOS firstPos, foundPos;
+                Api.JetSetCurrentIndex(table.Session, table, GetIndexName(TableName, nameof(Indexes.InThreadPostLink)));
+                Api.MakeKey(table.Session, table, directParentId.Id, MakeKeyGrbit.NewKey);
+                Api.MakeKey(table.Session, table, 0, MakeKeyGrbit.None);
+                if (!Api.TrySeek(table.Session, table, SeekGrbit.SeekGE))
+                {
+                    return null;
+                }
+                Api.JetGetRecordPosition(table.Session, table, out firstPos);
+                Api.MakeKey(table.Session, table, directParentId.Id, MakeKeyGrbit.NewKey);
+                Api.MakeKey(table.Session, table, sequenceNumber, MakeKeyGrbit.None);
+                if (!Api.TrySeek(table.Session, table, SeekGrbit.SeekEQ))
+                {
+                    return null;
+                }
+                Api.JetGetRecordPosition(table.Session, table, out foundPos);
+                return (int)(foundPos.centriesLT - firstPos.centriesLT + 1);
+            }
+        }
+
         private IPostMediaWithSize LoadThumbnail(EsentTable table, IDictionary<string, JET_COLUMNID> colids)
         {
             var bytes = Api.RetrieveColumn(table.Session, table, colids[ColumnNames.Thumbnail]);

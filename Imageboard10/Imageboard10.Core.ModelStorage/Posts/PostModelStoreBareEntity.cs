@@ -4,6 +4,9 @@ using Imageboard10.Core.ModelInterface.Posts.Store;
 
 namespace Imageboard10.Core.ModelStorage.Posts
 {
+    /// <summary>
+    /// Базовая информация о сущности.
+    /// </summary>
     internal class PostModelStoreBareEntity : IBoardPostEntity
     {
         public PostStoreEntityType EntityType { get; set; }

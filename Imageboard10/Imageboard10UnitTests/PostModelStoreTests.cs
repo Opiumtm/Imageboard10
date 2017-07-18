@@ -272,6 +272,10 @@ namespace Imageboard10UnitTests
             var updateTimeDiff = lastPost.LoadedTime - accessInfo.LastUpdate.Value;
             Assert.IsTrue(Math.Abs(updateTimeDiff.TotalSeconds) < 1.5, "accessInfo.LastUpdate");
             Assert.AreEqual(collection.Posts.Count, accessInfo.NumberOfLoadedPosts, "accessInfo.NumberOfLoadedPosts");
+
+            Assert.AreEqual(1, await _store.GetPostCounterNumber(collection.Posts.OrderBy(p => p.Link, BoardLinkComparer.Instance).First().Link, collectionId), "Post counter 1");
+            Assert.AreEqual(10, await _store.GetPostCounterNumber(collection.Posts.OrderBy(p => p.Link, BoardLinkComparer.Instance).Skip(9).First().Link, collectionId), "Post counter 10");
+            Assert.AreEqual(20, await _store.GetPostCounterNumber(collection.Posts.OrderBy(p => p.Link, BoardLinkComparer.Instance).Skip(19).First().Link, collectionId), "Post counter 20");
         }
 
         [TestMethod]
@@ -382,6 +386,14 @@ namespace Imageboard10UnitTests
             Assert.IsNotNull(accessInfo2.AccessTime, "accessInfo2.AccessTime != null (second update)");
             Assert.IsTrue(Math.Abs((dt1 - accessInfo1.AccessTime.Value).TotalSeconds) < 1.5, "accessInfo1.AccessTime (second update)");
             Assert.IsTrue(Math.Abs((dt2 - accessInfo2.AccessTime.Value).TotalSeconds) < 1.5, "accessInfo2.AccessTime (second update)");
+
+            Assert.AreEqual(1, await _store.GetPostCounterNumber(collection1.Posts.OrderBy(p => p.Link, BoardLinkComparer.Instance).First().Link, collectionId1), "Post counter 1:1");
+            Assert.AreEqual(10, await _store.GetPostCounterNumber(collection1.Posts.OrderBy(p => p.Link, BoardLinkComparer.Instance).Skip(9).First().Link, collectionId1), "Post counter 1:10");
+            Assert.AreEqual(20, await _store.GetPostCounterNumber(collection1.Posts.OrderBy(p => p.Link, BoardLinkComparer.Instance).Skip(19).First().Link, collectionId1), "Post counter 1:20");
+
+            Assert.AreEqual(1, await _store.GetPostCounterNumber(collection2.Posts.OrderBy(p => p.Link, BoardLinkComparer.Instance).First().Link, collectionId2), "Post counter 2:1");
+            Assert.AreEqual(10, await _store.GetPostCounterNumber(collection2.Posts.OrderBy(p => p.Link, BoardLinkComparer.Instance).Skip(9).First().Link, collectionId2), "Post counter 2:10");
+            Assert.AreEqual(20, await _store.GetPostCounterNumber(collection2.Posts.OrderBy(p => p.Link, BoardLinkComparer.Instance).Skip(19).First().Link, collectionId2), "Post counter 2:20");
         }
 
         [TestMethod]

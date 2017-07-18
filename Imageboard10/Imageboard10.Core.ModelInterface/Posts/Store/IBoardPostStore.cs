@@ -64,6 +64,14 @@ namespace Imageboard10.Core.ModelInterface.Posts.Store
         IAsyncOperation<IList<PostStoreEntityId>> GetChildren(PostStoreEntityId collectionId, int skip, int? count);
 
         /// <summary>
+        /// Получить порядковый номер поста в треде.
+        /// </summary>
+        /// <param name="postLink">Ссылка на пост.</param>
+        /// <param name="threadId">Идентификатор треда.</param>
+        /// <returns>Результат.</returns>
+        IAsyncOperation<int?> GetPostCounterNumber(ILink postLink, PostStoreEntityId threadId);
+        
+        /// <summary>
         /// Статус загрузки дочерних сущностей.
         /// </summary>
         /// <param name="collectionId">Коллекция.</param>

@@ -127,6 +127,7 @@
     <Compile Include="Posts\PostModelStoreBareEntity.cs" />
     <Compile Include="Posts\PostModelStoreDefs.cs" />
     <Compile Include="Posts\PostModelStoreLoad.cs" />
+    <Compile Include="Posts\PostModelStorePostLight.cs" />
     <Compile Include="Posts\PostModelStoreUpload.cs" />
     <Compile Include="Posts\PostModelStoreUtility.cs" />
     <Compile Include="Posts\PostOtherData.cs" />
