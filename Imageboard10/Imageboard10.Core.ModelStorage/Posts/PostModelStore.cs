@@ -880,12 +880,16 @@ namespace Imageboard10.Core.ModelStorage.Posts
                     using (var table = session.OpenTable(MediaFilesTableName, OpenTableGrbit.ReadOnly))
                     {
                         Api.JetSetCurrentIndex(table.Session, table, GetIndexName(MediaFilesTableName, nameof(MediaFilesIndexes.EntityReferences)));
-                        Api.MakeKey(table.Session, table, id.Id, MakeKeyGrbit.NewKey);
-                        if (Api.TrySeek(table.Session, table, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange))
+                        Api.MakeKey(table.Session, table, id.Id, MakeKeyGrbit.NewKey | MakeKeyGrbit.FullColumnStartLimit);
+                        if (Api.TrySeek(table.Session, table, SeekGrbit.SeekGE))
                         {
-                            int cnt;
-                            Api.JetIndexRecordCount(table.Session, table.Table, out cnt, int.MaxValue);
-                            return cnt;
+                            Api.MakeKey(table.Session, table, id.Id, MakeKeyGrbit.NewKey | MakeKeyGrbit.FullColumnEndLimit);
+                            if (Api.TrySetIndexRange(table.Session, table.Table, SetIndexRangeGrbit.RangeUpperLimit))
+                            {
+                                int cnt;
+                                Api.JetIndexRecordCount(table.Session, table.Table, out cnt, int.MaxValue);
+                                return cnt;
+                            }
                         }
                         return 0;
                     }

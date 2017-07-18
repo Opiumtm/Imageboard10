@@ -423,6 +423,33 @@ namespace Imageboard10UnitTests
             await AssertChildrenPositions(collection2, collectionId2, 10, "collection2");
         }
 
+        [TestMethod]
+        public async Task CheckThreadMediaPositions()
+        {
+            async Task<(IBoardPostCollection collection, PostStoreEntityId collectionId)> LoadCollection(string fileName, ThreadLink link = null)
+            {
+                var collection = await ReadThread("mobi_thread_2.json", link);
+                var collectionId = await _store.SaveCollection(collection, BoardPostCollectionUpdateMode.Replace, null, null);
+                return (collection, collectionId);
+            }
+
+            var tasks = new[]
+            {
+                LoadCollection("mobi_thread_2.json"),
+                LoadCollection("po_thread.json", new ThreadLink() { Engine = MakabaConstants.MakabaEngineId, Board = "po", OpPostNum = 23334842 })
+            };
+
+            var taskResults = await Task.WhenAll(tasks);
+
+            var collection1 = taskResults[0].collection;
+            var collectionId1 = taskResults[0].collectionId;
+            var collection2 = taskResults[1].collection;
+            var collectionId2 = taskResults[1].collectionId;
+
+            await AssertMediaPositions(collection1, collectionId1, 12, "collection1");
+            await AssertMediaPositions(collection2, collectionId2, 12, "collection2");
+        }
+
         private async Task AssertChildrenPositions(IBoardPostCollection collection, PostStoreEntityId collectionId, int windowCount, string collectionName)
         {
             Assert.AreEqual(collection.Posts.Count, await _store.GetCollectionSize(collectionId), $"{collectionName}.Size");
@@ -447,6 +474,35 @@ namespace Imageboard10UnitTests
             for (var i = 0; i < originalLinks.Count; i++)
             {
                 Assert.AreEqual(originalLinks[i], expectedLinks[i], $"{collectionName}:{i}->Ссылка");
+            }
+        }
+
+        private async Task AssertMediaPositions(IBoardPostCollection collection, PostStoreEntityId collectionId, int windowCount, string collectionName)
+        {
+            var originalLinks = new List<string>();
+            var expectedLinks = new List<string>();
+            foreach (var item in collection.Posts.OrderBy(p => p.Link, BoardLinkComparer.Instance))
+            {
+                foreach (var m in item.MediaFiles)
+                {
+                    originalLinks.Add(m.MediaLink.GetLinkHash());
+                }
+            }
+            Assert.AreEqual(originalLinks.Count, await _store.GetMediaCount(collectionId), $"{collectionName}.Size");
+            int maxIterations = 5000;
+            do
+            {
+                var media = await _store.GetPostMedia(collectionId, expectedLinks.Count, windowCount);
+                foreach (var m in media)
+                {
+                    expectedLinks.Add(m.MediaLink.GetLinkHash());
+                }
+                maxIterations--;
+            } while (expectedLinks.Count < originalLinks.Count && maxIterations > 0);
+            Assert.AreEqual(originalLinks.Count, expectedLinks.Count, $"{collectionName}->Количество полученных медиа");
+            for (var i = 0; i < originalLinks.Count; i++)
+            {
+                Assert.AreEqual(originalLinks[i], expectedLinks[i], $"{collectionName}:{i}->Медиа");
             }
         }
 
