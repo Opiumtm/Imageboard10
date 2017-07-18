@@ -16,6 +16,22 @@ namespace Imageboard10.Core.ModelStorage.Posts
     /// </summary>
     public partial class PostModelStore
     {
+        private IBoardPostEntity LoadLinkOnly(EsentTable table, IDictionary<string, JET_COLUMNID> colids)
+        {
+            var entityType = (PostStoreEntityType)(Api.RetrieveColumnAsByte(table.Session, table, colids[ColumnNames.EntityType]) ?? 0);
+            var genEntityType = ToGenericEntityType(entityType);
+            var links = LoadEntityLinks(table, colids, genEntityType);
+            var dirParent = Api.RetrieveColumnAsInt32(table.Session, table, colids[ColumnNames.DirectParentId]);
+            return new PostModelStoreBareEntityLink()
+            {
+                EntityType = entityType,
+                Link = links.link,
+                ParentLink = links.parentLik,
+                StoreId = new PostStoreEntityId() { Id = Api.RetrieveColumnAsInt32(table.Session, table, colids[ColumnNames.Id]) ?? -1 },
+                StoreParentId = dirParent != null ? (PostStoreEntityId?)(new PostStoreEntityId() { Id = dirParent.Value }) : null
+            };
+        }
+
         private IBoardPostEntity LoadBareEntity(EsentTable table, IDictionary<string, JET_COLUMNID> colids)
         {
             var entityType = (PostStoreEntityType) (Api.RetrieveColumnAsByte(table.Session, table, colids[ColumnNames.EntityType]) ?? 0);
@@ -270,5 +286,27 @@ namespace Imageboard10.Core.ModelStorage.Posts
                 LastUpdate = bareEntity.EntityType == PostStoreEntityType.Thread ? FromUtcToOffset(Api.RetrieveColumnAsDateTime(table.Session, table, colids[ColumnNames.LastServerUpdate])) : null                
             };
         }
+
+        private IBoardPostEntity LoadPost(IEsentSession session, EsentTable table, IDictionary<string, JET_COLUMNID> colids, PostStoreLoadMode loadMode)
+        {
+            switch (loadMode.EntityLoadMode)
+            {
+                case PostStoreEntityLoadMode.LinkOnly:
+                    return LoadLinkOnly(table, colids);
+                case PostStoreEntityLoadMode.EntityOnly:
+                    return LoadBareEntity(table, colids);
+                default:
+                    return null;
+            }
+        }
+
+        /// <summary>
+        /// Режим загрузки по умолчанию.
+        /// </summary>
+        protected static readonly PostStoreLoadMode DefaultLoadMode = new PostStoreLoadMode()
+        {
+            EntityLoadMode = PostStoreEntityLoadMode.EntityOnly,
+            RetrieveCounterNumber = false
+        };
     }
 }
