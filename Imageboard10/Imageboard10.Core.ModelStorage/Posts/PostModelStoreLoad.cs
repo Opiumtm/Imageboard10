@@ -34,27 +34,82 @@ namespace Imageboard10.Core.ModelStorage.Posts
             };
         }
 
+        private EsentTable GetPostNumberSortTable(IEsentSession session, PostStoreEntityId directParentId, out JET_COLUMNID colid)
+        {
+            var columns = new[]
+            {
+                new JET_COLUMNDEF() { coltyp = JET_coltyp.Long, grbit = ColumndefGrbit.TTKey },
+            };
+            var columnids = new JET_COLUMNID[columns.Length];
+            JET_TABLEID tableid;
+            Api.JetOpenTempTable(session.Session, columns, columns.Length, TempTableGrbit.None, out tableid, columnids);
+            var tempTable = new EsentTable(session.Session, tableid);
+            try
+            {
+                using (var table = session.OpenTable(TableName, OpenTableGrbit.ReadOnly))
+                {
+                    var seqcolid = table.GetColumnid(ColumnNames.SequenceNumber);
+                    Api.JetSetCurrentIndex(table.Session, table, GetIndexName(TableName, nameof(Indexes.InThreadPostLink)));
+                    Api.MakeKey(table.Session, table, directParentId.Id, MakeKeyGrbit.NewKey | MakeKeyGrbit.FullColumnStartLimit);
+                    if (Api.TrySeek(table.Session, table, SeekGrbit.SeekGE))
+                    {
+                        Api.MakeKey(table.Session, table, directParentId.Id, MakeKeyGrbit.NewKey | MakeKeyGrbit.FullColumnEndLimit);
+                        if (Api.TrySetIndexRange(table.Session, table, SetIndexRangeGrbit.RangeUpperLimit))
+                        {
+                            do
+                            {
+                                var seqId = Api.RetrieveColumnAsInt32(table.Session, table, seqcolid, RetrieveColumnGrbit.RetrieveFromIndex);
+                                if (seqId != null)
+                                {
+                                    using (var update = tempTable.Update(JET_prep.Insert))
+                                    {
+                                        Api.SetColumn(tempTable.Session, tempTable, columnids[0], seqId.Value);
+                                        update.Save();
+                                    }
+                                }
+                            } while (Api.TryMoveNext(table.Session, table));
+                        }
+                    }
+                }
+                colid = columnids[0];
+                return tempTable;
+            }
+            catch
+            {
+                tempTable.Dispose();
+                throw;
+            }
+        }
+
         private int? GetPostCounterNumber(IEsentSession session, PostStoreEntityId directParentId, int sequenceNumber)
         {
             using (var table = session.OpenTable(TableName, OpenTableGrbit.ReadOnly))
             {
-                JET_RECPOS firstPos, foundPos;
+                var colid = table.GetColumnid(ColumnNames.SequenceNumber);
+                int cnt = 0;
                 Api.JetSetCurrentIndex(table.Session, table, GetIndexName(TableName, nameof(Indexes.InThreadPostLink)));
-                Api.MakeKey(table.Session, table, directParentId.Id, MakeKeyGrbit.NewKey);
-                Api.MakeKey(table.Session, table, 0, MakeKeyGrbit.None);
-                if (!Api.TrySeek(table.Session, table, SeekGrbit.SeekGE))
+                Api.MakeKey(table.Session, table, directParentId.Id, MakeKeyGrbit.NewKey | MakeKeyGrbit.FullColumnStartLimit);
+                if (Api.TrySeek(table.Session, table, SeekGrbit.SeekGE))
                 {
-                    return null;
+                    Api.MakeKey(table.Session, table, directParentId.Id, MakeKeyGrbit.NewKey | MakeKeyGrbit.FullColumnEndLimit);
+                    if (Api.TrySetIndexRange(table.Session, table, SetIndexRangeGrbit.RangeUpperLimit))
+                    {
+                        do
+                        {
+                            cnt++;
+                            var seqId = Api.RetrieveColumnAsInt32(table.Session, table, colid, RetrieveColumnGrbit.RetrieveFromIndex) ?? 0;
+                            if (seqId == sequenceNumber)
+                            {
+                                return cnt;
+                            }
+                            if (seqId > sequenceNumber)
+                            {
+                                return null;
+                            }
+                        } while (Api.TryMoveNext(table.Session, table));
+                    }
                 }
-                Api.JetGetRecordPosition(table.Session, table, out firstPos);
-                Api.MakeKey(table.Session, table, directParentId.Id, MakeKeyGrbit.NewKey);
-                Api.MakeKey(table.Session, table, sequenceNumber, MakeKeyGrbit.None);
-                if (!Api.TrySeek(table.Session, table, SeekGrbit.SeekEQ))
-                {
-                    return null;
-                }
-                Api.JetGetRecordPosition(table.Session, table, out foundPos);
-                return (int)(foundPos.centriesLT - firstPos.centriesLT + 1);
+                return null;
             }
         }
 

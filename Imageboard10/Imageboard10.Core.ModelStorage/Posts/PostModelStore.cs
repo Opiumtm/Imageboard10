@@ -163,30 +163,34 @@ namespace Imageboard10.Core.ModelStorage.Posts
                 {
                     using (var table = session.OpenTable(TableName, OpenTableGrbit.ReadOnly))
                     {
+                        var colid = Api.GetTableColumnid(table.Session, table, ColumnNames.Id);
                         var result = new List<PostStoreEntityId>();
                         Api.JetSetCurrentIndex(table.Session, table, GetIndexName(TableName, nameof(Indexes.InThreadPostLink)));
-                        Api.MakeKey(table.Session, table, collectionId.Id, MakeKeyGrbit.NewKey);
-                        var colid = Api.GetTableColumnid(table.Session, table, ColumnNames.Id);
-                        if (Api.TrySeek(table.Session, table, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange))
+                        Api.MakeKey(table.Session, table, collectionId.Id, MakeKeyGrbit.NewKey | MakeKeyGrbit.FullColumnStartLimit);
+                        if (Api.TrySeek(table.Session, table, SeekGrbit.SeekGE))
                         {
-                            int counted = 0;
-                            bool skipped = true;
-                            if (skip > 0)
+                            Api.MakeKey(table.Session, table, collectionId.Id, MakeKeyGrbit.NewKey | MakeKeyGrbit.FullColumnEndLimit);
+                            if (Api.TrySetIndexRange(table.Session, table, SetIndexRangeGrbit.RangeUpperLimit))
                             {
-                                skipped = Api.TryMove(table.Session, table, (JET_Move) skip, MoveGrbit.None);
-                            }
-                            if (skipped)
-                            {
-                                do
+                                int counted = 0;
+                                bool skipped = true;
+                                if (skip > 0)
                                 {
-                                    counted++;
-                                    if (counted > count)
+                                    skipped = Api.TryMove(table.Session, table, (JET_Move)skip, MoveGrbit.None);
+                                }
+                                if (skipped)
+                                {
+                                    do
                                     {
-                                        break;
-                                    }
-                                    var id = Api.RetrieveColumnAsInt32(table.Session, table, colid) ?? -1;
-                                    result.Add(new PostStoreEntityId() { Id = id});
-                                } while (Api.TryMoveNext(table.Session, table.Table));
+                                        counted++;
+                                        if (counted > count)
+                                        {
+                                            break;
+                                        }
+                                        var id = Api.RetrieveColumnAsInt32(table.Session, table, colid) ?? -1;
+                                        result.Add(new PostStoreEntityId() { Id = id });
+                                    } while (Api.TryMoveNext(table.Session, table.Table));
+                                }
                             }
                         }
                         return result;

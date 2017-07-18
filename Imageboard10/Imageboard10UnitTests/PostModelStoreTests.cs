@@ -386,6 +386,30 @@ namespace Imageboard10UnitTests
             Assert.IsNotNull(accessInfo2.AccessTime, "accessInfo2.AccessTime != null (second update)");
             Assert.IsTrue(Math.Abs((dt1 - accessInfo1.AccessTime.Value).TotalSeconds) < 1.5, "accessInfo1.AccessTime (second update)");
             Assert.IsTrue(Math.Abs((dt2 - accessInfo2.AccessTime.Value).TotalSeconds) < 1.5, "accessInfo2.AccessTime (second update)");
+        }
+
+        [TestMethod]
+        public async Task CheckThreadChildPositions()
+        {
+            async Task<(IBoardPostCollection collection, PostStoreEntityId collectionId)> LoadCollection(string fileName, ThreadLink link = null)
+            {
+                var collection = await ReadThread("mobi_thread_2.json", link);
+                var collectionId = await _store.SaveCollection(collection, BoardPostCollectionUpdateMode.Replace, null, null);
+                return (collection, collectionId);
+            }
+
+            var tasks = new[]
+            {
+                LoadCollection("mobi_thread_2.json"),
+                LoadCollection("po_thread.json", new ThreadLink() { Engine = MakabaConstants.MakabaEngineId, Board = "po", OpPostNum = 23334842 })
+            };
+
+            var taskResults = await Task.WhenAll(tasks);
+
+            var collection1 = taskResults[0].collection;
+            var collectionId1 = taskResults[0].collectionId;
+            var collection2 = taskResults[1].collection;
+            var collectionId2 = taskResults[1].collectionId;
 
             Assert.AreEqual(1, await _store.GetPostCounterNumber(collection1.Posts.OrderBy(p => p.Link, BoardLinkComparer.Instance).First().Link, collectionId1), "Post counter 1:1");
             Assert.AreEqual(10, await _store.GetPostCounterNumber(collection1.Posts.OrderBy(p => p.Link, BoardLinkComparer.Instance).Skip(9).First().Link, collectionId1), "Post counter 1:10");
@@ -394,6 +418,36 @@ namespace Imageboard10UnitTests
             Assert.AreEqual(1, await _store.GetPostCounterNumber(collection2.Posts.OrderBy(p => p.Link, BoardLinkComparer.Instance).First().Link, collectionId2), "Post counter 2:1");
             Assert.AreEqual(10, await _store.GetPostCounterNumber(collection2.Posts.OrderBy(p => p.Link, BoardLinkComparer.Instance).Skip(9).First().Link, collectionId2), "Post counter 2:10");
             Assert.AreEqual(20, await _store.GetPostCounterNumber(collection2.Posts.OrderBy(p => p.Link, BoardLinkComparer.Instance).Skip(19).First().Link, collectionId2), "Post counter 2:20");
+
+            await AssertChildrenPositions(collection1, collectionId1, 10, "collection1");
+            await AssertChildrenPositions(collection2, collectionId2, 10, "collection2");
+        }
+
+        private async Task AssertChildrenPositions(IBoardPostCollection collection, PostStoreEntityId collectionId, int windowCount, string collectionName)
+        {
+            Assert.AreEqual(collection.Posts.Count, await _store.GetCollectionSize(collectionId), $"{collectionName}.Size");
+            var originalLinks = new List<string>();
+            var expectedLinks = new List<string>();
+            foreach (var item in collection.Posts.OrderBy(p => p.Link, BoardLinkComparer.Instance))
+            {
+                originalLinks.Add(item.Link.GetLinkHash());
+            }
+            int maxIterations = 1000;
+            do
+            {
+                var ids = await _store.GetChildren(collectionId, expectedLinks.Count, windowCount);
+                var links = await _store.GetEntityLinks(ids.ToArray());
+                foreach (var l in links)
+                {
+                    expectedLinks.Add(l.Link.GetLinkHash());
+                }
+                maxIterations--;
+            } while (expectedLinks.Count < originalLinks.Count && maxIterations > 0);
+            Assert.AreEqual(originalLinks.Count, expectedLinks.Count, $"{collectionName}->Количество полученных ссылок");
+            for (var i = 0; i < originalLinks.Count; i++)
+            {
+                Assert.AreEqual(originalLinks[i], expectedLinks[i], $"{collectionName}:{i}->Ссылка");
+            }
         }
 
         [TestMethod]
