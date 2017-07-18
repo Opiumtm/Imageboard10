@@ -16,37 +16,84 @@ namespace Imageboard10.Core.ModelStorage.Posts
     /// </summary>
     public partial class PostModelStore
     {
+        // ReSharper disable InconsistentNaming
+        private struct BasicEntityInfo
+        {
+            public PostStoreEntityType entityType;
+            public GenericPostStoreEntityType genEntityType;
+            public ILink link;
+            public ILink parentLink;
+            public PostStoreEntityId entityId;
+            public PostStoreEntityId? parentEntityId;
+            public int sequenceId;
+        }
+        // ReSharper enable InconsistentNaming
+
+        private void LoadBasicInfo(EsentTable table, IDictionary<string, JET_COLUMNID> colids, ref BasicEntityInfo bi)
+        {
+            bi.entityType = (PostStoreEntityType)(Api.RetrieveColumnAsByte(table.Session, table, colids[ColumnNames.EntityType]) ?? 0);
+            bi.genEntityType = ToGenericEntityType(bi.entityType);
+            (bi.link, bi.parentLink, bi.sequenceId) = LoadEntityLinks(table, colids, bi.genEntityType);
+            var dirParent = Api.RetrieveColumnAsInt32(table.Session, table, colids[ColumnNames.DirectParentId]);
+            bi.entityId = new PostStoreEntityId() { Id = Api.RetrieveColumnAsInt32(table.Session, table, colids[ColumnNames.Id]) ?? -1 };
+            bi.parentEntityId = dirParent != null ? (PostStoreEntityId?)(new PostStoreEntityId() { Id = dirParent.Value }) : null;
+        }
+
         private IBoardPostEntity LoadLinkOnly(EsentTable table, IDictionary<string, JET_COLUMNID> colids)
         {
-            var entityType = (PostStoreEntityType)(Api.RetrieveColumnAsByte(table.Session, table, colids[ColumnNames.EntityType]) ?? 0);
-            var genEntityType = ToGenericEntityType(entityType);
-            var links = LoadEntityLinks(table, colids, genEntityType);
-            var dirParent = Api.RetrieveColumnAsInt32(table.Session, table, colids[ColumnNames.DirectParentId]);
+            BasicEntityInfo bi = default(BasicEntityInfo);
+            LoadBasicInfo(table, colids, ref bi);
             return new PostModelStoreBareEntityLink()
             {
-                EntityType = entityType,
-                Link = links.link,
-                ParentLink = links.parentLik,
-                StoreId = new PostStoreEntityId() { Id = Api.RetrieveColumnAsInt32(table.Session, table, colids[ColumnNames.Id]) ?? -1 },
-                StoreParentId = dirParent != null ? (PostStoreEntityId?)(new PostStoreEntityId() { Id = dirParent.Value }) : null
+                EntityType = bi.entityType,
+                Link = bi.link,
+                ParentLink = bi.parentLink,
+                StoreId = bi.entityId,
+                StoreParentId = bi.parentEntityId
             };
         }
 
         private IBoardPostEntity LoadBareEntity(EsentTable table, IDictionary<string, JET_COLUMNID> colids)
         {
-            var entityType = (PostStoreEntityType) (Api.RetrieveColumnAsByte(table.Session, table, colids[ColumnNames.EntityType]) ?? 0);
-            var genEntityType = ToGenericEntityType(entityType);
-            var links = LoadEntityLinks(table, colids, genEntityType);
-            var dirParent = Api.RetrieveColumnAsInt32(table.Session, table, colids[ColumnNames.DirectParentId]);
+            BasicEntityInfo bi = default(BasicEntityInfo);
+            LoadBasicInfo(table, colids, ref bi);
             return new PostModelStoreBareEntity()
             {
-                EntityType = entityType,
-                Link = links.link,
-                ParentLink = links.parentLik,
+                EntityType = bi.entityType,
+                Link = bi.link,
+                ParentLink = bi.parentLink,
                 Thumbnail = LoadThumbnail(table, colids),
                 Subject = Api.RetrieveColumnAsString(table.Session, table, colids[ColumnNames.Subject]),
-                StoreId = new PostStoreEntityId() { Id = Api.RetrieveColumnAsInt32(table.Session, table, colids[ColumnNames.Id]) ?? -1},
-                StoreParentId = dirParent != null ? (PostStoreEntityId?)(new PostStoreEntityId() { Id = dirParent.Value }) : null
+                StoreId = bi.entityId,
+                StoreParentId = bi.parentEntityId
+            };
+        }
+
+        private IBoardPostLight LoadPostLight(IEsentSession session, EsentTable table, IDictionary<string, JET_COLUMNID> colids, bool getPostCount)
+        {
+            BasicEntityInfo bi = default(BasicEntityInfo);
+            LoadBasicInfo(table, colids, ref bi);
+            return new PostModelStorePostLight()
+            {
+                EntityType = bi.entityType,
+                Link = bi.link,
+                ParentLink = bi.parentLink,
+                Thumbnail = LoadThumbnail(table, colids),
+                Subject = Api.RetrieveColumnAsString(table.Session, table, colids[ColumnNames.Subject]),
+                StoreId = bi.entityId,
+                StoreParentId = bi.parentEntityId,
+                Flags = EnumMultivalueColumn<GuidColumnValue>(table, colids[ColumnNames.Flags]).Where(g => g?.Value != null).Select(g => g.Value.Value).Distinct().ToList(),
+                Counter = getPostCount && bi.parentEntityId != null ? GetPostCounterNumber(session, bi.parentEntityId.Value, bi.sequenceId) ?? 0 : 0,
+                BoardSpecificDate = Api.RetrieveColumnAsString(table.Session, table, colids[ColumnNames.BoardSpecificDate]),
+                Date = FromUtcToOffset(Api.RetrieveColumnAsDateTime(table.Session, table.Table, colids[ColumnNames.Date])) ?? DateTimeOffset.MinValue,
+                LLikes = Api.RetrieveColumnAsInt32(table.Session, table, colids[ColumnNames.Likes]),
+                LDislikes = Api.RetrieveColumnAsInt32(table.Session, table, colids[ColumnNames.Dislikes]),
+                TagsSet = EnumMultivalueColumn<StringColumnValue>(table, colids[ColumnNames.ThreadTags])
+                    .Where(t => !string.IsNullOrEmpty(t?.Value))
+                    .Select(t => t.Value)
+                    .Distinct()
+                    .OrderBy(t => t, StringComparer.CurrentCulture)
+                    .ToArray()
             };
         }
 
@@ -135,7 +182,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
             return ObjectSerializationService.Deserialize(bytes) as IPostMediaWithSize;
         }
 
-        private (ILink link, ILink parentLik) LoadEntityLinks(EsentTable table, IDictionary<string, JET_COLUMNID> colids, GenericPostStoreEntityType genEntityType)
+        private (ILink link, ILink parentLink, int sequenceId) LoadEntityLinks(EsentTable table, IDictionary<string, JET_COLUMNID> colids, GenericPostStoreEntityType genEntityType)
         {
             var boardId = Api.RetrieveColumnAsString(table.Session, table, colids[ColumnNames.BoardId]) ?? "";
             var seqId = Api.RetrieveColumnAsInt32(table.Session, table, colids[ColumnNames.SequenceNumber]) ?? 0;
@@ -204,7 +251,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
                     };
                     break;
             }
-            return (link, parentLink);
+            return (link, parentLink, seqId);
         }
 
         private (Guid? lastAccessEnty, DateTime? lastAccessUtc) GetLastAccess(IEsentSession session, PostStoreEntityId id)
@@ -295,6 +342,8 @@ namespace Imageboard10.Core.ModelStorage.Posts
                     return LoadLinkOnly(table, colids);
                 case PostStoreEntityLoadMode.EntityOnly:
                     return LoadBareEntity(table, colids);
+                case PostStoreEntityLoadMode.Light:
+                    return LoadPostLight(session, table, colids, loadMode.RetrieveCounterNumber);
                 default:
                     return null;
             }
