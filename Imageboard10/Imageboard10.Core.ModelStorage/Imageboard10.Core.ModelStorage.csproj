@@ -125,6 +125,7 @@
     <Compile Include="IndexDefinition.cs" />
     <Compile Include="Posts\PostModelStore.cs" />
     <Compile Include="Posts\PostModelStoreBareEntity.cs" />
+    <Compile Include="Posts\PostModelStoreBareEntityLink.cs" />
     <Compile Include="Posts\PostModelStoreDefs.cs" />
     <Compile Include="Posts\PostModelStoreLoad.cs" />
     <Compile Include="Posts\PostModelStorePostLight.cs" />
