@@ -52,7 +52,7 @@ namespace Imageboard10.Core.ModelInterface.Posts.Store
         /// <param name="count">Сколько взять сущностей (максимально).</param>
         /// <param name="mode">Режим загрузки.</param>
         /// <returns>Посты.</returns>
-        IAsyncOperation<IList<IBoardPostEntity>> Load(PostStoreEntityId? parentId, int skip, int? count, PostStoreLoadMode mode);
+        IAsyncOperation<IList<IBoardPostEntity>> Load(PostStoreEntityId parentId, int skip, int? count, PostStoreLoadMode mode);
 
         /// <summary>
         /// Получить дочерние сущности.

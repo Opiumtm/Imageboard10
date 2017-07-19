@@ -1,6 +1,8 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System;
+using System.Runtime.CompilerServices;
 using System.Runtime.Serialization;
 using Windows.UI;
+using Imageboard10.Core.ModelInterface.Links;
 
 namespace Imageboard10.Core.ModelStorage.Posts
 {
@@ -45,6 +47,46 @@ namespace Imageboard10.Core.ModelStorage.Posts
         /// </summary>
         [DataMember]
         public PostOtherDataCountry Country { get; set; }
+
+        /// <summary>
+        /// Заполнить данные в объекте поста.
+        /// </summary>
+        /// <param name="post">Объект поста.</param>
+        /// <param name="linkSerialization">Сервис сериализации ссылок.</param>
+        /// <param name="posterName">Имя постера.</param>
+        internal void FillPostData(PostModelStorePost post, ILinkSerializationService linkSerialization, string posterName)
+        {
+            if (post == null) throw new ArgumentNullException(nameof(post));
+            if (linkSerialization == null) throw new ArgumentNullException(nameof(linkSerialization));
+            if (Country?.ImageLink != null)
+            {
+                post.Country = new PostModelStorePost.CountryFlag()
+                {
+                    ImageLink = linkSerialization.Deserialize(Country.ImageLink)
+                };
+            }
+            if (Icon?.ImageLink != null)
+            {
+                post.Icon = new PostModelStorePost.PostIcon()
+                {
+                    ImageLink = linkSerialization.Deserialize(Icon.ImageLink),
+                    Description = Icon.Description
+                };
+            }
+            if (Poster != null || posterName != null)
+            {
+                post.Poster = new PostModelStorePost.PosterInfo()
+                {
+                    Name = posterName,
+                    Tripcode = Poster?.Tripcode,
+                    NameColor = Poster?.NameColor,
+                    NameColorStr = Poster?.NameColorStr
+                };
+            }
+            post.UniqueId = UniqueId;
+            post.Email = Email;
+            post.Hash = Hash;
+        }
     }
 
     /// <summary>

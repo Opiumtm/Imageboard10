@@ -16,7 +16,7 @@ namespace Imageboard10.Core.ModelInterface.Posts
         /// <summary>
         /// Порядковый номер поста (0 - без номера).
         /// </summary>
-        int Counter { get; }
+        int Counter { get; set; }
 
         /// <summary>
         /// Дата, как она отображается на доске.

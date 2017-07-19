@@ -130,19 +130,71 @@ namespace Imageboard10.Core.ModelStorage.Posts
             return Do().AsAsyncOperation();
         }
 
+        /// <summary>
+        /// Загрузить сущность.
+        /// </summary>
+        /// <param name="id">Идентификатор.</param>
+        /// <param name="mode">Режим загрузки.</param>
+        /// <returns>Сущность.</returns>
         public IAsyncOperation<IBoardPostEntity> Load(PostStoreEntityId id, PostStoreLoadMode mode)
         {
-            throw new NotImplementedException();
+            async Task<IBoardPostEntity> Do()
+            {
+                CheckModuleReady();
+                await WaitForTablesInitialize();
+
+                var r = await LoadEntities(new[] {id}, mode);
+                return r.FirstOrDefault();
+            }
+
+            return Do().AsAsyncOperation();
         }
 
+        /// <summary>
+        /// Загрузить посты.
+        /// </summary>
+        /// <param name="ids">Идентификаторы.</param>
+        /// <param name="mode">Режим загрузки.</param>
+        /// <returns>Посты.</returns>
         public IAsyncOperation<IList<IBoardPostEntity>> Load(IList<PostStoreEntityId> ids, PostStoreLoadMode mode)
         {
-            throw new NotImplementedException();
+            async Task<IList<IBoardPostEntity>> Do()
+            {
+                CheckModuleReady();
+                if (ids == null) throw new ArgumentNullException(nameof(ids));
+                await WaitForTablesInitialize();
+
+                return await LoadEntities(ids, mode);
+            }
+
+            return Do().AsAsyncOperation();
         }
 
-        public IAsyncOperation<IList<IBoardPostEntity>> Load(PostStoreEntityId? parentId, int skip, int? count, PostStoreLoadMode mode)
+        /// <summary>
+        /// Загрузить сущности.
+        /// </summary>
+        /// <param name="parentId">Идентификатор родительской сущности.</param>
+        /// <param name="skip">Пропустить сущностей.</param>
+        /// <param name="count">Сколько взять сущностей (максимально).</param>
+        /// <param name="mode">Режим загрузки.</param>
+        /// <returns>Посты.</returns>
+        public IAsyncOperation<IList<IBoardPostEntity>> Load(PostStoreEntityId parentId, int skip, int? count, PostStoreLoadMode mode)
         {
-            throw new NotImplementedException();
+            async Task<IList<IBoardPostEntity>> Do()
+            {
+                if (skip < 0) throw new ArgumentOutOfRangeException(nameof(skip));
+                var children = await GetChildren(parentId, skip, count);
+                var toLoad = new List<(PostStoreEntityId id, int counter)>();
+                var counter = skip;
+                foreach (var c in children)
+                {
+                    counter++;
+                    toLoad.Add((c, counter));
+                }
+                return await LoadEntities(toLoad, mode);
+            }
+
+            return Do().AsAsyncOperation();
         }
 
         /// <summary>

@@ -16,6 +16,19 @@ namespace Imageboard10.Core.ModelInterface.Posts.Store
         /// Режим загрузки постов.
         /// </summary>
         public PostStoreEntityLoadMode EntityLoadMode { get; set; }
+
+        /// <summary>
+        /// Клонировать.
+        /// </summary>
+        /// <returns>Клон.</returns>
+        public PostStoreLoadMode Clone()
+        {
+            return new PostStoreLoadMode()
+            {
+                EntityLoadMode = EntityLoadMode,
+                RetrieveCounterNumber = RetrieveCounterNumber
+            };
+        }
     }
 
     /// <summary>

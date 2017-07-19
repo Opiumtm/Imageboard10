@@ -123,12 +123,17 @@
     <Compile Include="Boards\DataContracts\BoardExtendedInfo.cs" />
     <Compile Include="Boards\DataContracts\BoardShortInfo.cs" />
     <Compile Include="IndexDefinition.cs" />
+    <Compile Include="Posts\IPostModelStoreChildrenLoadStageInfo.cs" />
     <Compile Include="Posts\PostModelStore.cs" />
     <Compile Include="Posts\PostModelStoreBareEntity.cs" />
     <Compile Include="Posts\PostModelStoreBareEntityLink.cs" />
+    <Compile Include="Posts\PostModelStoreCollection.cs" />
     <Compile Include="Posts\PostModelStoreDefs.cs" />
     <Compile Include="Posts\PostModelStoreLoad.cs" />
+    <Compile Include="Posts\PostModelStorePost.cs" />
     <Compile Include="Posts\PostModelStorePostLight.cs" />
+    <Compile Include="Posts\PostModelStoreThreadCollection.cs" />
+    <Compile Include="Posts\PostModelStoreThreadPreview.cs" />
     <Compile Include="Posts\PostModelStoreUpload.cs" />
     <Compile Include="Posts\PostModelStoreUtility.cs" />
     <Compile Include="Posts\PostOtherData.cs" />
