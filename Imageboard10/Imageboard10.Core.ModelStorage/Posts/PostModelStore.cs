@@ -905,14 +905,89 @@ namespace Imageboard10.Core.ModelStorage.Posts
             return Do().AsAsyncOperation();
         }
 
+        /// <summary>
+        /// Получить ответы на этот пост.
+        /// </summary>
+        /// <param name="id">Идентификатор.</param>
+        /// <returns>Ответы.</returns>
         public IAsyncOperation<IList<PostStoreEntityId>> GetPostQuotes(PostStoreEntityId id)
         {
-            throw new NotImplementedException();
+            async Task<IList<PostStoreEntityId>> Do()
+            {
+                CheckModuleReady();
+                await WaitForTablesInitialize();
+
+                return await OpenSession(session =>
+                {
+                    var result = new HashSet<PostStoreEntityId>(PostStoreEntityIdEqualityComparer.Instance);
+                    using (var table = session.OpenTable(TableName, OpenTableGrbit.ReadOnly))
+                    {
+                        var idCol = table.GetColumnid(ColumnNames.Id);
+                        Api.MakeKey(table.Session, table, id.Id, MakeKeyGrbit.NewKey);
+                        if (Api.TrySeek(table.Session, table, SeekGrbit.SeekEQ))
+                        {
+                            var entityType = (PostStoreEntityType)(Api.RetrieveColumnAsByte(table.Session, table, table.GetColumnid(ColumnNames.EntityType)) ?? 0);
+                            var genEntityType = ToGenericEntityType(entityType);
+                            if (genEntityType == GenericPostStoreEntityType.Post)
+                            {
+                                var sequenceIdn = Api.RetrieveColumnAsInt32(table.Session, table, table.GetColumnid(ColumnNames.SequenceNumber));
+                                var parentIdn = Api.RetrieveColumnAsInt32(table.Session, table, table.GetColumnid(ColumnNames.DirectParentId));
+                                if (sequenceIdn != null && parentIdn != null)
+                                {
+                                    var sequenceId = sequenceIdn.Value;
+                                    var parentId = parentIdn.Value;
+                                    Api.JetSetCurrentIndex(table.Session, table, GetIndexName(TableName, nameof(Indexes.QuotedPosts)));
+                                    Api.MakeKey(table.Session, table, parentId, MakeKeyGrbit.NewKey);
+                                    Api.MakeKey(table.Session, table, sequenceId, MakeKeyGrbit.None);
+                                    if (Api.TrySeek(table.Session, table, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange))
+                                    {
+                                        do
+                                        {
+                                            var qid = Api.RetrieveColumnAsInt32(table.Session, table, idCol, RetrieveColumnGrbit.RetrieveFromPrimaryBookmark);
+                                            if (qid != null)
+                                            {
+                                                result.Add(new PostStoreEntityId() { Id = qid.Value });
+                                            }
+                                        } while (Api.TryMoveNext(table.Session, table));
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    return result.ToList();
+                });
+            }
+
+            return Do().AsAsyncOperation();
         }
 
+        /// <summary>
+        /// Получить тип коллекции.
+        /// </summary>
+        /// <param name="collectionId">Идентификатор коллекции.</param>
+        /// <returns>Тип коллекции.</returns>
         public IAsyncOperation<PostStoreEntityType> GetCollectionType(PostStoreEntityId collectionId)
         {
-            throw new NotImplementedException();
+            async Task<PostStoreEntityType> Do()
+            {
+                CheckModuleReady();
+                await WaitForTablesInitialize();
+
+                return await OpenSession(session =>
+                {
+                    using (var table = session.OpenTable(TableName, OpenTableGrbit.ReadOnly))
+                    {
+                        Api.MakeKey(table.Session, table, collectionId.Id, MakeKeyGrbit.NewKey);
+                        if (Api.TrySeek(table.Session, table, SeekGrbit.SeekEQ))
+                        {
+                            return (PostStoreEntityType)(Api.RetrieveColumnAsByte(table.Session, table, table.GetColumnid(ColumnNames.EntityType)) ?? 0);
+                        }
+                        return PostStoreEntityType.Post;
+                    }
+                });
+            }
+
+            return Do().AsAsyncOperation();
         }
 
         /// <summary>

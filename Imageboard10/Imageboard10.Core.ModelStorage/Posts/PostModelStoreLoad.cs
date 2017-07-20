@@ -91,7 +91,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
                     Api.JetSetCurrentIndex(quotesTable.Session, quotesTable, GetIndexName(TableName, nameof(Indexes.QuotedPosts)));
                 }
                 Api.MakeKey(quotesTable.Session, quotesTable, bi.parentEntityId.Value.Id, MakeKeyGrbit.NewKey);
-                Api.MakeKey(quotesTable.Session, quotesTable, bi.entityId.Id, MakeKeyGrbit.None);
+                Api.MakeKey(quotesTable.Session, quotesTable, bi.sequenceId, MakeKeyGrbit.None);
                 if (Api.TrySeek(quotesTable.Session, quotesTable, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange))
                 {
                     do

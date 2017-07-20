@@ -57,5 +57,13 @@ namespace Imageboard10.Core.Models.Links
         /// <param name="modules">Модули.</param>
         /// <returns>Клон.</returns>
         public virtual BoardLinkBase DeepClone(IModuleProvider modules) => DeepClone();
+
+        /// <summary>Returns a string that represents the current object.</summary>
+        /// <returns>A string that represents the current object.</returns>
+        /// <filterpriority>2</filterpriority>
+        public override string ToString()
+        {
+            return GetLinkHash();
+        }
     }
 }
