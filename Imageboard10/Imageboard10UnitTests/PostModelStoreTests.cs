@@ -647,6 +647,15 @@ namespace Imageboard10UnitTests
             AssertLoadedPosts(collectionId, loadedByOffset);
         }
 
+        [TestMethod]
+        public async Task LoadThread()
+        {
+            var collection = await ReadThread("mobi_thread_2.json");
+            var collectionId = await _store.SaveCollection(collection, BoardPostCollectionUpdateMode.Replace, null, null);
+            var linkOnly = await _store.Load(collectionId, new PostStoreLoadMode() {EntityLoadMode = PostStoreEntityLoadMode.LinkOnly});
+            Assert.IsNotNull(linkOnly, "linkOnly != null");
+        }
+
         private struct LoadedPost
         {
             public bool WithCounter;
