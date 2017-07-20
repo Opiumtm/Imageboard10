@@ -537,6 +537,153 @@ namespace Imageboard10UnitTests
             await AssertLoadedPost(collectionId, PostStoreEntityType.Post, collection.Posts[1], 2, "№2");
             await AssertLoadedPost(collectionId, PostStoreEntityType.Post, collection.Posts[2], 3, "№3");
             await AssertLoadedPost(collectionId, PostStoreEntityType.Post, collection.Posts[92], 93, "№93");
+
+            var counters = new[]
+            {
+                1, 2, 3, 93
+            };
+            var testIds = (await _store.FindEntities(collectionId, new ILink[]
+                {
+                    collection.Posts[0].Link,
+                    collection.Posts[1].Link,
+                    collection.Posts[2].Link,
+                    collection.Posts[92].Link
+                }))
+                .OrderBy(l => l.Link, BoardLinkComparer.Instance)
+                .Select((l, idx) => new KeyValuePair<int, PostStoreEntityId>(counters[idx], l.Id))
+                .ToArray();
+            var ids = testIds.Select(i => i.Value).ToArray();
+            Assert.AreEqual(4, testIds.Length, "testIds.Length");
+
+            var loadedById = new LoadedPost[4];
+            for (var i = 0; i < 4; i++)
+            {
+                loadedById[i].Id = testIds[i].Value;
+                loadedById[i].Counter = testIds[i].Key;
+                loadedById[i].EntityType = PostStoreEntityType.Post;
+                loadedById[i].MessagePrefix = $"ByList,№{testIds[i].Key}";
+                loadedById[i].Post = collection.Posts[testIds[i].Key - 1];
+                loadedById[i].WithCounter = true;
+            }
+            foreach (var p in await _store.Load(ids, new PostStoreLoadMode() {EntityLoadMode = PostStoreEntityLoadMode.LinkOnly, RetrieveCounterNumber = false}))
+            {
+                Assert.IsNotNull(p.StoreId, "p.StoreId != null");
+                var id = p.StoreId.Value;
+                var idx = Array.FindIndex(loadedById, lp => lp.Id.Id == id.Id);
+                Assert.IsTrue(idx >= 0, "idx >= 0");
+                loadedById[idx].LinkOnly = p;
+            }
+            foreach (var p in await _store.Load(ids, new PostStoreLoadMode() { EntityLoadMode = PostStoreEntityLoadMode.EntityOnly, RetrieveCounterNumber = false }))
+            {
+                Assert.IsNotNull(p.StoreId, "p.StoreId != null");
+                var id = p.StoreId.Value;
+                var idx = Array.FindIndex(loadedById, lp => lp.Id.Id == id.Id);
+                Assert.IsTrue(idx >= 0, "idx >= 0");
+                loadedById[idx].BareEntity = p;
+            }
+            foreach (var p in await _store.Load(ids, new PostStoreLoadMode() { EntityLoadMode = PostStoreEntityLoadMode.Light, RetrieveCounterNumber = true }))
+            {
+                Assert.IsNotNull(p.StoreId, "p.StoreId != null");
+                var id = p.StoreId.Value;
+                var idx = Array.FindIndex(loadedById, lp => lp.Id.Id == id.Id);
+                Assert.IsTrue(idx >= 0, "idx >= 0");
+                loadedById[idx].Light = p;
+            }
+            foreach (var p in await _store.Load(ids, new PostStoreLoadMode() { EntityLoadMode = PostStoreEntityLoadMode.Full, RetrieveCounterNumber = true }))
+            {
+                Assert.IsNotNull(p.StoreId, "p.StoreId != null");
+                var id = p.StoreId.Value;
+                var idx = Array.FindIndex(loadedById, lp => lp.Id.Id == id.Id);
+                Assert.IsTrue(idx >= 0, "idx >= 0");
+                loadedById[idx].Full = p;
+            }
+            AssertLoadedPosts(collectionId, loadedById);
+
+            var loadedByOffset = new LoadedPost[10];
+            const int loadOffset = 10;
+            var loadedByOffsetIds = await _store.GetChildren(collectionId, loadOffset, 10);
+            Assert.AreEqual(10, loadedByOffsetIds.Count, "loadedByOffsetIds.Count");
+            for (var i = 0; i < loadedByOffset.Length; i++)
+            {
+                loadedByOffset[i].Id = loadedByOffsetIds[i];
+                loadedByOffset[i].Counter = loadOffset + i + 1;
+                loadedByOffset[i].EntityType = PostStoreEntityType.Post;
+                loadedByOffset[i].MessagePrefix = $"ByOffset,№{loadOffset + i + 1}";
+                loadedByOffset[i].Post = collection.Posts[loadOffset + i];
+                loadedByOffset[i].WithCounter = true;
+            }
+            foreach (var p in await _store.Load(collectionId, loadOffset, 10, new PostStoreLoadMode() { EntityLoadMode = PostStoreEntityLoadMode.LinkOnly, RetrieveCounterNumber = false }))
+            {
+                Assert.IsNotNull(p.StoreId, "p.StoreId != null");
+                var id = p.StoreId.Value;
+                var idx = Array.FindIndex(loadedByOffset, lp => lp.Id.Id == id.Id);
+                Assert.IsTrue(idx >= 0, "idx >= 0");
+                loadedByOffset[idx].LinkOnly = p;
+            }
+            foreach (var p in await _store.Load(collectionId, loadOffset, 10, new PostStoreLoadMode() { EntityLoadMode = PostStoreEntityLoadMode.EntityOnly, RetrieveCounterNumber = false }))
+            {
+                Assert.IsNotNull(p.StoreId, "p.StoreId != null");
+                var id = p.StoreId.Value;
+                var idx = Array.FindIndex(loadedByOffset, lp => lp.Id.Id == id.Id);
+                Assert.IsTrue(idx >= 0, "idx >= 0");
+                loadedByOffset[idx].BareEntity = p;
+            }
+            foreach (var p in await _store.Load(collectionId, loadOffset, 10, new PostStoreLoadMode() { EntityLoadMode = PostStoreEntityLoadMode.Light, RetrieveCounterNumber = true }))
+            {
+                Assert.IsNotNull(p.StoreId, "p.StoreId != null");
+                var id = p.StoreId.Value;
+                var idx = Array.FindIndex(loadedByOffset, lp => lp.Id.Id == id.Id);
+                Assert.IsTrue(idx >= 0, "idx >= 0");
+                loadedByOffset[idx].Light = p;
+            }
+            foreach (var p in await _store.Load(collectionId, loadOffset, 10, new PostStoreLoadMode() { EntityLoadMode = PostStoreEntityLoadMode.Full, RetrieveCounterNumber = true }))
+            {
+                Assert.IsNotNull(p.StoreId, "p.StoreId != null");
+                var id = p.StoreId.Value;
+                var idx = Array.FindIndex(loadedByOffset, lp => lp.Id.Id == id.Id);
+                Assert.IsTrue(idx >= 0, "idx >= 0");
+                loadedByOffset[idx].Full = p;
+            }
+            AssertLoadedPosts(collectionId, loadedByOffset);
+        }
+
+        private struct LoadedPost
+        {
+            public bool WithCounter;
+            public PostStoreEntityId Id;
+            public string MessagePrefix;
+            public int Counter;
+            public IBoardPost Post;
+            public PostStoreEntityType EntityType;
+            public IBoardPostEntity LinkOnly;
+            public IBoardPostEntity BareEntity;
+            public IBoardPostEntity Light;
+            public IBoardPostEntity Full;
+        }
+
+        private async Task<LoadedPost> LoadPost(PostStoreEntityId opId)
+        {
+            return new LoadedPost()
+            {
+                WithCounter = true,
+                LinkOnly = await _store.Load(opId, new PostStoreLoadMode() { EntityLoadMode = PostStoreEntityLoadMode.LinkOnly, RetrieveCounterNumber = false }),
+                BareEntity = await _store.Load(opId, new PostStoreLoadMode() { EntityLoadMode = PostStoreEntityLoadMode.EntityOnly, RetrieveCounterNumber = false }),
+                Light = await _store.Load(opId, new PostStoreLoadMode() { EntityLoadMode = PostStoreEntityLoadMode.Light, RetrieveCounterNumber = true }),
+                Full = await _store.Load(opId, new PostStoreLoadMode() { EntityLoadMode = PostStoreEntityLoadMode.Full, RetrieveCounterNumber = true }),
+            };
+        }
+
+        private void AssertLoadedPosts(PostStoreEntityId collectionId, IEnumerable<LoadedPost> loadedPosts)
+        {
+            int counter = 0;
+            foreach (var p in loadedPosts)
+            {
+                counter++;
+                AssertLinkOnlyLoadedPost(collectionId, p.EntityType, p.Post, p.MessagePrefix + $"({counter},LinkOnly)", p.LinkOnly, p.Id);
+                AssertBareEntityLoadedPost(collectionId, p.EntityType, p.Post, p.MessagePrefix + $"({counter},BareEntity)", p.BareEntity, p.Id);
+                AssertLightLoadedPost(collectionId, p.EntityType, p.Post, p.MessagePrefix + $"({counter},Light)", p.Light, p.Id, p.WithCounter, p.Counter);
+                AssertFullLoadedPost(collectionId, p.EntityType, p.Post, p.MessagePrefix + $"({counter},Full)", p.Full, p.Id, p.WithCounter, p.Counter);
+            }
         }
 
         private async Task AssertLoadedPost(PostStoreEntityId collectionId, PostStoreEntityType entityType, IBoardPost post, int postCounterNum, string messagePrefix)
@@ -545,18 +692,14 @@ namespace Imageboard10UnitTests
             var opIdn = await _store.FindEntity(entityType, opLink);
             Assert.IsNotNull(opIdn, $"{messagePrefix}: opId != null");
             var opId = opIdn.Value;
-            var opLinkOnly = await _store.Load(opId, new PostStoreLoadMode() { EntityLoadMode = PostStoreEntityLoadMode.LinkOnly, RetrieveCounterNumber = false});
-            AssertLinkOnlyLoadedPost(collectionId, entityType, post, messagePrefix, opLinkOnly, opId);
-            var opEntity = await _store.Load(opId, new PostStoreLoadMode() { EntityLoadMode = PostStoreEntityLoadMode.EntityOnly, RetrieveCounterNumber = false });
-            AssertBareEntityLoadedPost(collectionId, entityType, post, messagePrefix, opEntity, opId);
-            var opLight = await _store.Load(opId, new PostStoreLoadMode() { EntityLoadMode = PostStoreEntityLoadMode.Light, RetrieveCounterNumber = false });
-            AssertLightLoadedPost(collectionId, entityType, post, messagePrefix, opLight, opId, false, postCounterNum);
-            opLight = await _store.Load(opId, new PostStoreLoadMode() { EntityLoadMode = PostStoreEntityLoadMode.Light, RetrieveCounterNumber = true });
-            AssertLightLoadedPost(collectionId, entityType, post, messagePrefix, opLight, opId, true, postCounterNum);
-            var opPost = await _store.Load(opId, new PostStoreLoadMode() { EntityLoadMode = PostStoreEntityLoadMode.Full, RetrieveCounterNumber = false });
-            AssertFullLoadedPost(collectionId, entityType, post, messagePrefix, opPost, opId, false, postCounterNum);
-            opPost = await _store.Load(opId, new PostStoreLoadMode() { EntityLoadMode = PostStoreEntityLoadMode.Full, RetrieveCounterNumber = true });
-            AssertFullLoadedPost(collectionId, entityType, post, messagePrefix, opPost, opId, true, postCounterNum);
+            var loadedPost = await LoadPost(opId);
+            loadedPost.Id = opId;
+            loadedPost.Counter = postCounterNum;
+            loadedPost.MessagePrefix = messagePrefix;
+            loadedPost.EntityType = entityType;
+            loadedPost.Post = post;
+            var lpa = new LoadedPost[] {loadedPost};
+            AssertLoadedPosts(collectionId, lpa);
         }
 
         private void AssertLinkOnlyLoadedPost(PostStoreEntityId collectionId, PostStoreEntityType entityType,
