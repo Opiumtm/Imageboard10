@@ -1,0 +1,37 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<Table Name="MediaFiles" Namespace="Imageboard10.Core.ModelStorage.Posts.EsentTables" Visibility="internal">
+  <Columns>
+    <Column Name="Id" Type="SignedInt32" Grbit="Autoincrement NotNULL" />
+    <Column Name="EntityReferences" Type="SignedInt32" Grbit="Tagged MultiValued" />
+    <Column Name="SequenceNumber" Type="SignedInt32" Grbit="NotNULL" />
+    <Column Name="MediaData" Type="LongBinary" Grbit="None" />
+  </Columns>
+  <Indexes>
+    <Index Name="EntityReferences" Grbit="IgnoreAnyNull">
+      <Fields>
+        <Field Name="EntityReferences" />
+      </Fields>
+    </Index>
+    <Index Name="Sequences" Grbit="IgnoreAnyNull">
+      <Fields>
+        <Field Name="EntityReferences" />
+        <Field Name="SequenceNumber" />
+      </Fields>
+      <Searches>
+        <Range Name="IdByEntity" RangeType="UpperLimit" View="IdKey">
+          <SeekKey>
+            <KeyPart>FullColumnStartLimit</KeyPart>
+          </SeekKey>
+          <RangeKey>
+            <KeyPart>FullColumnEndLimit</KeyPart>
+          </RangeKey>
+        </Range>
+      </Searches>
+    </Index>
+  </Indexes>
+  <Views>
+    <View Name="IdKey" Role="None">
+      <Field FetchFlags="FromPrimaryBookmark">Id</Field>
+    </View>
+  </Views>
+</Table>
