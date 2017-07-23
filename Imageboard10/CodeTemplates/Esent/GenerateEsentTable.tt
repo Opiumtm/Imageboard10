@@ -1,11 +1,9 @@
-﻿<#@ template debug="false" hostspecific="false" language="C#" #>
-<#@ assembly name="System.Core" #>
+﻿<#@ assembly name="System.Core" #>
 <#@ assembly name="$(SolutionDir)\CodeTemplates\Libs\CodeTemplates.dll" #>
 <#@ import namespace="System.Linq" #>
 <#@ import namespace="System.Text" #>
 <#@ import namespace="System.Collections.Generic" #>
 <#@ import namespace="CodeTemplates.Esent.Model" #>
-<#@ output extension=".txt" #>
 <#+
 private void GenerateEsentTable(EsentTable table)
 {
@@ -20,6 +18,7 @@ private void GenerateEsentTable(EsentTable table)
 #>
 // ReSharper disable RedundantUsingDirective
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using Microsoft.Isam.Esent.Interop;
 using Microsoft.Isam.Esent.Interop.Vista;
@@ -41,6 +40,7 @@ namespace <#= table.Namespace #>
             Table = table;
 			_columnDic = null;
 			Columns = new DefaultView(this);
+			Views = new TableFetchViews(this);
         }
 
         public void Dispose()
@@ -144,14 +144,14 @@ namespace <#= table.Namespace #>
         {
             private readonly <#= table.Name #> _table;
             private readonly JET_RETRIEVECOLUMN[] _r;
-            private readonly ColumnValue[] _c;
+            private readonly T[] _c;
             private readonly JET_COLUMNID _columnid;
 
             public Multivalue(<#= table.Name #> table, JET_COLUMNID columnid)
             {
                 _table = table;
                 _r = new [] { new JET_RETRIEVECOLUMN() { columnid = columnid } };
-                _c = new ColumnValue[1];
+                _c = new T[1];
                 _columnid = columnid;
             }
 
@@ -185,22 +185,50 @@ namespace <#= table.Namespace #>
                         RetrieveGrbit = RetrieveColumnGrbit.None
                     };
                     _c[0] = col;
+				    // ReSharper disable once CoVariantArrayConversion
                     Api.RetrieveColumns(_table.Session, _table.Table, _c);
-                    return (T)_c[0];
+                    return _c[0];
                 }
 				set
 				{
                     _c[0] = value ?? throw new ArgumentNullException();
 					_c[0].ItagSequence = i + 1;
+				    // ReSharper disable once CoVariantArrayConversion
                     Api.SetColumns(_table.Session, _table.Table, _c);
 				}
             }
+
+			public IEnumerable<T> Enumerate()
+			{
+                var cnt = Count;
+				if (cnt == 0)
+				{
+					yield break;
+				}
+                for (var i = 0; i < cnt; i++)
+                {
+                    var col = new T
+                    {
+                        ItagSequence = i + 1,
+                        Columnid = _columnid,
+                        RetrieveGrbit = RetrieveColumnGrbit.None
+                    };
+                    _c[0] = col;
+				    // ReSharper disable once CoVariantArrayConversion
+                    Api.RetrieveColumns(_table.Session, _table.Table, _c);
+					yield return _c[0];
+                }
+			}
 
             public T[] Values
             {
                 get
                 {
                     var cnt = Count;
+					if (cnt == 0)
+					{
+						return new T[0];
+					}
                     var r = new T[cnt];
                     for (var i = 0; i < cnt; i++)
                     {
@@ -210,10 +238,10 @@ namespace <#= table.Namespace #>
                             Columnid = _columnid,
                             RetrieveGrbit = RetrieveColumnGrbit.None
                         };
-                        _c[0] = col;
-                        Api.RetrieveColumns(_table.Session, _table.Table, _c);
-                        r[i] = (T)_c[0];
+                        r[i] = col;
                     }
+                    // ReSharper disable once CoVariantArrayConversion
+                    Api.RetrieveColumns(_table.Session, _table.Table, r);
                     return r;
                 }
 				set
@@ -311,6 +339,215 @@ namespace <#= table.Namespace #>
 		}
 
 		public DefaultView Columns { get; }
+
+	    public IEnumerable EnumerateToEnd()
+	    {
+	        while (Api.TryMoveNext(Session, Table))
+	        {
+	            yield return this;
+	        }
+	    }
+
+	    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+	    public void MoveBeforeFirst()
+	    {
+	        Api.MoveBeforeFirst(Session, Table);
+	    }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+	    public bool TryMoveFirst()
+	    {
+	        return Api.TryMoveFirst(Session, Table);
+	    }
+
+	    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+	    public bool TryMoveNext()
+	    {
+	        return Api.TryMoveNext(Session, Table);
+	    }
+
+	    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+	    public bool TryMoveNextUniqueKey()
+	    {
+	        return Api.TryMove(Session, Table, JET_Move.Next, MoveGrbit.MoveKeyNE);
+	    }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+	    public bool TryMovePrevious()
+	    {
+	        return Api.TryMovePrevious(Session, Table);
+	    }
+		
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+	    public void DeleteCurrentRow()
+	    {
+	        Api.JetDelete(Session, Table);
+	    }
+
+		public static class ViewValues
+		{
+<#+
+			foreach (var view in table.Views)
+			{
+#>
+
+			// ReSharper disable once InconsistentNaming
+			public struct <#= view.Name #>
+			{
+<#+
+				foreach (var field in view.Fields)
+				{
+					var columndef = columnDic.Data[field.Name];
+					if (!columndef.IsMultivalue())
+					{
+#>
+				public <#= columndef.GetNetType() #> <#= columndef.Name #>;
+<#+
+					} else {
+#>
+				public <#= columndef.GetColumnValueType() #>[] <#= columndef.Name #>;
+<#+
+					}
+				}
+#>
+			}
+<#+
+		}
+#>
+		}
+
+		public static class FetchViews {
+<#+
+			List<EsentView> globalFetchViews = new List<EsentView>();
+			foreach (var view in table.Views)
+			{
+				if (view.Role.HasFlag(EsentViewRole.Fetch))
+				{
+					globalFetchViews.Add(view);
+				}
+				if (view.Role.HasFlag(EsentViewRole.Fetch) || view.Role.HasFlag(EsentViewRole.IndexFetch))
+				{
+					var nmFields = view.Fields.Select(f => new { f, c = columnDic.Data[f.Name] }).Where(c => !c.c.IsMultivalue()).Select(c => c.f).ToArray();
+					var mFields = view.Fields.Select(f => new { f, c = columnDic.Data[f.Name] }).Where(c => c.c.IsMultivalue()).Select(c => c.f).ToArray();
+#>
+
+			// ReSharper disable once InconsistentNaming
+			public struct <#= view.Name #>
+			{
+				private readonly <#= table.Name #> _table;
+<#+
+				if (nmFields.Length > 0) {
+#>
+				private readonly ColumnValue[] _c;
+<#+
+				}
+#>
+
+				public <#= view.Name #>(<#= table.Name #> table)
+				{
+					_table = table;
+<#+
+					if (nmFields.Length > 0) {
+#>
+
+					_c = new ColumnValue[<#= nmFields.Length #>];
+<#+
+					for (var i = 0; i < nmFields.Length; i++)
+					{
+						var field = nmFields[i];
+						var columndef = columnDic.Data[field.Name];
+#>
+					_c[<#= i #>] = new <#= columndef.GetColumnValueType() #>() {
+						Columnid = _table.ColumnDictionary[Column.<#= columndef.Name #>],
+						RetrieveGrbit = <#= field.GetRetrieveFlagsString() #>
+					};
+<#+
+						}
+#>
+<#+
+					}
+#>
+				}
+
+				public ViewValues.<#= view.Name #> Fetch()
+				{
+					var r = new ViewValues.<#= view.Name #>();
+<#+
+					if (nmFields.Length > 0) {
+#>
+					Api.RetrieveColumns(_table.Session, _table, _c);
+<#+
+					for (var i = 0; i < nmFields.Length; i++)
+					{
+						var field = nmFields[i];
+						var columndef = columnDic.Data[field.Name];
+#>
+<#+
+						if (!columndef.IsNullable() && !columndef.IsReferenceType())
+						{
+#>
+				    // ReSharper disable once PossibleInvalidOperationException
+					r.<#= columndef.Name #> = ((<#= columndef.GetColumnValueType() #>)_c[<#= i #>]).Value.Value;
+<#+
+						} else {
+#>
+					r.<#= columndef.Name #> = ((<#= columndef.GetColumnValueType() #>)_c[<#= i #>]).Value;
+<#+
+						}
+					}
+#>
+<#+
+					}
+#>
+<#+
+					for (var i = 0; i < mFields.Length; i++)
+					{
+#>
+					r.<#= mFields[i].Name #> = _table.Columns.<#= mFields[i].Name #>.Values;
+<#+
+					}
+#>
+					return r;
+				}
+			}
+<#+
+			}
+		}
+#>	
+		}
+
+		public class TableFetchViews
+		{
+			private readonly <#= table.Name #> _table;
+
+			public TableFetchViews(<#= table.Name #> table)
+			{
+				_table = table;
+			}
+<#+
+		foreach (var view in globalFetchViews)
+		{
+#>
+
+		    // ReSharper disable once InconsistentNaming
+			private FetchViews.<#= view.Name #>? __fv_<#= view.Name #>;
+			public FetchViews.<#= view.Name #> <#= view.Name #>
+			{
+				get
+				{
+					if (__fv_<#= view.Name #> == null)
+					{
+						__fv_<#= view.Name #> = new FetchViews.<#= view.Name #>(_table);
+					}
+					return __fv_<#= view.Name #>.Value;
+				}
+			}
+<#+
+		}
+#>
+		}
+
+		public TableFetchViews Views { get; }
 	}
 }
 <#+

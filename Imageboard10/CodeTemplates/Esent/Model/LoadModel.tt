@@ -1,5 +1,4 @@
-﻿<#@ template debug="false" hostspecific="false" language="C#" #>
-<#@ assembly name="System.Core" #>
+﻿<#@ assembly name="System.Core" #>
 <#@ assembly name="System.Xml" #>
 <#@ assembly name="$(SolutionDir)\CodeTemplates\Libs\CodeTemplates.dll" #>
 <#@ import namespace="System.Linq" #>
@@ -8,7 +7,6 @@
 <#@ import namespace="System.Collections.Generic" #>
 <#@ import namespace="System.Xml.Serialization" #>
 <#@ import namespace="CodeTemplates.Esent.Model" #>
-<#@ output extension=".txt" #>
 <#+
 private EsentTable LoadEsentTableXml(string fullPath) {
     var serializer = new XmlSerializer(typeof(EsentTable));

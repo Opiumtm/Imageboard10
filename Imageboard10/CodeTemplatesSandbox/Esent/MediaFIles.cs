@@ -2,6 +2,7 @@
 
 // ReSharper disable RedundantUsingDirective
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using Microsoft.Isam.Esent.Interop;
 using Microsoft.Isam.Esent.Interop.Vista;
@@ -23,6 +24,7 @@ namespace Imageboard10.Core.ModelStorage.Posts.EsentTables
             Table = table;
 			_columnDic = null;
 			Columns = new DefaultView(this);
+			Views = new TableFetchViews(this);
         }
 
         public void Dispose()
@@ -115,14 +117,14 @@ namespace Imageboard10.Core.ModelStorage.Posts.EsentTables
         {
             private readonly MediaFiles _table;
             private readonly JET_RETRIEVECOLUMN[] _r;
-            private readonly ColumnValue[] _c;
+            private readonly T[] _c;
             private readonly JET_COLUMNID _columnid;
 
             public Multivalue(MediaFiles table, JET_COLUMNID columnid)
             {
                 _table = table;
                 _r = new [] { new JET_RETRIEVECOLUMN() { columnid = columnid } };
-                _c = new ColumnValue[1];
+                _c = new T[1];
                 _columnid = columnid;
             }
 
@@ -156,22 +158,50 @@ namespace Imageboard10.Core.ModelStorage.Posts.EsentTables
                         RetrieveGrbit = RetrieveColumnGrbit.None
                     };
                     _c[0] = col;
+				    // ReSharper disable once CoVariantArrayConversion
                     Api.RetrieveColumns(_table.Session, _table.Table, _c);
-                    return (T)_c[0];
+                    return _c[0];
                 }
 				set
 				{
                     _c[0] = value ?? throw new ArgumentNullException();
 					_c[0].ItagSequence = i + 1;
+				    // ReSharper disable once CoVariantArrayConversion
                     Api.SetColumns(_table.Session, _table.Table, _c);
 				}
             }
+
+			public IEnumerable<T> Enumerate()
+			{
+                var cnt = Count;
+				if (cnt == 0)
+				{
+					yield break;
+				}
+                for (var i = 0; i < cnt; i++)
+                {
+                    var col = new T
+                    {
+                        ItagSequence = i + 1,
+                        Columnid = _columnid,
+                        RetrieveGrbit = RetrieveColumnGrbit.None
+                    };
+                    _c[0] = col;
+				    // ReSharper disable once CoVariantArrayConversion
+                    Api.RetrieveColumns(_table.Session, _table.Table, _c);
+					yield return _c[0];
+                }
+			}
 
             public T[] Values
             {
                 get
                 {
                     var cnt = Count;
+					if (cnt == 0)
+					{
+						return new T[0];
+					}
                     var r = new T[cnt];
                     for (var i = 0; i < cnt; i++)
                     {
@@ -181,10 +211,10 @@ namespace Imageboard10.Core.ModelStorage.Posts.EsentTables
                             Columnid = _columnid,
                             RetrieveGrbit = RetrieveColumnGrbit.None
                         };
-                        _c[0] = col;
-                        Api.RetrieveColumns(_table.Session, _table.Table, _c);
-                        r[i] = (T)_c[0];
+                        r[i] = col;
                     }
+                    // ReSharper disable once CoVariantArrayConversion
+                    Api.RetrieveColumns(_table.Session, _table.Table, r);
                     return r;
                 }
 				set
@@ -244,5 +274,248 @@ namespace Imageboard10.Core.ModelStorage.Posts.EsentTables
 		}
 
 		public DefaultView Columns { get; }
+
+	    public IEnumerable EnumerateToEnd()
+	    {
+	        while (Api.TryMoveNext(Session, Table))
+	        {
+	            yield return this;
+	        }
+	    }
+
+	    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+	    public void MoveBeforeFirst()
+	    {
+	        Api.MoveBeforeFirst(Session, Table);
+	    }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+	    public bool TryMoveFirst()
+	    {
+	        return Api.TryMoveFirst(Session, Table);
+	    }
+
+	    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+	    public bool TryMoveNext()
+	    {
+	        return Api.TryMoveNext(Session, Table);
+	    }
+
+	    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+	    public bool TryMoveNextUniqueKey()
+	    {
+	        return Api.TryMove(Session, Table, JET_Move.Next, MoveGrbit.MoveKeyNE);
+	    }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+	    public bool TryMovePrevious()
+	    {
+	        return Api.TryMovePrevious(Session, Table);
+	    }
+		
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+	    public void DeleteCurrentRow()
+	    {
+	        Api.JetDelete(Session, Table);
+	    }
+
+		public static class ViewValues
+		{
+
+			// ReSharper disable once InconsistentNaming
+			public struct IdKey
+			{
+				public int Id;
+			}
+
+			// ReSharper disable once InconsistentNaming
+			public struct SeqData
+			{
+				public int SequenceNumber;
+				public byte[] MediaData;
+			}
+
+			// ReSharper disable once InconsistentNaming
+			public struct SeqDataAll
+			{
+				public Int32ColumnValue[] EntityReferences;
+				public int SequenceNumber;
+				public byte[] MediaData;
+			}
+
+			// ReSharper disable once InconsistentNaming
+			public struct ERefView
+			{
+				public Int32ColumnValue[] EntityReferences;
+			}
+		}
+
+		public static class FetchViews {
+
+			// ReSharper disable once InconsistentNaming
+			public struct IdKey
+			{
+				private readonly MediaFiles _table;
+				private readonly ColumnValue[] _c;
+
+				public IdKey(MediaFiles table)
+				{
+					_table = table;
+
+					_c = new ColumnValue[1];
+					_c[0] = new Int32ColumnValue() {
+						Columnid = _table.ColumnDictionary[Column.Id],
+						RetrieveGrbit = RetrieveColumnGrbit.RetrieveFromPrimaryBookmark
+					};
+				}
+
+				public ViewValues.IdKey Fetch()
+				{
+					var r = new ViewValues.IdKey();
+					Api.RetrieveColumns(_table.Session, _table, _c);
+				    // ReSharper disable once PossibleInvalidOperationException
+					r.Id = ((Int32ColumnValue)_c[0]).Value.Value;
+					return r;
+				}
+			}
+
+			// ReSharper disable once InconsistentNaming
+			public struct SeqData
+			{
+				private readonly MediaFiles _table;
+				private readonly ColumnValue[] _c;
+
+				public SeqData(MediaFiles table)
+				{
+					_table = table;
+
+					_c = new ColumnValue[2];
+					_c[0] = new Int32ColumnValue() {
+						Columnid = _table.ColumnDictionary[Column.SequenceNumber],
+						RetrieveGrbit = RetrieveColumnGrbit.None
+					};
+					_c[1] = new BytesColumnValue() {
+						Columnid = _table.ColumnDictionary[Column.MediaData],
+						RetrieveGrbit = RetrieveColumnGrbit.None
+					};
+				}
+
+				public ViewValues.SeqData Fetch()
+				{
+					var r = new ViewValues.SeqData();
+					Api.RetrieveColumns(_table.Session, _table, _c);
+				    // ReSharper disable once PossibleInvalidOperationException
+					r.SequenceNumber = ((Int32ColumnValue)_c[0]).Value.Value;
+					r.MediaData = ((BytesColumnValue)_c[1]).Value;
+					return r;
+				}
+			}
+
+			// ReSharper disable once InconsistentNaming
+			public struct SeqDataAll
+			{
+				private readonly MediaFiles _table;
+				private readonly ColumnValue[] _c;
+
+				public SeqDataAll(MediaFiles table)
+				{
+					_table = table;
+
+					_c = new ColumnValue[2];
+					_c[0] = new Int32ColumnValue() {
+						Columnid = _table.ColumnDictionary[Column.SequenceNumber],
+						RetrieveGrbit = RetrieveColumnGrbit.None
+					};
+					_c[1] = new BytesColumnValue() {
+						Columnid = _table.ColumnDictionary[Column.MediaData],
+						RetrieveGrbit = RetrieveColumnGrbit.None
+					};
+				}
+
+				public ViewValues.SeqDataAll Fetch()
+				{
+					var r = new ViewValues.SeqDataAll();
+					Api.RetrieveColumns(_table.Session, _table, _c);
+				    // ReSharper disable once PossibleInvalidOperationException
+					r.SequenceNumber = ((Int32ColumnValue)_c[0]).Value.Value;
+					r.MediaData = ((BytesColumnValue)_c[1]).Value;
+					r.EntityReferences = _table.Columns.EntityReferences.Values;
+					return r;
+				}
+			}
+
+			// ReSharper disable once InconsistentNaming
+			public struct ERefView
+			{
+				private readonly MediaFiles _table;
+
+				public ERefView(MediaFiles table)
+				{
+					_table = table;
+				}
+
+				public ViewValues.ERefView Fetch()
+				{
+					var r = new ViewValues.ERefView();
+					r.EntityReferences = _table.Columns.EntityReferences.Values;
+					return r;
+				}
+			}
+	
+		}
+
+		public class TableFetchViews
+		{
+			private readonly MediaFiles _table;
+
+			public TableFetchViews(MediaFiles table)
+			{
+				_table = table;
+			}
+
+		    // ReSharper disable once InconsistentNaming
+			private FetchViews.SeqData? __fv_SeqData;
+			public FetchViews.SeqData SeqData
+			{
+				get
+				{
+					if (__fv_SeqData == null)
+					{
+						__fv_SeqData = new FetchViews.SeqData(_table);
+					}
+					return __fv_SeqData.Value;
+				}
+			}
+
+		    // ReSharper disable once InconsistentNaming
+			private FetchViews.SeqDataAll? __fv_SeqDataAll;
+			public FetchViews.SeqDataAll SeqDataAll
+			{
+				get
+				{
+					if (__fv_SeqDataAll == null)
+					{
+						__fv_SeqDataAll = new FetchViews.SeqDataAll(_table);
+					}
+					return __fv_SeqDataAll.Value;
+				}
+			}
+
+		    // ReSharper disable once InconsistentNaming
+			private FetchViews.ERefView? __fv_ERefView;
+			public FetchViews.ERefView ERefView
+			{
+				get
+				{
+					if (__fv_ERefView == null)
+					{
+						__fv_ERefView = new FetchViews.ERefView(_table);
+					}
+					return __fv_ERefView.Value;
+				}
+			}
+		}
+
+		public TableFetchViews Views { get; }
 	}
 }

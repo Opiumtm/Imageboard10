@@ -9,5 +9,6 @@ namespace CodeTemplates.Esent.Model
         Fetch = 0x0001,
         Insert = 0x0002,
         Update = 0x0004,
+        IndexFetch = 0x0008,
     }
 }

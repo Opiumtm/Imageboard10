@@ -35,8 +35,20 @@
     </Index>
   </Indexes>
   <Views>
-    <View Name="IdKey" Role="None">
+    <View Name="IdKey" Role="IndexFetch">
       <Field FetchFlags="FromPrimaryBookmark">Id</Field>
+    </View>
+    <View Name="SeqData" Role="Fetch">
+      <Field FetchFlags="Default">SequenceNumber</Field>
+      <Field FetchFlags="Default">MediaData</Field>
+    </View>
+    <View Name="SeqDataAll" Role="Fetch">
+      <Field FetchFlags="Default">EntityReferences</Field>
+      <Field FetchFlags="Default">SequenceNumber</Field>
+      <Field FetchFlags="Default">MediaData</Field>
+    </View>
+    <View Name="ERefView" Role="Fetch">
+      <Field FetchFlags="Default">EntityReferences</Field>
     </View>
   </Views>
 </Table>

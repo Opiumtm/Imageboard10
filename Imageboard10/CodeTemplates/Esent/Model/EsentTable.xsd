@@ -245,6 +245,7 @@
           <xs:enumeration value="Fetch" />
           <xs:enumeration value="Insert" />
           <xs:enumeration value="Update" />
+          <xs:enumeration value="IndexFetch" />
         </xs:restriction>
       </xs:simpleType>
     </xs:list>

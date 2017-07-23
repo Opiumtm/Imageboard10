@@ -43,6 +43,11 @@ namespace CodeTemplates.Esent.Model
             return !Grbit.HasFlag(EsentColumndefGrbit.NotNULL);
         }
 
+        public bool IsMultivalue()
+        {
+            return Grbit.HasFlag(EsentColumndefGrbit.MultiValued);
+        }
+
         public bool IsReferenceType()
         {
             return ReferenceTypes.Contains(Type);

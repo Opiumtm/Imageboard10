@@ -68,24 +68,8 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="Esent\GenerateEsentTable.txt">
-      <AutoGen>True</AutoGen>
-      <DesignTime>True</DesignTime>
-      <DependentUpon>GenerateEsentTable.tt</DependentUpon>
-    </Content>
-    <Content Include="Esent\Model\LoadModel.tt">
-      <Generator>TextTemplatingFileGenerator</Generator>
-      <LastGenOutput>LoadModel.txt</LastGenOutput>
-    </Content>
-    <Content Include="Esent\Model\LoadModel.txt">
-      <AutoGen>True</AutoGen>
-      <DesignTime>True</DesignTime>
-      <DependentUpon>LoadModel.tt</DependentUpon>
-    </Content>
-    <Content Include="Esent\GenerateEsentTable.tt">
-      <Generator>TextTemplatingFileGenerator</Generator>
-      <LastGenOutput>GenerateEsentTable.txt</LastGenOutput>
-    </Content>
+    <None Include="Esent\Model\LoadModel.tt" />
+    <None Include="Esent\GenerateEsentTable.tt" />
   </ItemGroup>
   <ItemGroup>
     <Service Include="{508349B6-6B84-4DF5-91F0-309BEEBAD82D}" />
