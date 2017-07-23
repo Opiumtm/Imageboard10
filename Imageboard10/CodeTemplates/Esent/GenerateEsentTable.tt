@@ -18,10 +18,14 @@ private void GenerateEsentTable(EsentTable table)
 		columnDic.Data[column.Name] = column;
 	}
 #>
+// ReSharper disable RedundantUsingDirective
 using System;
 using System.Collections.Generic;
 using Microsoft.Isam.Esent.Interop;
+using Microsoft.Isam.Esent.Interop.Vista;
+using Microsoft.Isam.Esent.Interop.Windows10;
 using System.Runtime.CompilerServices;
+// ReSharper enable RedundantUsingDirective
 
 // ReSharper disable once CheckNamespace
 namespace <#= table.Namespace #>
@@ -36,7 +40,7 @@ namespace <#= table.Namespace #>
             Session = session;
             Table = table;
 			_columnDic = null;
-			Values = new DefaultView(this);
+			Columns = new DefaultView(this);
         }
 
         public void Dispose()
@@ -100,6 +104,42 @@ namespace <#= table.Namespace #>
 			}
         }
 
+		public static void CreateColumnsAndIndexes(Session sid, JET_TABLEID tableid)
+		{
+			JET_COLUMNID tempcolid;
+<#+
+			foreach (var column in table.Columns) {
+#>
+            Api.JetAddColumn(sid, tableid, "<#= column.Name #>", new JET_COLUMNDEF()
+            {
+<#+
+				foreach (var s in column.GenerateCreateColumnLines()) {
+#>
+				<#= s #>
+<#+
+				}
+#>
+            }, null, 0, out tempcolid);			
+<#+
+			}
+#>
+
+<#+
+			if (table.Indexes != null)
+			{
+				int idxCnt = 0;
+				foreach (var i in table.Indexes)
+				{
+					idxCnt++;
+#>
+			var idxDef<#= idxCnt #> = "<#= i.GetIndexDefString() #>";
+			Api.JetCreateIndex(sid, tableid, "<#= i.Name #>", <#= i.GetJetIndexGrbitsString() #>, idxDef<#= idxCnt #>, idxDef<#= idxCnt #>.Length, 100);
+<#+
+				}
+			}
+#>
+		}
+
 		public struct Multivalue<T> where T : ColumnValue, new()
         {
             private readonly <#= table.Name #> _table;
@@ -148,6 +188,12 @@ namespace <#= table.Namespace #>
                     Api.RetrieveColumns(_table.Session, _table.Table, _c);
                     return (T)_c[0];
                 }
+				set
+				{
+                    _c[0] = value ?? throw new ArgumentNullException();
+					_c[0].ItagSequence = i + 1;
+                    Api.SetColumns(_table.Session, _table.Table, _c);
+				}
             }
 
             public T[] Values
@@ -170,6 +216,20 @@ namespace <#= table.Namespace #>
                     }
                     return r;
                 }
+				set
+				{
+					if (value == null)
+					{
+						throw new ArgumentNullException();
+					}
+					Clear();
+                    for (var i = 0; i < value.Length; i++)
+                    {
+						value[i].ItagSequence = i + 1;
+					}
+				    // ReSharper disable once CoVariantArrayConversion
+                    Api.SetColumns(_table.Session, _table.Table, value);
+				}
             }
         }
 
@@ -185,7 +245,7 @@ namespace <#= table.Namespace #>
 #>
 
 		    // ReSharper disable once InconsistentNaming
-			private readonly Multivalue<<#= __GenerateEsentTableColumnValueType(columnDic, column.Name) #>> __mv_<#= column.Name #>;
+			private readonly Multivalue<<#= column.GetColumnValueType() #>> __mv_<#= column.Name #>;
 <#+
 			}
 			}
@@ -200,7 +260,7 @@ namespace <#= table.Namespace #>
 				if (column.Grbit.HasFlag(EsentColumndefGrbit.MultiValued))
 				{
 #>
-				__mv_<#= column.Name #> = new Multivalue<<#= __GenerateEsentTableColumnValueType(columnDic, column.Name) #>>(table, table.ColumnDictionary[Column.<#= column.Name #>]);
+				__mv_<#= column.Name #> = new Multivalue<<#= column.GetColumnValueType() #>>(table, table.ColumnDictionary[Column.<#= column.Name #>]);
 <#+
 				}
 				}
@@ -213,17 +273,17 @@ namespace <#= table.Namespace #>
 #>
 
 		    // ReSharper disable once ConvertToAutoProperty
-			public Multivalue<<#= __GenerateEsentTableColumnValueType(columnDic, column.Name) #>> <#= column.Name #> => __mv_<#= column.Name #>;
+			public Multivalue<<#= column.GetColumnValueType() #>> <#= column.Name #> => __mv_<#= column.Name #>;
 <#+
 			} else {
 #>
 
-			public <#= __GenerateEsentTableFieldType(columnDic, column.Name, false) #> <#= column.Name #>
+			public <#= column.GetNetType() #> <#= column.Name #>
 			{
 			    // ReSharper disable once PossibleInvalidOperationException
-				get => <#= __GenerateEsentTableRetrieveColumnExpr(columnDic, column.Name, "_table", false) #>;
+				get => <#= __GenerateEsentTableRetrieveColumnExpr(columnDic, column.Name, "_table", null) #>;
 <#+
-				if (!(column.Type == EsentColtyp.Binary || column.Type == EsentColtyp.LongBinary) && !column.Grbit.HasFlag(EsentColumndefGrbit.NotNULL))
+				if (column.IsNullable() && !column.IsReferenceType())
 				{
 #>
 				set {
@@ -250,7 +310,7 @@ namespace <#= table.Namespace #>
 #>
 		}
 
-		public DefaultView Values { get; }
+		public DefaultView Columns { get; }
 	}
 }
 <#+
@@ -261,221 +321,14 @@ private struct __ColumnDic
 	public Dictionary<string, EsentColumndef> Data;
 }
 
-private string __GenerateEsentTableRetrieveColumnExpr(__ColumnDic columns, string name, string tableArg, bool forceNullable)
+private string __GenerateEsentTableRetrieveColumnExpr(__ColumnDic columns, string name, string tableArg, bool? forceNullable)
 {
 	var cd = columns.Data[name];
-	switch (cd.Type)
+	var funcName = cd.GetRetrieveFuncName();
+	if ((forceNullable ?? cd.IsNullable()) || cd.IsReferenceType())
 	{
-		case EsentColtyp.Byte:
-			if (cd.Grbit.HasFlag(EsentColumndefGrbit.NotNULL) && !forceNullable)
-			{
-				return string.Format("Api.RetrieveColumnAsByte({0}.Session, {0}, {0}.ColumnDictionary[Column.{1}]).Value", tableArg, name);
-			}
-			return string.Format("Api.RetrieveColumnAsByte({0}.Session, {0}, {0}.ColumnDictionary[Column.{1}])", tableArg, name);
-		case EsentColtyp.Boolean:
-			if (cd.Grbit.HasFlag(EsentColumndefGrbit.NotNULL) && !forceNullable)
-			{
-				return string.Format("Api.RetrieveColumnAsBoolean({0}.Session, {0}, {0}.ColumnDictionary[Column.{1}]).Value", tableArg, name);
-			}
-			return string.Format("Api.RetrieveColumnAsBoolean({0}.Session, {0}, {0}.ColumnDictionary[Column.{1}])", tableArg, name);
-		case EsentColtyp.SignedInt16:
-			if (cd.Grbit.HasFlag(EsentColumndefGrbit.NotNULL) && !forceNullable)
-			{
-				return string.Format("Api.RetrieveColumnAsInt16({0}.Session, {0}, {0}.ColumnDictionary[Column.{1}]).Value", tableArg, name);
-			}
-			return string.Format("Api.RetrieveColumnAsInt16({0}.Session, {0}, {0}.ColumnDictionary[Column.{1}])", tableArg, name);
-		case EsentColtyp.UnsignedInt16:
-			if (cd.Grbit.HasFlag(EsentColumndefGrbit.NotNULL) && !forceNullable)
-			{
-				return string.Format("Api.RetrieveColumnAsUInt16({0}.Session, {0}, {0}.ColumnDictionary[Column.{1}]).Value", tableArg, name);
-			}
-			return string.Format("Api.RetrieveColumnAsUInt16({0}.Session, {0}, {0}.ColumnDictionary[Column.{1}])", tableArg, name);
-		case EsentColtyp.SignedInt32:
-			if (cd.Grbit.HasFlag(EsentColumndefGrbit.NotNULL) && !forceNullable)
-			{
-				return string.Format("Api.RetrieveColumnAsInt32({0}.Session, {0}, {0}.ColumnDictionary[Column.{1}]).Value", tableArg, name);
-			}
-			return string.Format("Api.RetrieveColumnAsInt32({0}.Session, {0}, {0}.ColumnDictionary[Column.{1}])", tableArg, name);
-		case EsentColtyp.UnsignedInt32:
-			if (cd.Grbit.HasFlag(EsentColumndefGrbit.NotNULL) && !forceNullable)
-			{
-				return string.Format("Api.RetrieveColumnAsUInt32({0}.Session, {0}, {0}.ColumnDictionary[Column.{1}]).Value", tableArg, name);
-			}
-			return string.Format("Api.RetrieveColumnAsUInt32({0}.Session, {0}, {0}.ColumnDictionary[Column.{1}])", tableArg, name);
-		case EsentColtyp.SignedInt64:
-			if (cd.Grbit.HasFlag(EsentColumndefGrbit.NotNULL) && !forceNullable)
-			{
-				return string.Format("Api.RetrieveColumnAsInt64({0}.Session, {0}, {0}.ColumnDictionary[Column.{1}]).Value", tableArg, name);
-			}
-			return string.Format("Api.RetrieveColumnAsInt64({0}.Session, {0}, {0}.ColumnDictionary[Column.{1}])", tableArg, name);
-		case EsentColtyp.UnsignedInt64:
-			if (cd.Grbit.HasFlag(EsentColumndefGrbit.NotNULL) && !forceNullable)
-			{
-				return string.Format("Api.RetrieveColumnAsUInt64({0}.Session, {0}, {0}.ColumnDictionary[Column.{1}]).Value", tableArg, name);
-			}
-			return string.Format("Api.RetrieveColumnAsUInt64({0}.Session, {0}, {0}.ColumnDictionary[Column.{1}])", tableArg, name);
-		case EsentColtyp.Float:
-			if (cd.Grbit.HasFlag(EsentColumndefGrbit.NotNULL) && !forceNullable)
-			{
-				return string.Format("Api.RetrieveColumnAsFloat({0}.Session, {0}, {0}.ColumnDictionary[Column.{1}]).Value", tableArg, name);
-			}
-			return string.Format("Api.RetrieveColumnAsFloat({0}.Session, {0}, {0}.ColumnDictionary[Column.{1}])", tableArg, name);
-		case EsentColtyp.Double:
-			if (cd.Grbit.HasFlag(EsentColumndefGrbit.NotNULL) && !forceNullable)
-			{
-				return string.Format("Api.RetrieveColumnAsDouble({0}.Session, {0}, {0}.ColumnDictionary[Column.{1}]).Value", tableArg, name);
-			}
-			return string.Format("Api.RetrieveColumnAsDouble({0}.Session, {0}, {0}.ColumnDictionary[{Column.1}])", tableArg, name);
-		case EsentColtyp.DateTime:
-			if (cd.Grbit.HasFlag(EsentColumndefGrbit.NotNULL) && !forceNullable)
-			{
-				return string.Format("Api.RetrieveColumnAsDateTime({0}.Session, {0}, {0}.ColumnDictionary[Column.{1}]).Value", tableArg, name);
-			}
-			return string.Format("Api.RetrieveColumnAsDateTime({0}.Session, {0}, {0}.ColumnDictionary[Column.{1}])", tableArg, name);
-		case EsentColtyp.Binary:
-		case EsentColtyp.LongBinary:
-			return string.Format("Api.RetrieveColumn({0}.Session, {0}, {0}.ColumnDictionary[Column.{1}])", tableArg, name);
-		case EsentColtyp.Text:
-		case EsentColtyp.LongText:
-			return string.Format("Api.RetrieveColumnAsText({0}.Session, {0}, {0}.ColumnDictionary[Column.{1}])", tableArg, name);
-		case EsentColtyp.Guid:
-			if (cd.Grbit.HasFlag(EsentColumndefGrbit.NotNULL) && !forceNullable)
-			{
-				return string.Format("Api.RetrieveColumnAsGuid({0}.Session, {0}, {0}.ColumnDictionary[Column.{1}]).Value", tableArg, name);
-			}
-			return string.Format("Api.RetrieveColumnAsGuid({0}.Session, {0}, {0}.ColumnDictionary[Column.{1}])", tableArg, name);
-		default:
-			throw new ArgumentOutOfRangeException();
+		return string.Format("{2}({0}.Session, {0}, {0}.ColumnDictionary[Column.{1}])", tableArg, name, funcName);
 	}
-}
-
-private readonly HashSet<EsentColtyp> __GenerateEsentTableRefTypeColumns = new HashSet<EsentColtyp>() { EsentColtyp.Binary, EsentColtyp.LongBinary, EsentColtyp.Text, EsentColtyp.LongText };
-
-private string __GenerateEsentTableFieldType(__ColumnDic columns, string name, bool forceNullable)
-{
-	var cd = columns.Data[name];
-	switch (cd.Type)
-	{
-		case EsentColtyp.Byte:
-			if (cd.Grbit.HasFlag(EsentColumndefGrbit.NotNULL) && !forceNullable)
-			{
-				return "byte";
-			}
-			return "byte?";
-		case EsentColtyp.Boolean:
-			if (cd.Grbit.HasFlag(EsentColumndefGrbit.NotNULL) && !forceNullable)
-			{
-				return "bool";
-			}
-			return "bool?";
-		case EsentColtyp.SignedInt16:
-			if (cd.Grbit.HasFlag(EsentColumndefGrbit.NotNULL) && !forceNullable)
-			{
-				return "short";
-			}
-			return "short?";
-		case EsentColtyp.UnsignedInt16:
-			if (cd.Grbit.HasFlag(EsentColumndefGrbit.NotNULL) && !forceNullable)
-			{
-				return "ushort";
-			}
-			return "ushort?";
-		case EsentColtyp.SignedInt32:
-			if (cd.Grbit.HasFlag(EsentColumndefGrbit.NotNULL) && !forceNullable)
-			{
-				return "int";
-			}
-			return "int?";
-		case EsentColtyp.UnsignedInt32:
-			if (cd.Grbit.HasFlag(EsentColumndefGrbit.NotNULL) && !forceNullable)
-			{
-				return "uint";
-			}
-			return "uint?";
-		case EsentColtyp.SignedInt64:
-			if (cd.Grbit.HasFlag(EsentColumndefGrbit.NotNULL) && !forceNullable)
-			{
-				return "long";
-			}
-			return "long?";
-		case EsentColtyp.UnsignedInt64:
-			if (cd.Grbit.HasFlag(EsentColumndefGrbit.NotNULL) && !forceNullable)
-			{
-				return "ulong";
-			}
-			return "ulong?";
-		case EsentColtyp.Float:
-			if (cd.Grbit.HasFlag(EsentColumndefGrbit.NotNULL) && !forceNullable)
-			{
-				return "float";
-			}
-			return "float?";
-		case EsentColtyp.Double:
-			if (cd.Grbit.HasFlag(EsentColumndefGrbit.NotNULL) && !forceNullable)
-			{
-				return "double";
-			}
-			return "double?";
-		case EsentColtyp.DateTime:
-			if (cd.Grbit.HasFlag(EsentColumndefGrbit.NotNULL) && !forceNullable)
-			{
-				return "DateTime";
-			}
-			return "DateTime?";
-		case EsentColtyp.Binary:
-		case EsentColtyp.LongBinary:
-			return "byte[]";
-		case EsentColtyp.Text:
-		case EsentColtyp.LongText:
-			return "string";
-		case EsentColtyp.Guid:
-			if (cd.Grbit.HasFlag(EsentColumndefGrbit.NotNULL) && !forceNullable)
-			{
-				return "Guid";
-			}
-			return "Guid?";
-		default:
-			throw new ArgumentOutOfRangeException();
-	}
-}
-
-private string __GenerateEsentTableColumnValueType(__ColumnDic columns, string name)
-{
-	var cd = columns.Data[name];
-	switch (cd.Type)
-	{
-		case EsentColtyp.Byte:
-			return "ByteColumnValue";
-		case EsentColtyp.Boolean:
-			return "BoolColumnValue";
-		case EsentColtyp.SignedInt16:
-			return "Int16ColumnValue";
-		case EsentColtyp.UnsignedInt16:
-			return "UInt16ColumnValue";
-		case EsentColtyp.SignedInt32:
-			return "Int32ColumnValue";
-		case EsentColtyp.UnsignedInt32:
-			return "UInt32ColumnValue";
-		case EsentColtyp.SignedInt64:
-			return "Int64ColumnValue";
-		case EsentColtyp.UnsignedInt64:
-			return "UInt64ColumnValue";
-		case EsentColtyp.Float:
-			return "FloatColumnValue";
-		case EsentColtyp.Double:
-			return "DoubleColumnValue";
-		case EsentColtyp.DateTime:
-			return "DateTimeColumnValue";
-		case EsentColtyp.Binary:
-		case EsentColtyp.LongBinary:
-			return "BytesColumnValue";
-		case EsentColtyp.Text:
-		case EsentColtyp.LongText:
-			return "StringColumnValue";
-		case EsentColtyp.Guid:
-			return "GuidColumnValue";
-		default:
-			throw new ArgumentOutOfRangeException();
-	}
+	return string.Format("{2}({0}.Session, {0}, {0}.ColumnDictionary[Column.{1}]).Value", tableArg, name, funcName);
 }
 #>

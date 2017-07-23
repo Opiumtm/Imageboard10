@@ -7,6 +7,11 @@
     <Column Name="MediaData" Type="LongBinary" Grbit="None" />
   </Columns>
   <Indexes>
+    <Index Name="Primary" Grbit="Primary Unique">
+      <Fields>
+        <Field Name="Id" />
+      </Fields>
+    </Index>
     <Index Name="EntityReferences" Grbit="IgnoreAnyNull">
       <Fields>
         <Field Name="EntityReferences" />

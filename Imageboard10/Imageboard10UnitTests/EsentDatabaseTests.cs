@@ -766,6 +766,119 @@ namespace Imageboard10UnitTests
 
         [TestMethod]
         [TestCategory("ESENT")]
+        public async Task TestIndexesSameNameOnDifferentTables()
+        {
+            await RunEsentTest(async (provider, testData) =>
+            {
+                IEsentSession session = provider.MainSession;
+                const string idColumn = "Id";
+                const string valueColumn = "Value";
+
+                async Task CreateTestTable(string name, KeyValuePair<int, int>[] toAdd)
+                {
+                    await session.RunInTransaction(() =>
+                    {
+                        var sid = session.Session;
+                        var dbid = session.Database;
+                        JET_TABLEID tableid;
+                        JET_COLUMNID tempid;
+                        JET_COLUMNID tagId;
+                        Api.JetCreateTable(sid, dbid, name, 0, 100, out tableid);
+                        Api.JetAddColumn(sid, tableid, idColumn, new JET_COLUMNDEF()
+                        {
+                            coltyp = JET_coltyp.Long,
+                            grbit = ColumndefGrbit.ColumnNotNULL
+                        }, null, 0, out tempid);
+                        Api.JetAddColumn(sid, tableid, valueColumn, new JET_COLUMNDEF()
+                        {
+                            coltyp = JET_coltyp.Long,
+                            grbit = ColumndefGrbit.ColumnNotNULL
+                        }, null, 0, out tempid);
+                        const string indexName = "IX_Value";
+                        const string pkDef = "+Id\0\0";
+                        const string ixDef = "+Value\0\0";
+                        Api.JetCreateIndex(sid, tableid, "PK", CreateIndexGrbit.IndexPrimary | CreateIndexGrbit.IndexUnique, pkDef, pkDef.Length, 100);
+                        Api.JetCreateIndex(sid, tableid, indexName, CreateIndexGrbit.IndexIgnoreAnyNull, ixDef, ixDef.Length, 100);
+
+                        foreach (var kv in toAdd)
+                        {
+                            var idCol = Api.GetTableColumnid(sid, tableid, "Id");
+                            var valueCol = Api.GetTableColumnid(sid, tableid, "Value");
+                            using (var update = new Update(sid, tableid, JET_prep.Insert))
+                            {
+                                Api.SetColumn(sid, tableid, idCol, kv.Key);
+                                Api.SetColumn(sid, tableid, valueCol, kv.Value);
+                                update.Save();
+                            }
+                        }
+                        Api.JetCloseTable(sid, tableid);
+                        return true;
+                    });
+                }
+
+                var table1 = new []
+                {
+                    new KeyValuePair<int, int>(1, 5), 
+                    new KeyValuePair<int, int>(2, 7),
+                    new KeyValuePair<int, int>(3, 4),
+                    new KeyValuePair<int, int>(4, 1),
+                };
+
+                var table2 = new []
+                {
+                    new KeyValuePair<int, int>(10, 15),
+                    new KeyValuePair<int, int>(12, 17),
+                    new KeyValuePair<int, int>(13, 14),
+                    new KeyValuePair<int, int>(14, 11),
+                };
+
+                await CreateTestTable("test1", table1);
+                await CreateTestTable("test2", table2);
+
+                async Task AssertTestTable(string name, KeyValuePair<int, int>[] toAdd)
+                {
+                    var session2 = await provider.GetSecondarySession();
+                    using (session2.UseSession())
+                    {
+                        var dic1 = toAdd.ToDictionary(kv => kv.Key, kv => kv.Value);
+                        var dic2 = toAdd.ToDictionary(kv => kv.Value, kv => kv.Key);
+                        await session2.Run(() =>
+                        {
+                            using (var table = session2.OpenTable(name, OpenTableGrbit.ReadOnly))
+                            {
+                                var idColid = table.GetColumnid("Id");
+                                var valueColid = table.GetColumnid("Value");
+                                Api.JetSetCurrentIndex(table.Session, table, "PK");
+                                foreach (var kv in dic1)
+                                {
+                                    Api.MakeKey(table.Session, table, kv.Key, MakeKeyGrbit.NewKey);
+                                    Assert.IsTrue(Api.TrySeek(table.Session, table, SeekGrbit.SeekEQ));
+                                    var tv = Api.RetrieveColumnAsInt32(table.Session, table, valueColid);
+                                    Assert.IsNotNull(tv);
+                                    Assert.AreEqual(kv.Value, tv.Value);
+                                }
+                                Api.JetSetCurrentIndex(table.Session, table, "IX_Value");
+                                foreach (var kv in dic2)
+                                {
+                                    Api.MakeKey(table.Session, table, kv.Key, MakeKeyGrbit.NewKey);
+                                    Assert.IsTrue(Api.TrySeek(table.Session, table, SeekGrbit.SeekEQ));
+                                    var tv = Api.RetrieveColumnAsInt32(table.Session, table, idColid);
+                                    Assert.IsNotNull(tv);
+                                    Assert.AreEqual(kv.Value, tv.Value);
+                                }
+                            }
+                            return Nothing.Value;
+                        });
+                    }
+                }
+
+                await AssertTestTable("test1", table1);
+                await AssertTestTable("test2", table2);
+            });
+        }
+
+        [TestMethod]
+        [TestCategory("ESENT")]
         public async Task EsentParallelUpdatesTest()
         {
             await RunEsentTest(async (provider, testData) =>

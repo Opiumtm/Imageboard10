@@ -1,9 +1,13 @@
 ﻿
 
+// ReSharper disable RedundantUsingDirective
 using System;
 using System.Collections.Generic;
 using Microsoft.Isam.Esent.Interop;
+using Microsoft.Isam.Esent.Interop.Vista;
+using Microsoft.Isam.Esent.Interop.Windows10;
 using System.Runtime.CompilerServices;
+// ReSharper enable RedundantUsingDirective
 
 // ReSharper disable once CheckNamespace
 namespace Imageboard10.Core.ModelStorage.Posts.EsentTables
@@ -18,7 +22,7 @@ namespace Imageboard10.Core.ModelStorage.Posts.EsentTables
             Session = session;
             Table = table;
 			_columnDic = null;
-			Values = new DefaultView(this);
+			Columns = new DefaultView(this);
         }
 
         public void Dispose()
@@ -76,6 +80,37 @@ namespace Imageboard10.Core.ModelStorage.Posts.EsentTables
 			}
         }
 
+		public static void CreateColumnsAndIndexes(Session sid, JET_TABLEID tableid)
+		{
+			JET_COLUMNID tempcolid;
+            Api.JetAddColumn(sid, tableid, "Id", new JET_COLUMNDEF()
+            {
+				coltyp = JET_coltyp.Long,
+				grbit = ColumndefGrbit.ColumnNotNULL | ColumndefGrbit.ColumnAutoincrement,
+            }, null, 0, out tempcolid);			
+            Api.JetAddColumn(sid, tableid, "EntityReferences", new JET_COLUMNDEF()
+            {
+				coltyp = JET_coltyp.Long,
+				grbit = ColumndefGrbit.ColumnTagged | ColumndefGrbit.ColumnMultiValued,
+            }, null, 0, out tempcolid);			
+            Api.JetAddColumn(sid, tableid, "SequenceNumber", new JET_COLUMNDEF()
+            {
+				coltyp = JET_coltyp.Long,
+				grbit = ColumndefGrbit.ColumnNotNULL,
+            }, null, 0, out tempcolid);			
+            Api.JetAddColumn(sid, tableid, "MediaData", new JET_COLUMNDEF()
+            {
+				coltyp = JET_coltyp.LongBinary,
+				grbit = ColumndefGrbit.None,
+            }, null, 0, out tempcolid);			
+			var idxDef1 = "+Id\0\0";
+			Api.JetCreateIndex(sid, tableid, "Primary", CreateIndexGrbit.IndexUnique | CreateIndexGrbit.IndexPrimary, idxDef1, idxDef1.Length, 100);
+			var idxDef2 = "+EntityReferences\0\0";
+			Api.JetCreateIndex(sid, tableid, "EntityReferences", CreateIndexGrbit.IndexIgnoreAnyNull, idxDef2, idxDef2.Length, 100);
+			var idxDef3 = "+EntityReferences\0+SequenceNumber\0\0";
+			Api.JetCreateIndex(sid, tableid, "Sequences", CreateIndexGrbit.IndexIgnoreAnyNull, idxDef3, idxDef3.Length, 100);
+		}
+
 		public struct Multivalue<T> where T : ColumnValue, new()
         {
             private readonly MediaFiles _table;
@@ -124,6 +159,12 @@ namespace Imageboard10.Core.ModelStorage.Posts.EsentTables
                     Api.RetrieveColumns(_table.Session, _table.Table, _c);
                     return (T)_c[0];
                 }
+				set
+				{
+                    _c[0] = value ?? throw new ArgumentNullException();
+					_c[0].ItagSequence = i + 1;
+                    Api.SetColumns(_table.Session, _table.Table, _c);
+				}
             }
 
             public T[] Values
@@ -146,6 +187,20 @@ namespace Imageboard10.Core.ModelStorage.Posts.EsentTables
                     }
                     return r;
                 }
+				set
+				{
+					if (value == null)
+					{
+						throw new ArgumentNullException();
+					}
+					Clear();
+                    for (var i = 0; i < value.Length; i++)
+                    {
+						value[i].ItagSequence = i + 1;
+					}
+				    // ReSharper disable once CoVariantArrayConversion
+                    Api.SetColumns(_table.Session, _table.Table, value);
+				}
             }
         }
 
@@ -188,6 +243,6 @@ namespace Imageboard10.Core.ModelStorage.Posts.EsentTables
 			}
 		}
 
-		public DefaultView Values { get; }
+		public DefaultView Columns { get; }
 	}
 }
