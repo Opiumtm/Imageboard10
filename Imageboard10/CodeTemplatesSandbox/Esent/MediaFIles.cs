@@ -97,7 +97,7 @@ namespace Imageboard10.Core.ModelStorage.Posts.EsentTables
             }, null, 0, out tempcolid);			
             Api.JetAddColumn(sid, tableid, "SequenceNumber", new JET_COLUMNDEF()
             {
-				coltyp = JET_coltyp.Long,
+				coltyp = JET_coltyp.Currency,
 				grbit = ColumndefGrbit.ColumnNotNULL,
             }, null, 0, out tempcolid);			
             Api.JetAddColumn(sid, tableid, "MediaData", new JET_COLUMNDEF()
@@ -245,31 +245,31 @@ namespace Imageboard10.Core.ModelStorage.Posts.EsentTables
 			public DefaultView(MediaFiles table)
 			{
 				_table = table;
-				__mv_EntityReferences = new Multivalue<Int32ColumnValue>(table, table.ColumnDictionary[Column.EntityReferences]);
+				__mv_EntityReferences = new Multivalue<Int32ColumnValue>(table, table.ColumnDictionary[MediaFiles.Column.EntityReferences]);
 			}
 
 			public int Id
 			{
 			    // ReSharper disable once PossibleInvalidOperationException
-				get => Api.RetrieveColumnAsInt32(_table.Session, _table, _table.ColumnDictionary[Column.Id]).Value;
-				set => Api.SetColumn(_table.Session, _table, _table.ColumnDictionary[Column.Id], value);
+				get => Api.RetrieveColumnAsInt32(_table.Session, _table, _table.ColumnDictionary[MediaFiles.Column.Id]).Value;
+				set => Api.SetColumn(_table.Session, _table, _table.ColumnDictionary[MediaFiles.Column.Id], value);
 			}
 
 		    // ReSharper disable once ConvertToAutoProperty
 			public Multivalue<Int32ColumnValue> EntityReferences => __mv_EntityReferences;
 
-			public int SequenceNumber
+			public long SequenceNumber
 			{
 			    // ReSharper disable once PossibleInvalidOperationException
-				get => Api.RetrieveColumnAsInt32(_table.Session, _table, _table.ColumnDictionary[Column.SequenceNumber]).Value;
-				set => Api.SetColumn(_table.Session, _table, _table.ColumnDictionary[Column.SequenceNumber], value);
+				get => Api.RetrieveColumnAsInt64(_table.Session, _table, _table.ColumnDictionary[MediaFiles.Column.SequenceNumber]).Value;
+				set => Api.SetColumn(_table.Session, _table, _table.ColumnDictionary[MediaFiles.Column.SequenceNumber], value);
 			}
 
 			public byte[] MediaData
 			{
 			    // ReSharper disable once PossibleInvalidOperationException
-				get => Api.RetrieveColumn(_table.Session, _table, _table.ColumnDictionary[Column.MediaData]);
-				set => Api.SetColumn(_table.Session, _table, _table.ColumnDictionary[Column.MediaData], value);
+				get => Api.RetrieveColumn(_table.Session, _table, _table.ColumnDictionary[MediaFiles.Column.MediaData]);
+				set => Api.SetColumn(_table.Session, _table, _table.ColumnDictionary[MediaFiles.Column.MediaData], value);
 			}
 		}
 
@@ -331,7 +331,7 @@ namespace Imageboard10.Core.ModelStorage.Posts.EsentTables
 			// ReSharper disable once InconsistentNaming
 			public struct SeqData
 			{
-				public int SequenceNumber;
+				public long SequenceNumber;
 				public byte[] MediaData;
 			}
 
@@ -339,7 +339,7 @@ namespace Imageboard10.Core.ModelStorage.Posts.EsentTables
 			public struct SeqDataAll
 			{
 				public Int32ColumnValue[] EntityReferences;
-				public int SequenceNumber;
+				public long SequenceNumber;
 				public byte[] MediaData;
 			}
 
@@ -364,7 +364,7 @@ namespace Imageboard10.Core.ModelStorage.Posts.EsentTables
 
 					_c = new ColumnValue[1];
 					_c[0] = new Int32ColumnValue() {
-						Columnid = _table.ColumnDictionary[Column.Id],
+						Columnid = _table.ColumnDictionary[MediaFiles.Column.Id],
 						RetrieveGrbit = RetrieveColumnGrbit.RetrieveFromPrimaryBookmark
 					};
 				}
@@ -390,12 +390,12 @@ namespace Imageboard10.Core.ModelStorage.Posts.EsentTables
 					_table = table;
 
 					_c = new ColumnValue[2];
-					_c[0] = new Int32ColumnValue() {
-						Columnid = _table.ColumnDictionary[Column.SequenceNumber],
+					_c[0] = new Int64ColumnValue() {
+						Columnid = _table.ColumnDictionary[MediaFiles.Column.SequenceNumber],
 						RetrieveGrbit = RetrieveColumnGrbit.None
 					};
 					_c[1] = new BytesColumnValue() {
-						Columnid = _table.ColumnDictionary[Column.MediaData],
+						Columnid = _table.ColumnDictionary[MediaFiles.Column.MediaData],
 						RetrieveGrbit = RetrieveColumnGrbit.None
 					};
 				}
@@ -405,7 +405,7 @@ namespace Imageboard10.Core.ModelStorage.Posts.EsentTables
 					var r = new ViewValues.SeqData();
 					Api.RetrieveColumns(_table.Session, _table, _c);
 				    // ReSharper disable once PossibleInvalidOperationException
-					r.SequenceNumber = ((Int32ColumnValue)_c[0]).Value.Value;
+					r.SequenceNumber = ((Int64ColumnValue)_c[0]).Value.Value;
 					r.MediaData = ((BytesColumnValue)_c[1]).Value;
 					return r;
 				}
@@ -422,12 +422,12 @@ namespace Imageboard10.Core.ModelStorage.Posts.EsentTables
 					_table = table;
 
 					_c = new ColumnValue[2];
-					_c[0] = new Int32ColumnValue() {
-						Columnid = _table.ColumnDictionary[Column.SequenceNumber],
+					_c[0] = new Int64ColumnValue() {
+						Columnid = _table.ColumnDictionary[MediaFiles.Column.SequenceNumber],
 						RetrieveGrbit = RetrieveColumnGrbit.None
 					};
 					_c[1] = new BytesColumnValue() {
-						Columnid = _table.ColumnDictionary[Column.MediaData],
+						Columnid = _table.ColumnDictionary[MediaFiles.Column.MediaData],
 						RetrieveGrbit = RetrieveColumnGrbit.None
 					};
 				}
@@ -437,7 +437,7 @@ namespace Imageboard10.Core.ModelStorage.Posts.EsentTables
 					var r = new ViewValues.SeqDataAll();
 					Api.RetrieveColumns(_table.Session, _table, _c);
 				    // ReSharper disable once PossibleInvalidOperationException
-					r.SequenceNumber = ((Int32ColumnValue)_c[0]).Value.Value;
+					r.SequenceNumber = ((Int64ColumnValue)_c[0]).Value.Value;
 					r.MediaData = ((BytesColumnValue)_c[1]).Value;
 					r.EntityReferences = _table.Columns.EntityReferences.Values;
 					return r;
@@ -517,5 +517,221 @@ namespace Imageboard10.Core.ModelStorage.Posts.EsentTables
 		}
 
 		public TableFetchViews Views { get; }
+
+		public static class IndexDefinitions
+		{
+
+			public struct Primary
+			{
+				private readonly MediaFiles _table;
+
+				public Primary(MediaFiles table)
+				{
+					_table = table;
+				}
+
+				public void SetAsCurrentIndex()
+				{
+					Api.JetSetCurrentIndex(_table.Session, _table, "Primary");
+				}
+
+				public struct PrimaryKey
+				{
+					public int Id;
+				}
+
+				public void SetKey(PrimaryKey key)
+				{
+					Api.MakeKey(_table.Session, _table, key.Id, MakeKeyGrbit.NewKey);
+				}
+
+				public bool Find(PrimaryKey key)
+				{
+					SetKey(key);
+					return Api.TrySeek(_table.Session, _table, SeekGrbit.SeekEQ);
+				}
+
+				public IEnumerable Enumerate(PrimaryKey key)
+				{
+					SetKey(key);
+					if (Api.TrySeek(_table.Session, _table, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange))
+					{
+						do {
+							yield return _table;
+						} while (Api.TryMoveNext(_table.Session, _table));
+					}
+				}
+
+				public IEnumerable EnumerateUnique(PrimaryKey key)
+				{
+					SetKey(key);
+					if (Api.TrySeek(_table.Session, _table, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange))
+					{
+						do {
+							yield return _table;
+						} while (Api.TryMove(_table.Session, _table, JET_Move.Next, MoveGrbit.MoveKeyNE));
+					}
+				}
+
+			    public int GetIndexRecordCount()
+			    {
+			        int r;
+			        Api.JetIndexRecordCount(_table.Session, _table, out r, int.MaxValue);
+			        return r;
+			    }
+
+			    public int GetIndexRecordCount(PrimaryKey key)
+			    {
+			        Find(key);
+			        return GetIndexRecordCount();
+			    }
+			}
+
+			public struct EntityReferences
+			{
+				private readonly MediaFiles _table;
+
+				public EntityReferences(MediaFiles table)
+				{
+					_table = table;
+				}
+
+				public void SetAsCurrentIndex()
+				{
+					Api.JetSetCurrentIndex(_table.Session, _table, "EntityReferences");
+				}
+
+				public struct EntityReferencesKey
+				{
+					public int? EntityReferences;
+				}
+
+				public void SetKey(EntityReferencesKey key)
+				{
+					if (key.EntityReferences == null)
+					{
+						Api.MakeKey(_table.Session, _table, null, MakeKeyGrbit.NewKey);
+					} else
+					{
+						Api.MakeKey(_table.Session, _table, key.EntityReferences.Value, MakeKeyGrbit.NewKey);
+					}
+				}
+
+				public bool Find(EntityReferencesKey key)
+				{
+					SetKey(key);
+					return Api.TrySeek(_table.Session, _table, SeekGrbit.SeekEQ);
+				}
+
+				public IEnumerable Enumerate(EntityReferencesKey key)
+				{
+					SetKey(key);
+					if (Api.TrySeek(_table.Session, _table, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange))
+					{
+						do {
+							yield return _table;
+						} while (Api.TryMoveNext(_table.Session, _table));
+					}
+				}
+
+				public IEnumerable EnumerateUnique(EntityReferencesKey key)
+				{
+					SetKey(key);
+					if (Api.TrySeek(_table.Session, _table, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange))
+					{
+						do {
+							yield return _table;
+						} while (Api.TryMove(_table.Session, _table, JET_Move.Next, MoveGrbit.MoveKeyNE));
+					}
+				}
+
+			    public int GetIndexRecordCount()
+			    {
+			        int r;
+			        Api.JetIndexRecordCount(_table.Session, _table, out r, int.MaxValue);
+			        return r;
+			    }
+
+			    public int GetIndexRecordCount(EntityReferencesKey key)
+			    {
+			        Find(key);
+			        return GetIndexRecordCount();
+			    }
+			}
+
+			public struct Sequences
+			{
+				private readonly MediaFiles _table;
+
+				public Sequences(MediaFiles table)
+				{
+					_table = table;
+				}
+
+				public void SetAsCurrentIndex()
+				{
+					Api.JetSetCurrentIndex(_table.Session, _table, "Sequences");
+				}
+
+				public struct SequencesKey
+				{
+					public int? EntityReferences;
+					public long SequenceNumber;
+				}
+
+				public void SetKey(SequencesKey key)
+				{
+					if (key.EntityReferences == null)
+					{
+						Api.MakeKey(_table.Session, _table, null, MakeKeyGrbit.NewKey);
+					} else
+					{
+						Api.MakeKey(_table.Session, _table, key.EntityReferences.Value, MakeKeyGrbit.NewKey);
+					}
+					Api.MakeKey(_table.Session, _table, key.SequenceNumber, MakeKeyGrbit.None);
+				}
+
+				public bool Find(SequencesKey key)
+				{
+					SetKey(key);
+					return Api.TrySeek(_table.Session, _table, SeekGrbit.SeekEQ);
+				}
+
+				public IEnumerable Enumerate(SequencesKey key)
+				{
+					SetKey(key);
+					if (Api.TrySeek(_table.Session, _table, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange))
+					{
+						do {
+							yield return _table;
+						} while (Api.TryMoveNext(_table.Session, _table));
+					}
+				}
+
+				public IEnumerable EnumerateUnique(SequencesKey key)
+				{
+					SetKey(key);
+					if (Api.TrySeek(_table.Session, _table, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange))
+					{
+						do {
+							yield return _table;
+						} while (Api.TryMove(_table.Session, _table, JET_Move.Next, MoveGrbit.MoveKeyNE));
+					}
+				}
+
+			    public int GetIndexRecordCount()
+			    {
+			        int r;
+			        Api.JetIndexRecordCount(_table.Session, _table, out r, int.MaxValue);
+			        return r;
+			    }
+
+			    public int GetIndexRecordCount(SequencesKey key)
+			    {
+			        Find(key);
+			        return GetIndexRecordCount();
+			    }
+			}
+		}
 	}
 }

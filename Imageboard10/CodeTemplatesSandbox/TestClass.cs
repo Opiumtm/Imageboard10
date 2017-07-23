@@ -18,6 +18,7 @@ namespace CodeTemplatesSandbox
             //Api.RetrieveColumnAsString()
             //Api.SetColumn();
             ColumnValue c = new FloatColumnValue();
+            //Api.TrySeek(new JET_SESID(), new JET_TABLEID(), SeekGrbit.SeekEQ);
         }
     }
 }

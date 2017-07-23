@@ -3,7 +3,7 @@
   <Columns>
     <Column Name="Id" Type="SignedInt32" Grbit="Autoincrement NotNULL" />
     <Column Name="EntityReferences" Type="SignedInt32" Grbit="Tagged MultiValued" />
-    <Column Name="SequenceNumber" Type="SignedInt32" Grbit="NotNULL" />
+    <Column Name="SequenceNumber" Type="SignedInt64" Grbit="NotNULL" />
     <Column Name="MediaData" Type="LongBinary" Grbit="None" />
   </Columns>
   <Indexes>

@@ -288,7 +288,7 @@ namespace <#= table.Namespace #>
 				if (column.Grbit.HasFlag(EsentColumndefGrbit.MultiValued))
 				{
 #>
-				__mv_<#= column.Name #> = new Multivalue<<#= column.GetColumnValueType() #>>(table, table.ColumnDictionary[Column.<#= column.Name #>]);
+				__mv_<#= column.Name #> = new Multivalue<<#= column.GetColumnValueType() #>>(table, table.ColumnDictionary[<#= table.Name #>.Column.<#= column.Name #>]);
 <#+
 				}
 				}
@@ -309,7 +309,7 @@ namespace <#= table.Namespace #>
 			public <#= column.GetNetType() #> <#= column.Name #>
 			{
 			    // ReSharper disable once PossibleInvalidOperationException
-				get => <#= __GenerateEsentTableRetrieveColumnExpr(columnDic, column.Name, "_table", null) #>;
+				get => <#= __GenerateEsentTableRetrieveColumnExpr(columnDic, column.Name, "_table", null, table.Name) #>;
 <#+
 				if (column.IsNullable() && !column.IsReferenceType())
 				{
@@ -317,17 +317,17 @@ namespace <#= table.Namespace #>
 				set {
 					if (value != null)
 					{
-						Api.SetColumn(_table.Session, _table, _table.ColumnDictionary[Column.<#= column.Name #>], value.Value);
+						Api.SetColumn(_table.Session, _table, _table.ColumnDictionary[<#= table.Name #>.Column.<#= column.Name #>], value.Value);
 					} else
 					{
-						Api.SetColumn(_table.Session, _table, _table.ColumnDictionary[Column.<#= column.Name #>], null);
+						Api.SetColumn(_table.Session, _table, _table.ColumnDictionary[<#= table.Name #>.Column.<#= column.Name #>], null);
 					}
 				}
 <#+
 				} else
 				{
 #>
-				set => Api.SetColumn(_table.Session, _table, _table.ColumnDictionary[Column.<#= column.Name #>], value);
+				set => Api.SetColumn(_table.Session, _table, _table.ColumnDictionary[<#= table.Name #>.Column.<#= column.Name #>], value);
 <#+
 				}
 #>
@@ -458,7 +458,7 @@ namespace <#= table.Namespace #>
 						var columndef = columnDic.Data[field.Name];
 #>
 					_c[<#= i #>] = new <#= columndef.GetColumnValueType() #>() {
-						Columnid = _table.ColumnDictionary[Column.<#= columndef.Name #>],
+						Columnid = _table.ColumnDictionary[<#= table.Name #>.Column.<#= columndef.Name #>],
 						RetrieveGrbit = <#= field.GetRetrieveFlagsString() #>
 					};
 <#+
@@ -548,6 +548,118 @@ namespace <#= table.Namespace #>
 		}
 
 		public TableFetchViews Views { get; }
+
+		public static class IndexDefinitions
+		{
+<#+
+		foreach (var index in table.Indexes)
+		{
+#>
+
+			public struct <#= index.Name #>
+			{
+				private readonly <#= table.Name #> _table;
+
+				public <#= index.Name #>(<#= table.Name #> table)
+				{
+					_table = table;
+				}
+
+				public void SetAsCurrentIndex()
+				{
+					Api.JetSetCurrentIndex(_table.Session, _table, "<#= index.Name #>");
+				}
+
+				public struct <#= index.Name #>Key
+				{
+<#+
+					for (var i = 0; i < index.Fields.Length; i++)
+					{
+						var field = index.Fields[i];
+						var columndef = columnDic.Data[field.Name];
+#>
+					public <#= columndef.GetNetType() #> <#= columndef.Name #>;
+<#+
+					}
+#>
+				}
+
+				public void SetKey(<#= index.Name #>Key key)
+				{
+<#+
+					for (var i = 0; i < index.Fields.Length; i++)
+					{
+						var field = index.Fields[i];
+						var columndef = columnDic.Data[field.Name];
+#>
+<#+
+						if (columndef.IsNullable() && !columndef.IsReferenceType())
+						{
+#>
+					if (key.<#= index.Fields[i].Name #> == null)
+					{
+						Api.MakeKey(_table.Session, _table, null, <#= i == 0 ? "MakeKeyGrbit.NewKey" : "MakeKeyGrbit.None" #>);
+					} else
+					{
+						Api.MakeKey(_table.Session, _table, key.<#= index.Fields[i].Name #>.Value, <#= i == 0 ? "MakeKeyGrbit.NewKey" : "MakeKeyGrbit.None" #>);
+					}
+<#+
+						} else {
+#>
+					Api.MakeKey(_table.Session, _table, key.<#= index.Fields[i].Name #>, <#= i == 0 ? "MakeKeyGrbit.NewKey" : "MakeKeyGrbit.None" #>);
+<#+
+						}
+#>
+<#+
+					}
+#>
+				}
+
+				public bool Find(<#= index.Name #>Key key)
+				{
+					SetKey(key);
+					return Api.TrySeek(_table.Session, _table, SeekGrbit.SeekEQ);
+				}
+
+				public IEnumerable Enumerate(<#= index.Name #>Key key)
+				{
+					SetKey(key);
+					if (Api.TrySeek(_table.Session, _table, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange))
+					{
+						do {
+							yield return _table;
+						} while (Api.TryMoveNext(_table.Session, _table));
+					}
+				}
+
+				public IEnumerable EnumerateUnique(<#= index.Name #>Key key)
+				{
+					SetKey(key);
+					if (Api.TrySeek(_table.Session, _table, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange))
+					{
+						do {
+							yield return _table;
+						} while (Api.TryMove(_table.Session, _table, JET_Move.Next, MoveGrbit.MoveKeyNE));
+					}
+				}
+
+			    public int GetIndexRecordCount()
+			    {
+			        int r;
+			        Api.JetIndexRecordCount(_table.Session, _table, out r, int.MaxValue);
+			        return r;
+			    }
+
+			    public int GetIndexRecordCount(<#= index.Name #>Key key)
+			    {
+			        Find(key);
+			        return GetIndexRecordCount();
+			    }
+			}
+<#+
+		}
+#>
+		}
 	}
 }
 <#+
@@ -558,14 +670,14 @@ private struct __ColumnDic
 	public Dictionary<string, EsentColumndef> Data;
 }
 
-private string __GenerateEsentTableRetrieveColumnExpr(__ColumnDic columns, string name, string tableArg, bool? forceNullable)
+private string __GenerateEsentTableRetrieveColumnExpr(__ColumnDic columns, string name, string tableArg, bool? forceNullable, string tableName)
 {
 	var cd = columns.Data[name];
 	var funcName = cd.GetRetrieveFuncName();
 	if ((forceNullable ?? cd.IsNullable()) || cd.IsReferenceType())
 	{
-		return string.Format("{2}({0}.Session, {0}, {0}.ColumnDictionary[Column.{1}])", tableArg, name, funcName);
+		return string.Format("{2}({0}.Session, {0}, {0}.ColumnDictionary[{3}.Column.{1}])", tableArg, name, funcName, tableName);
 	}
-	return string.Format("{2}({0}.Session, {0}, {0}.ColumnDictionary[Column.{1}]).Value", tableArg, name, funcName);
+	return string.Format("{2}({0}.Session, {0}, {0}.ColumnDictionary[{3}.Column.{1}]).Value", tableArg, name, funcName, tableName);
 }
 #>
