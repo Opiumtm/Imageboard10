@@ -45,6 +45,12 @@ namespace Imageboard10.Core.ModelStorage.Boards
             return base.QueryView(viewType);
         }
 
+        protected BoardReferenceTable OpenTable(IEsentSession session, OpenTableGrbit grbit)
+        {
+            var table = session.OpenTable(TableName, grbit);
+            return new BoardReferenceTable(table.Session, table);
+        }
+
         /// <summary>
         /// Идентификатор движка.
         /// </summary>
@@ -56,26 +62,6 @@ namespace Imageboard10.Core.ModelStorage.Boards
         protected string TableName => $"boardref_{EngineId}";
 
         /// <summary>
-        /// Первичный индекс таблицы.
-        /// </summary>
-        protected string TablePkName => $"PK_{TableName}";
-
-        /// <summary>
-        /// Индекс таблицы по категориями.
-        /// </summary>
-        protected string TableCategoryIndexName => $"IX_{TableName}_Category";
-
-        /// <summary>
-        /// Индекс таблицы по взрослым доскам.
-        /// </summary>
-        protected string TableIsAdultIndexName => $"IX_{TableName}_IsAdult";
-
-        /// <summary>
-        /// Индекс таблицы по взрослым доскам + категории.
-        /// </summary>
-        protected string TableIsAdultAndCategoryIndexName => $"IX_{TableName}_Q1";
-
-        /// <summary>
         /// Создать или обновить таблицы.
         /// </summary>
         protected override async ValueTask<Nothing> CreateOrUpgradeTables()
@@ -85,89 +71,13 @@ namespace Imageboard10.Core.ModelStorage.Boards
         }
 
         /// <summary>
-        /// Имена столбцов.
-        /// </summary>
-        protected static class ColumnNames
-        {
-            public const string Id = "Id";
-            public const string Category = "Category";
-            public const string ShortName = "ShortName";
-            public const string DisplayName = "DisplayName";
-            public const string IsAdult = "IsAdult";
-            public const string ExtendedData = "ExtendedData";
-            public const string BumpLimit = "BumpLimit";
-            public const string DefaultName = "DefaultName";
-            public const string Pages = "Pages";
-        }
-
-        /// <summary>
         /// Инициализировать таблицу.
         /// </summary>
         /// <param name="session">Сессия.</param>
         /// <param name="tableid">Идентификатор таблицы.</param>
         protected virtual void InitializeTable(IEsentSession session, JET_TABLEID tableid)
         {
-            var sid = session.Session;
-            JET_COLUMNID tempcolid;
-            Api.JetAddColumn(sid, tableid, ColumnNames.Id, new JET_COLUMNDEF()
-            {
-                coltyp = JET_coltyp.LongText,
-                grbit = ColumndefGrbit.ColumnNotNULL,
-                cp = JET_CP.Unicode
-            }, null, 0, out tempcolid);
-            Api.JetAddColumn(sid, tableid, ColumnNames.Category, new JET_COLUMNDEF()
-            {
-                coltyp = JET_coltyp.LongText,
-                grbit = ColumndefGrbit.ColumnNotNULL,
-                cp = JET_CP.Unicode
-            }, null, 0, out tempcolid);
-            Api.JetAddColumn(sid, tableid, ColumnNames.ShortName, new JET_COLUMNDEF()
-            {
-                coltyp = JET_coltyp.LongText,
-                grbit = ColumndefGrbit.None,
-                cp = JET_CP.Unicode
-            }, null, 0, out tempcolid);
-            Api.JetAddColumn(sid, tableid, ColumnNames.DisplayName, new JET_COLUMNDEF()
-            {
-                coltyp = JET_coltyp.LongText,
-                grbit = ColumndefGrbit.None,
-                cp = JET_CP.Unicode
-            }, null, 0, out tempcolid);
-            Api.JetAddColumn(sid, tableid, ColumnNames.IsAdult, new JET_COLUMNDEF()
-            {
-                coltyp = JET_coltyp.Bit,
-                grbit = ColumndefGrbit.ColumnNotNULL,
-            }, null, 0, out tempcolid);
-            Api.JetAddColumn(sid, tableid, ColumnNames.ExtendedData, new JET_COLUMNDEF()
-            {
-                coltyp = JET_coltyp.LongBinary,
-                grbit = ColumndefGrbit.None,
-            }, null, 0, out tempcolid);
-            Api.JetAddColumn(sid, tableid, ColumnNames.BumpLimit, new JET_COLUMNDEF()
-            {
-                coltyp = JET_coltyp.Long,
-                grbit = ColumndefGrbit.None,
-            }, null, 0, out tempcolid);
-            Api.JetAddColumn(sid, tableid, ColumnNames.DefaultName, new JET_COLUMNDEF()
-            {
-                coltyp = JET_coltyp.LongText,
-                grbit = ColumndefGrbit.None,
-            }, null, 0, out tempcolid);
-            Api.JetAddColumn(sid, tableid, ColumnNames.Pages, new JET_COLUMNDEF()
-            {
-                coltyp = JET_coltyp.Long,
-                grbit = ColumndefGrbit.None,
-            }, null, 0, out tempcolid);
-
-            var pkDef = $"+{ColumnNames.Id}\0\0";
-            var catDef = $"+{ColumnNames.Category}\0\0";
-            var adDef = $"+{ColumnNames.IsAdult}\0\0";
-            var q1Def = $"+{ColumnNames.IsAdult}\0+{ColumnNames.Category}\0\0";
-
-            Api.JetCreateIndex(sid, tableid, TablePkName, CreateIndexGrbit.IndexUnique | CreateIndexGrbit.IndexPrimary, pkDef, pkDef.Length, 100);
-            Api.JetCreateIndex(sid, tableid, TableCategoryIndexName, CreateIndexGrbit.None, catDef, catDef.Length, 100);
-            Api.JetCreateIndex(sid, tableid, TableIsAdultIndexName, CreateIndexGrbit.None, adDef, adDef.Length, 100);
-            Api.JetCreateIndex(sid, tableid, TableIsAdultAndCategoryIndexName, CreateIndexGrbit.None, q1Def, q1Def.Length, 100);
+            BoardReferenceTable.CreateColumnsAndIndexes(session.Session, tableid);
         }
 
         /// <summary>
@@ -211,33 +121,31 @@ namespace Imageboard10.Core.ModelStorage.Boards
         /// <summary>
         /// Выбрать индекс и включить фильтр в зависимости от запроса.
         /// </summary>
-        /// <param name="sid">Сессия.</param>
-        /// <param name="tableid">Идентификатор таблицы.</param>
+        /// <param name="table">Таблица.</param>
         /// <param name="query">Запрос.</param>
         /// <returns>Результат позиционирования на первой записи индекса.</returns>
-        protected virtual bool SelectIndex(Session sid, JET_TABLEID tableid, BoardReferenceStoreQuery query)
+        protected virtual bool SelectIndex(BoardReferenceTable table, BoardReferenceStoreQuery query)
         {
             if (query.Category == null && query.IsAdult == null)
             {
-                Api.JetSetTableSequential(sid, tableid, SetTableSequentialGrbit.None);
-                return Api.TryMoveFirst(sid, tableid);
+                Api.JetSetTableSequential(table.Session, table, SetTableSequentialGrbit.None);
+                return table.TryMoveFirst();
             }
             if (query.Category == null)
             {
-                Api.JetSetCurrentIndex(sid, tableid, TableIsAdultIndexName);
-                Api.MakeKey(sid, tableid, query.IsAdult.Value, MakeKeyGrbit.NewKey);
-                return Api.TrySeek(sid, tableid, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange);
+                table.Indexes.IsAdultIndex.SetAsCurrentIndex();
+                table.Indexes.IsAdultIndex.SetKey(table.Indexes.IsAdultIndex.CreateKey(query.IsAdult.Value));
+                return Api.TrySeek(table.Session, table, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange);
             }
             if (query.IsAdult == null)
             {
-                Api.JetSetCurrentIndex(sid, tableid, TableCategoryIndexName);
-                Api.MakeKey(sid, tableid, query.Category, Encoding.Unicode, MakeKeyGrbit.NewKey);
-                return Api.TrySeek(sid, tableid, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange);
+                table.Indexes.CategoryIndex.SetAsCurrentIndex();
+                table.Indexes.CategoryIndex.SetKey(table.Indexes.CategoryIndex.CreateKey(query.Category));
+                return Api.TrySeek(table.Session, table.Table, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange);
             }
-            Api.JetSetCurrentIndex(sid, tableid, TableIsAdultAndCategoryIndexName);
-            Api.MakeKey(sid, tableid, query.IsAdult.Value, MakeKeyGrbit.NewKey);
-            Api.MakeKey(sid, tableid, query.Category, Encoding.Unicode, MakeKeyGrbit.None);
-            return Api.TrySeek(sid, tableid, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange);
+            table.Indexes.IsAdultAndCategoryIndex.SetAsCurrentIndex();
+            table.Indexes.IsAdultAndCategoryIndex.SetKey(table.Indexes.IsAdultAndCategoryIndex.CreateKey(query.IsAdult.Value, query.Category));
+            return Api.TrySeek(table.Session, table.Table, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange);
         }
 
         /// <summary>
@@ -262,9 +170,9 @@ namespace Imageboard10.Core.ModelStorage.Boards
             return await OpenSession(session =>
             {
                 var sid = session.Session;
-                using (var table = session.OpenTable(TableName, OpenTableGrbit.ReadOnly))
+                using (var table = OpenTable(session, OpenTableGrbit.ReadOnly))
                 {
-                    if (!SelectIndex(sid, table, query))
+                    if (!SelectIndex(table, query))
                     {
                         return 0;
                     }
@@ -308,35 +216,18 @@ namespace Imageboard10.Core.ModelStorage.Boards
                 var sid = session.Session;
                 using (new Transaction(sid))
                 {
-                    using (var table = session.OpenTable(TableName, OpenTableGrbit.ReadOnly))
+                    using (var table = OpenTable(session, OpenTableGrbit.ReadOnly))
                     {
                         int count = 0;
                         if (isAdult == null)
                         {
-                            Api.JetSetCurrentIndex(sid, table, TableCategoryIndexName);
-                            if (Api.TryMoveFirst(sid, table))
-                            {
-                                do
-                                {
-                                    count++;
-                                } while (Api.TryMove(sid, table, JET_Move.Next, MoveGrbit.MoveKeyNE));
-                            }
+                            table.Indexes.CategoryIndex.SetAsCurrentIndex();
+                            count += table.EnumerateUnique().Count();
                         }
                         else
                         {
-                            var acolid = Api.GetTableColumnid(sid, table, ColumnNames.IsAdult);
-                            Api.JetSetCurrentIndex(sid, table, TableIsAdultAndCategoryIndexName);
-                            if (Api.TryMoveFirst(sid, table))
-                            {
-                                do
-                                {
-                                    var a = Api.RetrieveColumnAsBoolean(sid, table, acolid, RetrieveColumnGrbit.RetrieveFromIndex);
-                                    if (a == isAdult.Value)
-                                    {
-                                        count++;
-                                    }
-                                } while (Api.TryMove(sid, table, JET_Move.Next, MoveGrbit.MoveKeyNE));
-                            }
+                            table.Indexes.IsAdultAndCategoryIndex.SetAsCurrentIndex();
+                            count += table.Indexes.IsAdultAndCategoryIndex.EnumerateUniqueAsIsAdultFromIndex().Count(v => v.IsAdult == isAdult.Value);
                         }
                         return count;
                     }
@@ -365,19 +256,17 @@ namespace Imageboard10.Core.ModelStorage.Boards
             await WaitForTablesInitialize();
             return await OpenSession(session =>
             {
-                var sid = session.Session;
-                using (new Transaction(sid))
+                using (new Transaction(session.Session))
                 {
-                    using (var tableid = session.OpenTable(TableName, OpenTableGrbit.ReadOnly))
+                    using (var table = OpenTable(session, OpenTableGrbit.ReadOnly))
                     {
                         var idSet = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-                        var colid = Api.GetTableColumnid(sid, tableid, ColumnNames.Id);
-                        if (SelectIndex(sid, tableid, query))
+                        if (SelectIndex(table, query))
                         {
                             do
                             {
-                                idSet.Add(Api.RetrieveColumnAsString(sid, tableid, colid, Encoding.Unicode));
-                            } while (Api.TryMoveNext(sid, tableid));
+                                idSet.Add(table.Columns.Id);
+                            } while (table.TryMoveNext());
                         }
                         IList<ILink> result = idSet.Select(CreateBoardLink).ToList();
                         return result;
@@ -419,37 +308,26 @@ namespace Imageboard10.Core.ModelStorage.Boards
                 var sid = session.Session;
                 using (new Transaction(sid))
                 {
-                    using (var tableid = session.OpenTable(TableName, OpenTableGrbit.ReadOnly))
+                    using (var table = OpenTable(session, OpenTableGrbit.ReadOnly))
                     {
-                        var colid = Api.GetTableColumnid(sid, tableid, ColumnNames.Category);
                         HashSet<string> categories = new HashSet<string>();
                         if (isAdult == null)
                         {
-                            Api.JetSetCurrentIndex(sid, tableid, TableCategoryIndexName);
-                            if (Api.TryMoveFirst(sid, tableid))
+                            table.Indexes.CategoryIndex.SetAsCurrentIndex();
+                            foreach (var c in table.Indexes.CategoryIndex.EnumerateUniqueAsCategoryFromIndex())
                             {
-                                do
-                                {
-                                    var c = Api.RetrieveColumnAsString(sid, tableid, colid, Encoding.Unicode, RetrieveColumnGrbit.RetrieveFromIndex);
-                                    categories.Add(c);
-                                } while (Api.TryMove(sid, tableid, JET_Move.Next, MoveGrbit.MoveKeyNE));
+                                categories.Add(c.Category);
                             }
                         }
                         else
                         {
-                            Api.JetSetCurrentIndex(sid, tableid, TableIsAdultAndCategoryIndexName);
-                            var acolid = Api.GetTableColumnid(sid, tableid, ColumnNames.IsAdult);
-                            if (Api.TryMoveFirst(sid, tableid))
+                            table.Indexes.IsAdultAndCategoryIndex.SetAsCurrentIndex();
+                            foreach (var c in table.Indexes.IsAdultAndCategoryIndex.EnumerateUniqueAsIsAdultAndCategoryFromIndex())
                             {
-                                do
+                                if (c.IsAdult == isAdult.Value)
                                 {
-                                    var a = Api.RetrieveColumnAsBoolean(sid, tableid, acolid, RetrieveColumnGrbit.RetrieveFromIndex);
-                                    if (a == isAdult.Value)
-                                    {
-                                        var c = Api.RetrieveColumnAsString(sid, tableid, colid, Encoding.Unicode, RetrieveColumnGrbit.RetrieveFromIndex);
-                                        categories.Add(c);
-                                    }
-                                } while (Api.TryMove(sid, tableid, JET_Move.Next, MoveGrbit.MoveKeyNE));
+                                    categories.Add(c.Category);
+                                }
                             }
                         }
                         IList<string> result = categories.ToList();
@@ -489,15 +367,13 @@ namespace Imageboard10.Core.ModelStorage.Boards
                 var sid = session.Session;
                 using (new Transaction(sid))
                 {
-                    using (var tableid = session.OpenTable(TableName, OpenTableGrbit.ReadOnly))
+                    using (var table = OpenTable(session, OpenTableGrbit.ReadOnly))
                     {
-                        var columnMap = Api.GetColumnDictionary(sid, tableid);
                         var id = GetId(link);
                         IBoardReference result = null;
-                        Api.MakeKey(sid, tableid, id, Encoding.Unicode, MakeKeyGrbit.NewKey);
-                        if (Api.TrySeek(sid, tableid, SeekGrbit.SeekEQ))
+                        if (table.Indexes.PrimaryIndex.Find(table.Indexes.PrimaryIndex.CreateKey(id)))
                         {
-                            result = ReadFullRow(sid, tableid, columnMap);
+                            result = ReadFullRow(table);
                         }
                         return result;
                     }
@@ -508,53 +384,18 @@ namespace Imageboard10.Core.ModelStorage.Boards
         /// <summary>
         /// Прочитать короткую информацию из текущей записи.
         /// </summary>
-        /// <param name="sid">Сессия.</param>
-        /// <param name="tableid">Таблица.</param>
-        /// <param name="columnmap">Карта столбцов.</param>
+        /// <param name="table">Таблица.</param>
         /// <returns>Короткая информация.</returns>
-        protected virtual IBoardShortInfo ReadShortInfo(Session sid, JET_TABLEID tableid, IDictionary<string, JET_COLUMNID> columnmap)
+        protected virtual IBoardShortInfo ReadShortInfo(BoardReferenceTable table)
         {
-            var columns = new ColumnValue[]
-            {
-                // 0
-                new StringColumnValue()
-                {
-                    Columnid = columnmap[ColumnNames.Id],
-                    RetrieveGrbit = RetrieveColumnGrbit.None
-                },
-                // 1
-                new StringColumnValue()
-                {
-                    Columnid = columnmap[ColumnNames.Category],
-                    RetrieveGrbit = RetrieveColumnGrbit.None
-                },
-                // 2
-                new StringColumnValue()
-                {
-                    Columnid = columnmap[ColumnNames.ShortName],
-                    RetrieveGrbit = RetrieveColumnGrbit.None
-                },
-                // 3
-                new StringColumnValue()
-                {
-                    Columnid = columnmap[ColumnNames.DisplayName],
-                    RetrieveGrbit = RetrieveColumnGrbit.None
-                },
-                // 4
-                new BoolColumnValue()
-                {
-                    Columnid = columnmap[ColumnNames.IsAdult],
-                    RetrieveGrbit = RetrieveColumnGrbit.None
-                },
-            };
-            Api.RetrieveColumns(sid, tableid, columns);
+            var viewData = table.Views.ShortInfoView.Fetch();
             return new BoardShortInfo()
             {
-                BoardLink = CreateBoardLink(((StringColumnValue)columns[0]).Value),
-                Category = ((StringColumnValue)columns[1]).Value,
-                ShortName = ((StringColumnValue)columns[2]).Value,
-                DisplayName = ((StringColumnValue)columns[3]).Value,
-                IsAdult = ((BoolColumnValue)columns[4]).Value ?? false
+                BoardLink = CreateBoardLink(viewData.Id),
+                Category = viewData.Category,
+                ShortName = viewData.ShortName,
+                DisplayName = viewData.DisplayName,
+                IsAdult = viewData.IsAdult
             };
         }
 
@@ -570,80 +411,21 @@ namespace Imageboard10.Core.ModelStorage.Boards
         /// <summary>
         /// Прочитать полную информацию из текущей записи.
         /// </summary>
-        /// <param name="sid">Сессия.</param>
-        /// <param name="tableid">Таблица.</param>
-        /// <param name="columnmap">Карта столбцов.</param>
-        /// <returns>Короткая информация.</returns>
-        protected virtual IBoardReference ReadFullRow(Session sid, JET_TABLEID tableid, IDictionary<string, JET_COLUMNID> columnmap)
+        /// <param name="table">Таблица.</param>
+        /// <returns>Полная информация.</returns>
+        protected virtual IBoardReference ReadFullRow(BoardReferenceTable table)
         {
-            var columns = new ColumnValue[]
-            {
-                // 0
-                new StringColumnValue()
-                {
-                    Columnid = columnmap[ColumnNames.Id],
-                    RetrieveGrbit = RetrieveColumnGrbit.None
-                },
-                // 1
-                new StringColumnValue()
-                {
-                    Columnid = columnmap[ColumnNames.Category],
-                    RetrieveGrbit = RetrieveColumnGrbit.None
-                },
-                // 2
-                new StringColumnValue()
-                {
-                    Columnid = columnmap[ColumnNames.ShortName],
-                    RetrieveGrbit = RetrieveColumnGrbit.None
-                },
-                // 3
-                new StringColumnValue()
-                {
-                    Columnid = columnmap[ColumnNames.DisplayName],
-                    RetrieveGrbit = RetrieveColumnGrbit.None
-                },
-                // 4
-                new BoolColumnValue()
-                {
-                    Columnid = columnmap[ColumnNames.IsAdult],
-                    RetrieveGrbit = RetrieveColumnGrbit.None
-                },
-                // 5
-                new BytesColumnValue()
-                {
-                    Columnid = columnmap[ColumnNames.ExtendedData],
-                    RetrieveGrbit = RetrieveColumnGrbit.None
-                },
-                // 6
-                new Int32ColumnValue()
-                {
-                    Columnid = columnmap[ColumnNames.BumpLimit],
-                    RetrieveGrbit = RetrieveColumnGrbit.None
-                },
-                // 7
-                new StringColumnValue()
-                {
-                    Columnid = columnmap[ColumnNames.DefaultName],
-                    RetrieveGrbit = RetrieveColumnGrbit.None
-                },
-                // 8
-                new Int32ColumnValue()
-                {
-                    Columnid = columnmap[ColumnNames.Pages],
-                    RetrieveGrbit = RetrieveColumnGrbit.None
-                },
-            };
-            Api.RetrieveColumns(sid, tableid, columns);
+            var viewData = table.Views.FullRowView.Fetch();
             var result = CreateBoardReferenceObject();
-            result.BoardLink = CreateBoardLink(((StringColumnValue)columns[0]).Value);
-            result.Category = ((StringColumnValue)columns[1]).Value;
-            result.ShortName = ((StringColumnValue) columns[2]).Value;
-            result.DisplayName = ((StringColumnValue) columns[3]).Value;
-            result.IsAdult = ((BoolColumnValue) columns[4]).Value ?? false;
-            SetExtendedInfo(((BytesColumnValue) columns[5]).Value, result);
-            result.BumpLimit = ((Int32ColumnValue) columns[6]).Value;
-            result.DefaultName = ((StringColumnValue) columns[7]).Value;
-            result.Pages = ((Int32ColumnValue) columns[8]).Value;
+            result.BoardLink = CreateBoardLink(viewData.Id);
+            result.Category = viewData.Category;
+            result.ShortName = viewData.ShortName;
+            result.DisplayName = viewData.DisplayName;
+            result.IsAdult = viewData.IsAdult;
+            SetExtendedInfo(viewData.ExtendedData, result);
+            result.BumpLimit = viewData.BumpLimit;
+            result.DefaultName = viewData.DefaultName;
+            result.Pages = viewData.Pages;
             return result;
         }
 
@@ -676,7 +458,7 @@ namespace Imageboard10.Core.ModelStorage.Boards
         /// <param name="count">Количество.</param>
         /// <param name="query">Запрос.</param>
         /// <returns>Ссылки.</returns>
-        protected async virtual Task<IList<IBoardShortInfo>> DoLoadShortReferences(int start, int count, BoardReferenceStoreQuery query)
+        protected virtual async Task<IList<IBoardShortInfo>> DoLoadShortReferences(int start, int count, BoardReferenceStoreQuery query)
         {
             CheckModuleReady();
             if (count < 1)
@@ -690,16 +472,15 @@ namespace Imageboard10.Core.ModelStorage.Boards
                 var sid = session.Session;
                 using (new Transaction(sid))
                 {
-                    using (var tableid = session.OpenTable(TableName, OpenTableGrbit.ReadOnly))
+                    using (var table = OpenTable(session, OpenTableGrbit.ReadOnly))
                     {
-                        var columnMap = Api.GetColumnDictionary(sid, tableid);
                         IList<IBoardShortInfo> result = new List<IBoardShortInfo>();
-                        bool isMoved = SelectIndex(sid, tableid, query);
+                        bool isMoved = SelectIndex(table, query);
                         if (isMoved)
                         {
                             if (start > 0)
                             {
-                                isMoved = Api.TryMove(sid, tableid, (JET_Move)start, MoveGrbit.None);
+                                isMoved = Api.TryMove(table.Session, table, (JET_Move)start, MoveGrbit.None);
                             }
                         }
                         if (isMoved)
@@ -708,8 +489,8 @@ namespace Imageboard10.Core.ModelStorage.Boards
                             do
                             {
                                 cnt--;
-                                result.Add(ReadShortInfo(sid, tableid, columnMap));
-                            } while (Api.TryMoveNext(sid, tableid) && cnt > 0);
+                                result.Add(ReadShortInfo(table));
+                            } while (table.TryMoveNext() && cnt > 0);
                         }
                         return result;
                     }
@@ -746,17 +527,15 @@ namespace Imageboard10.Core.ModelStorage.Boards
                 var sid = session.Session;
                 using (new Transaction(sid))
                 {
-                    using (var tableid = session.OpenTable(TableName, OpenTableGrbit.ReadOnly))
+                    using (var table = OpenTable(session, OpenTableGrbit.ReadOnly))
                     {
-                        var columnMap = Api.GetColumnDictionary(sid, tableid);
                         var ids = links.Select(GetId).Distinct().OrderBy(l => l).ToArray();
                         IList<IBoardShortInfo> result = new List<IBoardShortInfo>();
                         foreach (var id in ids)
                         {
-                            Api.MakeKey(sid, tableid, id, Encoding.Unicode, MakeKeyGrbit.NewKey);
-                            if (Api.TrySeek(sid, tableid, SeekGrbit.SeekEQ))
+                            if (table.Indexes.PrimaryIndex.Find(table.Indexes.PrimaryIndex.CreateKey(id)))
                             {
-                                result.Add(ReadShortInfo(sid, tableid, columnMap));
+                                result.Add(ReadShortInfo(table));
                             }
                         }
                         return result;
@@ -784,7 +563,7 @@ namespace Imageboard10.Core.ModelStorage.Boards
             {
                 await session.RunInTransaction(() =>
                 {
-                    using (var table = session.OpenTable(TableName, OpenTableGrbit.None))
+                    using (var table = OpenTable(session, OpenTableGrbit.None))
                     {
                         DeleteAllRows(table);
                     }
@@ -799,67 +578,28 @@ namespace Imageboard10.Core.ModelStorage.Boards
         /// </summary>
         /// <param name="table">Таблица.</param>
         /// <param name="reference">Ссылка на доску.</param>
-        /// <param name="columnmap">Карта столбцов.</param>
-        protected virtual void UpdateFullRowInfo(EsentTable table, IBoardReference reference, IDictionary<string, JET_COLUMNID> columnmap)
+        /// <param name="prep">Тип обновления.</param>
+        protected virtual void UpdateFullRowInfo(BoardReferenceTable table, IBoardReference reference, JET_prep prep)
         {
-            var columns = new ColumnValue[]
+            var row = new BoardReferenceTable.ViewValues.FullRowView()
             {
-                new StringColumnValue()
-                {
-                    Columnid = columnmap[ColumnNames.Id],
-                    Value = GetId(reference),
-                    SetGrbit = SetColumnGrbit.None                    
-                },
-                new StringColumnValue()
-                {
-                    Columnid = columnmap[ColumnNames.Category],
-                    Value = reference.Category ?? "",
-                    SetGrbit = SetColumnGrbit.None
-                },
-                new StringColumnValue()
-                {
-                    Columnid = columnmap[ColumnNames.ShortName],
-                    Value = reference.ShortName,
-                    SetGrbit = SetColumnGrbit.None
-                },
-                new StringColumnValue()
-                {
-                    Columnid = columnmap[ColumnNames.DisplayName],
-                    Value = reference.DisplayName,
-                    SetGrbit = SetColumnGrbit.None
-                },
-                new BoolColumnValue()
-                {
-                    Columnid = columnmap[ColumnNames.IsAdult],
-                    Value = reference.IsAdult,
-                    SetGrbit = SetColumnGrbit.None
-                },
-                new BytesColumnValue()
-                {
-                    Columnid = columnmap[ColumnNames.ExtendedData],
-                    Value = SerializeDataContract(BoardExtendedInfo.ToContract(reference, LinkSerialization)),
-                    SetGrbit = SetColumnGrbit.None
-                },
-                new Int32ColumnValue()
-                {
-                    Columnid = columnmap[ColumnNames.BumpLimit],
-                    Value = reference.BumpLimit,
-                    SetGrbit = SetColumnGrbit.None
-                },
-                new StringColumnValue()
-                {
-                    Columnid = columnmap[ColumnNames.DefaultName],
-                    Value = reference.DefaultName,
-                    SetGrbit = SetColumnGrbit.None
-                },
-                new Int32ColumnValue()
-                {
-                    Columnid = columnmap[ColumnNames.Pages],
-                    Value = reference.Pages,
-                    SetGrbit = SetColumnGrbit.None
-                },
+                Id = GetId(reference),
+                Category = reference.Category ?? "",
+                Pages = reference.Pages,
+                IsAdult = reference.IsAdult,
+                DefaultName = reference.DefaultName,
+                ShortName = reference.ShortName,
+                DisplayName = reference.DisplayName,
+                ExtendedData = SerializeDataContract(BoardExtendedInfo.ToContract(reference, LinkSerialization)),
+                BumpLimit = reference.BumpLimit
             };
-            Api.SetColumns(table.Session, table, columns);
+            if (prep == JET_prep.Replace)
+            {
+                table.Update.UpdateAsFullRowView(ref row);
+            } else if (prep == JET_prep.Insert)
+            {
+                table.Insert.InsertAsFullRowView(ref row);
+            }
         }
 
         /// <summary>
@@ -884,7 +624,7 @@ namespace Imageboard10.Core.ModelStorage.Boards
             {
                 await session.RunInTransaction(() =>
                 {
-                    using (var table = session.OpenTable(TableName, OpenTableGrbit.None))
+                    using (var table = OpenTable(session, OpenTableGrbit.None))
                     {
                         DoUpdateOneRow(table, reference, false);
                     }
@@ -901,35 +641,24 @@ namespace Imageboard10.Core.ModelStorage.Boards
         /// <param name="table">Таблица.</param>
         /// <param name="reference">Ссылка.</param>
         /// <param name="alwaysInsert">Всегда вставлять (после очистки таблицы).</param>
-        protected virtual void DoUpdateOneRow(EsentTable table, IBoardReference reference, bool alwaysInsert)
+        protected virtual void DoUpdateOneRow(BoardReferenceTable table, IBoardReference reference, bool alwaysInsert)
         {
             if (reference == null) throw new ArgumentNullException(nameof(reference));
             if (!alwaysInsert)
             {
                 var id = GetId(reference);
-                Api.MakeKey(table.Session, table, id, Encoding.Unicode, MakeKeyGrbit.NewKey);
-                Update rowUpdate;
-                if (Api.TrySeek(table.Session, table, SeekGrbit.SeekEQ))
+                if (table.Indexes.PrimaryIndex.Find(table.Indexes.PrimaryIndex.CreateKey(id)))
                 {
-                    rowUpdate = new Update(table.Session, table, JET_prep.Replace);
+                    UpdateFullRowInfo(table, reference, JET_prep.Replace);
                 }
                 else
                 {
-                    rowUpdate = new Update(table.Session, table, JET_prep.Insert);
-                }
-                using (rowUpdate)
-                {
-                    UpdateFullRowInfo(table, reference, Api.GetColumnDictionary(table.Session, table));
-                    rowUpdate.Save();
+                    UpdateFullRowInfo(table, reference, JET_prep.Insert);
                 }
             }
             else
             {
-                using (var rowUpdate = new Update(table.Session, table, JET_prep.Insert))
-                {
-                    UpdateFullRowInfo(table, reference, Api.GetColumnDictionary(table.Session, table));
-                    rowUpdate.Save();
-                }
+                UpdateFullRowInfo(table, reference, JET_prep.Insert);
             }
         }
 
@@ -962,7 +691,7 @@ namespace Imageboard10.Core.ModelStorage.Boards
                 {
                     await session.RunInTransaction(() =>
                     {
-                        using (var table = session.OpenTable(TableName, OpenTableGrbit.None))
+                        using (var table = OpenTable(session, OpenTableGrbit.None))
                         {
                             DeleteAllRows(table);
                             return true;
@@ -978,7 +707,7 @@ namespace Imageboard10.Core.ModelStorage.Boards
                     var r = refs.ToArray();
                     await session.RunInTransaction(() =>
                     {
-                        using (var table = session.OpenTable(TableName, OpenTableGrbit.None))
+                        using (var table = OpenTable(session, OpenTableGrbit.None))
                         {
                             foreach (var reference in r)
                             {

@@ -18,7 +18,6 @@ private void GenerateEsentTable(EsentTable table)
 #>
 // ReSharper disable RedundantUsingDirective
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using Microsoft.Isam.Esent.Interop;
 using Microsoft.Isam.Esent.Interop.Vista;
@@ -377,12 +376,32 @@ namespace <#= table.Namespace #>
 
 		public DefaultView Columns { get; }
 
-	    public IEnumerable EnumerateToEnd()
+	    public IEnumerable<object> EnumerateToEnd()
 	    {
 	        while (Api.TryMoveNext(Session, Table))
 	        {
 	            yield return this;
 	        }
+	    }
+
+	    public IEnumerable<object> Enumerate()
+	    {
+			if (Api.TryMoveFirst(Session, Table))
+			{
+				do {
+					yield return this;
+				} while (Api.TryMoveNext(Session, Table));
+			}
+	    }
+
+	    public IEnumerable<object> EnumerateUnique()
+	    {
+			if (Api.TryMoveFirst(Session, Table))
+			{
+				do {
+					yield return this;
+				} while (Api.TryMove(Session, Table, JET_Move.Next, MoveGrbit.MoveKeyNE));
+			}
 	    }
 
 	    [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -899,6 +918,35 @@ namespace <#= table.Namespace #>
 #>
 				}
 
+			    // ReSharper disable InconsistentNaming
+				public <#= index.Name #>Key CreateKey(
+<#+
+					for (var i = 0; i < index.Fields.Length; i++)
+					{
+						var field = index.Fields[i];
+						var columndef = columnDic.Data[field.Name];
+#>
+						<#= i == 0 ? "" : "," #><#= columndef.GetNetType() #> <#= columndef.Name #>
+<#+
+					}
+#>
+				)
+			    // ReSharper enable InconsistentNaming
+				{
+					return new <#= index.Name #>Key() {
+<#+
+					for (var i = 0; i < index.Fields.Length; i++)
+					{
+						var field = index.Fields[i];
+						var columndef = columnDic.Data[field.Name];
+#>
+						<#= columndef.Name #> = <#= columndef.Name #>,
+<#+
+					}
+#>					
+					};
+				}
+
 				public void SetKey(<#= index.Name #>Key key)
 				{
 <#+
@@ -936,7 +984,7 @@ namespace <#= table.Namespace #>
 					return Api.TrySeek(_table.Session, _table, SeekGrbit.SeekEQ);
 				}
 
-				public IEnumerable Enumerate(<#= index.Name #>Key key)
+				public IEnumerable<object> Enumerate(<#= index.Name #>Key key)
 				{
 					SetKey(key);
 					if (Api.TrySeek(_table.Session, _table, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange))
@@ -947,7 +995,7 @@ namespace <#= table.Namespace #>
 					}
 				}
 
-				public IEnumerable EnumerateUnique(<#= index.Name #>Key key)
+				public IEnumerable<object> EnumerateUnique(<#= index.Name #>Key key)
 				{
 					SetKey(key);
 					if (Api.TrySeek(_table.Session, _table, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange))
@@ -991,6 +1039,35 @@ namespace <#= table.Namespace #>
 <#+
 					}
 #>
+				}
+
+			    // ReSharper disable InconsistentNaming
+				public <#= index.Name #>PartialKey<#= partialCnt #> CreateKey(
+<#+
+					for (var i = 0; i <= lastIndexField; i++)
+					{
+						var field = index.Fields[i];
+						var columndef = columnDic.Data[field.Name];
+#>
+						<#= i == 0 ? "" : "," #><#= columndef.GetNetType() #> <#= columndef.Name #>
+<#+
+					}
+#>
+				)
+			    // ReSharper enable InconsistentNaming
+				{
+					return new <#= index.Name #>PartialKey<#= partialCnt #>() {
+<#+
+					for (var i = 0; i <= lastIndexField; i++)
+					{
+						var field = index.Fields[i];
+						var columndef = columnDic.Data[field.Name];
+#>
+						<#= columndef.Name #> = <#= columndef.Name #>,
+<#+
+					}
+#>					
+					};
 				}
 
 				public void SetKey(<#= index.Name #>PartialKey<#= partialCnt #> key, bool startRange)
@@ -1063,7 +1140,7 @@ namespace <#= table.Namespace #>
 					return false;
 				}
 
-				public IEnumerable Enumerate(<#= index.Name #>PartialKey<#= partialCnt #> key)
+				public IEnumerable<object> Enumerate(<#= index.Name #>PartialKey<#= partialCnt #> key)
 				{
 					SetKey(key, true);
 					if (Api.TrySeek(_table.Session, _table, SeekGrbit.SeekGE))
@@ -1131,6 +1208,16 @@ namespace <#= table.Namespace #>
 				foreach (var view in fetchViews)
 				{
 #>
+				public IEnumerable<ViewValues.<#= view.Name #>> EnumerateAs<#= view.Name #>()
+				{
+					if (Api.TryMoveFirst(_table.Session, _table))
+					{
+						do {
+							yield return Views.<#= view.Name #>.Fetch();
+						} while (Api.TryMoveNext(_table.Session, _table));
+					}
+				}
+
 				public IEnumerable<ViewValues.<#= view.Name #>> EnumerateAs<#= view.Name #>(<#= index.Name #>Key key)
 				{
 					SetKey(key);
@@ -1139,6 +1226,16 @@ namespace <#= table.Namespace #>
 						do {
 							yield return Views.<#= view.Name #>.Fetch();
 						} while (Api.TryMoveNext(_table.Session, _table));
+					}
+				}
+
+				public IEnumerable<ViewValues.<#= view.Name #>> EnumerateUniqueAs<#= view.Name #>()
+				{
+					if (Api.TryMoveFirst(_table.Session, _table))
+					{
+						do {
+							yield return Views.<#= view.Name #>.Fetch();
+						} while (Api.TryMove(_table.Session, _table, JET_Move.Next, MoveGrbit.MoveKeyNE));
 					}
 				}
 

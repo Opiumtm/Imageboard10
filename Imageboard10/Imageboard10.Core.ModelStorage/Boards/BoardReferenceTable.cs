@@ -2,7 +2,6 @@
 
 // ReSharper disable RedundantUsingDirective
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using Microsoft.Isam.Esent.Interop;
 using Microsoft.Isam.Esent.Interop.Vista;
@@ -15,7 +14,7 @@ using System.Text;
 // ReSharper disable once CheckNamespace
 namespace Imageboard10.Core.ModelStorage.Boards
 {
-	internal sealed class BoardReferenceTable : IDisposable
+	public sealed class BoardReferenceTable : IDisposable
 	{
         public readonly Session Session;
         public readonly JET_TABLEID Table;
@@ -118,9 +117,10 @@ namespace Imageboard10.Core.ModelStorage.Boards
 			JET_COLUMNID tempcolid;
             Api.JetAddColumn(sid, tableid, "Id", new JET_COLUMNDEF()
             {
-				coltyp = JET_coltyp.LongText,
+				coltyp = JET_coltyp.Text,
 				grbit = ColumndefGrbit.ColumnNotNULL,
 				cp = JET_CP.Unicode,
+				cbMax = 50,
             }, null, 0, out tempcolid);			
             Api.JetAddColumn(sid, tableid, "Category", new JET_COLUMNDEF()
             {
@@ -417,12 +417,32 @@ namespace Imageboard10.Core.ModelStorage.Boards
 
 		public DefaultView Columns { get; }
 
-	    public IEnumerable EnumerateToEnd()
+	    public IEnumerable<object> EnumerateToEnd()
 	    {
 	        while (Api.TryMoveNext(Session, Table))
 	        {
 	            yield return this;
 	        }
+	    }
+
+	    public IEnumerable<object> Enumerate()
+	    {
+			if (Api.TryMoveFirst(Session, Table))
+			{
+				do {
+					yield return this;
+				} while (Api.TryMoveNext(Session, Table));
+			}
+	    }
+
+	    public IEnumerable<object> EnumerateUnique()
+	    {
+			if (Api.TryMoveFirst(Session, Table))
+			{
+				do {
+					yield return this;
+				} while (Api.TryMove(Session, Table, JET_Move.Next, MoveGrbit.MoveKeyNE));
+			}
 	    }
 
 	    [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -463,9 +483,251 @@ namespace Imageboard10.Core.ModelStorage.Boards
 
 		public static class ViewValues
 		{
+
+			// ReSharper disable once InconsistentNaming
+			public struct IsAdultFromIndex
+			{
+				public bool IsAdult;
+			}
+
+			// ReSharper disable once InconsistentNaming
+			public struct CategoryFromIndex
+			{
+				public string Category;
+			}
+
+			// ReSharper disable once InconsistentNaming
+			public struct IsAdultAndCategoryFromIndex
+			{
+				public bool IsAdult;
+				public string Category;
+			}
+
+			// ReSharper disable once InconsistentNaming
+			public struct ShortInfoView
+			{
+				public string Id;
+				public string Category;
+				public string ShortName;
+				public string DisplayName;
+				public bool IsAdult;
+			}
+
+			// ReSharper disable once InconsistentNaming
+			public struct FullRowView
+			{
+				public string Id;
+				public string Category;
+				public string ShortName;
+				public string DisplayName;
+				public bool IsAdult;
+				public byte[] ExtendedData;
+				public int? BumpLimit;
+				public string DefaultName;
+				public int? Pages;
+			}
 		}
 
 		public static class FetchViews {
+
+			// ReSharper disable once InconsistentNaming
+			public struct IsAdultFromIndex
+			{
+				private readonly BoardReferenceTable _table;
+				private readonly ColumnValue[] _c;
+
+				public IsAdultFromIndex(BoardReferenceTable table)
+				{
+					_table = table;
+
+					_c = new ColumnValue[1];
+					_c[0] = new BoolColumnValue() {
+						Columnid = _table.ColumnDictionary[BoardReferenceTable.Column.IsAdult],
+						RetrieveGrbit = RetrieveColumnGrbit.RetrieveFromIndex
+					};
+				}
+
+				public ViewValues.IsAdultFromIndex Fetch()
+				{
+					var r = new ViewValues.IsAdultFromIndex();
+					Api.RetrieveColumns(_table.Session, _table, _c);
+				    // ReSharper disable once PossibleInvalidOperationException
+					r.IsAdult = ((BoolColumnValue)_c[0]).Value.Value;
+					return r;
+				}
+			}
+
+			// ReSharper disable once InconsistentNaming
+			public struct CategoryFromIndex
+			{
+				private readonly BoardReferenceTable _table;
+				private readonly ColumnValue[] _c;
+
+				public CategoryFromIndex(BoardReferenceTable table)
+				{
+					_table = table;
+
+					_c = new ColumnValue[1];
+					_c[0] = new StringColumnValue() {
+						Columnid = _table.ColumnDictionary[BoardReferenceTable.Column.Category],
+						RetrieveGrbit = RetrieveColumnGrbit.RetrieveFromIndex
+					};
+				}
+
+				public ViewValues.CategoryFromIndex Fetch()
+				{
+					var r = new ViewValues.CategoryFromIndex();
+					Api.RetrieveColumns(_table.Session, _table, _c);
+					r.Category = ((StringColumnValue)_c[0]).Value;
+					return r;
+				}
+			}
+
+			// ReSharper disable once InconsistentNaming
+			public struct IsAdultAndCategoryFromIndex
+			{
+				private readonly BoardReferenceTable _table;
+				private readonly ColumnValue[] _c;
+
+				public IsAdultAndCategoryFromIndex(BoardReferenceTable table)
+				{
+					_table = table;
+
+					_c = new ColumnValue[2];
+					_c[0] = new BoolColumnValue() {
+						Columnid = _table.ColumnDictionary[BoardReferenceTable.Column.IsAdult],
+						RetrieveGrbit = RetrieveColumnGrbit.RetrieveFromIndex
+					};
+					_c[1] = new StringColumnValue() {
+						Columnid = _table.ColumnDictionary[BoardReferenceTable.Column.Category],
+						RetrieveGrbit = RetrieveColumnGrbit.RetrieveFromIndex
+					};
+				}
+
+				public ViewValues.IsAdultAndCategoryFromIndex Fetch()
+				{
+					var r = new ViewValues.IsAdultAndCategoryFromIndex();
+					Api.RetrieveColumns(_table.Session, _table, _c);
+				    // ReSharper disable once PossibleInvalidOperationException
+					r.IsAdult = ((BoolColumnValue)_c[0]).Value.Value;
+					r.Category = ((StringColumnValue)_c[1]).Value;
+					return r;
+				}
+			}
+
+			// ReSharper disable once InconsistentNaming
+			public struct ShortInfoView
+			{
+				private readonly BoardReferenceTable _table;
+				private readonly ColumnValue[] _c;
+
+				public ShortInfoView(BoardReferenceTable table)
+				{
+					_table = table;
+
+					_c = new ColumnValue[5];
+					_c[0] = new StringColumnValue() {
+						Columnid = _table.ColumnDictionary[BoardReferenceTable.Column.Id],
+						RetrieveGrbit = RetrieveColumnGrbit.None
+					};
+					_c[1] = new StringColumnValue() {
+						Columnid = _table.ColumnDictionary[BoardReferenceTable.Column.Category],
+						RetrieveGrbit = RetrieveColumnGrbit.None
+					};
+					_c[2] = new StringColumnValue() {
+						Columnid = _table.ColumnDictionary[BoardReferenceTable.Column.ShortName],
+						RetrieveGrbit = RetrieveColumnGrbit.None
+					};
+					_c[3] = new StringColumnValue() {
+						Columnid = _table.ColumnDictionary[BoardReferenceTable.Column.DisplayName],
+						RetrieveGrbit = RetrieveColumnGrbit.None
+					};
+					_c[4] = new BoolColumnValue() {
+						Columnid = _table.ColumnDictionary[BoardReferenceTable.Column.IsAdult],
+						RetrieveGrbit = RetrieveColumnGrbit.None
+					};
+				}
+
+				public ViewValues.ShortInfoView Fetch()
+				{
+					var r = new ViewValues.ShortInfoView();
+					Api.RetrieveColumns(_table.Session, _table, _c);
+					r.Id = ((StringColumnValue)_c[0]).Value;
+					r.Category = ((StringColumnValue)_c[1]).Value;
+					r.ShortName = ((StringColumnValue)_c[2]).Value;
+					r.DisplayName = ((StringColumnValue)_c[3]).Value;
+				    // ReSharper disable once PossibleInvalidOperationException
+					r.IsAdult = ((BoolColumnValue)_c[4]).Value.Value;
+					return r;
+				}
+			}
+
+			// ReSharper disable once InconsistentNaming
+			public struct FullRowView
+			{
+				private readonly BoardReferenceTable _table;
+				private readonly ColumnValue[] _c;
+
+				public FullRowView(BoardReferenceTable table)
+				{
+					_table = table;
+
+					_c = new ColumnValue[9];
+					_c[0] = new StringColumnValue() {
+						Columnid = _table.ColumnDictionary[BoardReferenceTable.Column.Id],
+						RetrieveGrbit = RetrieveColumnGrbit.None
+					};
+					_c[1] = new StringColumnValue() {
+						Columnid = _table.ColumnDictionary[BoardReferenceTable.Column.Category],
+						RetrieveGrbit = RetrieveColumnGrbit.None
+					};
+					_c[2] = new StringColumnValue() {
+						Columnid = _table.ColumnDictionary[BoardReferenceTable.Column.ShortName],
+						RetrieveGrbit = RetrieveColumnGrbit.None
+					};
+					_c[3] = new StringColumnValue() {
+						Columnid = _table.ColumnDictionary[BoardReferenceTable.Column.DisplayName],
+						RetrieveGrbit = RetrieveColumnGrbit.None
+					};
+					_c[4] = new BoolColumnValue() {
+						Columnid = _table.ColumnDictionary[BoardReferenceTable.Column.IsAdult],
+						RetrieveGrbit = RetrieveColumnGrbit.None
+					};
+					_c[5] = new BytesColumnValue() {
+						Columnid = _table.ColumnDictionary[BoardReferenceTable.Column.ExtendedData],
+						RetrieveGrbit = RetrieveColumnGrbit.None
+					};
+					_c[6] = new Int32ColumnValue() {
+						Columnid = _table.ColumnDictionary[BoardReferenceTable.Column.BumpLimit],
+						RetrieveGrbit = RetrieveColumnGrbit.None
+					};
+					_c[7] = new StringColumnValue() {
+						Columnid = _table.ColumnDictionary[BoardReferenceTable.Column.DefaultName],
+						RetrieveGrbit = RetrieveColumnGrbit.None
+					};
+					_c[8] = new Int32ColumnValue() {
+						Columnid = _table.ColumnDictionary[BoardReferenceTable.Column.Pages],
+						RetrieveGrbit = RetrieveColumnGrbit.None
+					};
+				}
+
+				public ViewValues.FullRowView Fetch()
+				{
+					var r = new ViewValues.FullRowView();
+					Api.RetrieveColumns(_table.Session, _table, _c);
+					r.Id = ((StringColumnValue)_c[0]).Value;
+					r.Category = ((StringColumnValue)_c[1]).Value;
+					r.ShortName = ((StringColumnValue)_c[2]).Value;
+					r.DisplayName = ((StringColumnValue)_c[3]).Value;
+				    // ReSharper disable once PossibleInvalidOperationException
+					r.IsAdult = ((BoolColumnValue)_c[4]).Value.Value;
+					r.ExtendedData = ((BytesColumnValue)_c[5]).Value;
+					r.BumpLimit = ((Int32ColumnValue)_c[6]).Value;
+					r.DefaultName = ((StringColumnValue)_c[7]).Value;
+					r.Pages = ((Int32ColumnValue)_c[8]).Value;
+					return r;
+				}
+			}
 	
 		}
 
@@ -476,6 +738,34 @@ namespace Imageboard10.Core.ModelStorage.Boards
 			public TableFetchViews(BoardReferenceTable table)
 			{
 				_table = table;
+			}
+
+		    // ReSharper disable once InconsistentNaming
+			private FetchViews.ShortInfoView? __fv_ShortInfoView;
+			public FetchViews.ShortInfoView ShortInfoView
+			{
+				get
+				{
+					if (__fv_ShortInfoView == null)
+					{
+						__fv_ShortInfoView = new FetchViews.ShortInfoView(_table);
+					}
+					return __fv_ShortInfoView.Value;
+				}
+			}
+
+		    // ReSharper disable once InconsistentNaming
+			private FetchViews.FullRowView? __fv_FullRowView;
+			public FetchViews.FullRowView FullRowView
+			{
+				get
+				{
+					if (__fv_FullRowView == null)
+					{
+						__fv_FullRowView = new FetchViews.FullRowView(_table);
+					}
+					return __fv_FullRowView.Value;
+				}
 			}
 		}
 
@@ -496,6 +786,82 @@ namespace Imageboard10.Core.ModelStorage.Boards
 
 		public static class InsertOrUpdateViews
 		{
+			public struct FullRowView
+			{
+				private readonly BoardReferenceTable _table;
+				private readonly ColumnValue[] _c;
+
+				public FullRowView(BoardReferenceTable table)
+				{
+					_table = table;
+
+					_c = new ColumnValue[9];
+					_c[0] = new StringColumnValue() {
+						Columnid = _table.ColumnDictionary[BoardReferenceTable.Column.Id],
+						SetGrbit = SetColumnGrbit.None
+					};
+					_c[1] = new StringColumnValue() {
+						Columnid = _table.ColumnDictionary[BoardReferenceTable.Column.Category],
+						SetGrbit = SetColumnGrbit.None
+					};
+					_c[2] = new StringColumnValue() {
+						Columnid = _table.ColumnDictionary[BoardReferenceTable.Column.ShortName],
+						SetGrbit = SetColumnGrbit.None
+					};
+					_c[3] = new StringColumnValue() {
+						Columnid = _table.ColumnDictionary[BoardReferenceTable.Column.DisplayName],
+						SetGrbit = SetColumnGrbit.None
+					};
+					_c[4] = new BoolColumnValue() {
+						Columnid = _table.ColumnDictionary[BoardReferenceTable.Column.IsAdult],
+						SetGrbit = SetColumnGrbit.None
+					};
+					_c[5] = new BytesColumnValue() {
+						Columnid = _table.ColumnDictionary[BoardReferenceTable.Column.ExtendedData],
+						SetGrbit = SetColumnGrbit.None
+					};
+					_c[6] = new Int32ColumnValue() {
+						Columnid = _table.ColumnDictionary[BoardReferenceTable.Column.BumpLimit],
+						SetGrbit = SetColumnGrbit.None
+					};
+					_c[7] = new StringColumnValue() {
+						Columnid = _table.ColumnDictionary[BoardReferenceTable.Column.DefaultName],
+						SetGrbit = SetColumnGrbit.None
+					};
+					_c[8] = new Int32ColumnValue() {
+						Columnid = _table.ColumnDictionary[BoardReferenceTable.Column.Pages],
+						SetGrbit = SetColumnGrbit.None
+					};
+				}
+
+				public void Set(ViewValues.FullRowView value)
+				{
+					((StringColumnValue)_c[0]).Value = value.Id;
+					((StringColumnValue)_c[1]).Value = value.Category;
+					((StringColumnValue)_c[2]).Value = value.ShortName;
+					((StringColumnValue)_c[3]).Value = value.DisplayName;
+					((BoolColumnValue)_c[4]).Value = value.IsAdult;
+					((BytesColumnValue)_c[5]).Value = value.ExtendedData;
+					((Int32ColumnValue)_c[6]).Value = value.BumpLimit;
+					((StringColumnValue)_c[7]).Value = value.DefaultName;
+					((Int32ColumnValue)_c[8]).Value = value.Pages;
+					Api.SetColumns(_table.Session, _table, _c);
+				}
+
+				public void Set(ref ViewValues.FullRowView value)
+				{
+					((StringColumnValue)_c[0]).Value = value.Id;
+					((StringColumnValue)_c[1]).Value = value.Category;
+					((StringColumnValue)_c[2]).Value = value.ShortName;
+					((StringColumnValue)_c[3]).Value = value.DisplayName;
+					((BoolColumnValue)_c[4]).Value = value.IsAdult;
+					((BytesColumnValue)_c[5]).Value = value.ExtendedData;
+					((Int32ColumnValue)_c[6]).Value = value.BumpLimit;
+					((StringColumnValue)_c[7]).Value = value.DefaultName;
+					((Int32ColumnValue)_c[8]).Value = value.Pages;
+					Api.SetColumns(_table.Session, _table, _c);
+				}
+			}			
 		}
 
 		public class TableInsertViews
@@ -508,6 +874,39 @@ namespace Imageboard10.Core.ModelStorage.Boards
 			}
 
 			public Update CreateUpdate() => new Update(_table.Session, _table, JET_prep.Insert);
+
+		    // ReSharper disable once InconsistentNaming
+			private InsertOrUpdateViews.FullRowView? __iuv_FullRowView;
+
+			public InsertOrUpdateViews.FullRowView FullRowView
+			{
+				get
+				{
+					if (__iuv_FullRowView == null)
+					{
+						__iuv_FullRowView = new InsertOrUpdateViews.FullRowView(_table);
+					}
+					return __iuv_FullRowView.Value;
+				}
+			}
+
+			public void InsertAsFullRowView(ViewValues.FullRowView value)
+			{
+				using (var update = CreateUpdate())
+				{
+					FullRowView.Set(value);
+					update.Save();
+				}
+			}
+
+			public void InsertAsFullRowView(ref ViewValues.FullRowView value)
+			{
+				using (var update = CreateUpdate())
+				{
+					FullRowView.Set(ref value);
+					update.Save();
+				}
+			}
 		}
 
 		// ReSharper disable once InconsistentNaming
@@ -535,6 +934,39 @@ namespace Imageboard10.Core.ModelStorage.Boards
 			}
 
 			public Update CreateUpdate() => new Update(_table.Session, _table, JET_prep.Replace);
+
+		    // ReSharper disable once InconsistentNaming
+			private InsertOrUpdateViews.FullRowView? __iuv_FullRowView;
+
+			public InsertOrUpdateViews.FullRowView FullRowView
+			{
+				get
+				{
+					if (__iuv_FullRowView == null)
+					{
+						__iuv_FullRowView = new InsertOrUpdateViews.FullRowView(_table);
+					}
+					return __iuv_FullRowView.Value;
+				}
+			}
+
+			public void UpdateAsFullRowView(ViewValues.FullRowView value)
+			{
+				using (var update = CreateUpdate())
+				{
+					FullRowView.Set(value);
+					update.Save();
+				}
+			}
+
+			public void UpdateAsFullRowView(ref ViewValues.FullRowView value)
+			{
+				using (var update = CreateUpdate())
+				{
+					FullRowView.Set(ref value);
+					update.Save();
+				}
+			}
 		}
 
 		// ReSharper disable once InconsistentNaming
@@ -574,6 +1006,18 @@ namespace Imageboard10.Core.ModelStorage.Boards
 					public string Id;
 				}
 
+			    // ReSharper disable InconsistentNaming
+				public PrimaryIndexKey CreateKey(
+						string Id
+				)
+			    // ReSharper enable InconsistentNaming
+				{
+					return new PrimaryIndexKey() {
+						Id = Id,
+					
+					};
+				}
+
 				public void SetKey(PrimaryIndexKey key)
 				{
 					Api.MakeKey(_table.Session, _table, key.Id, Encoding.Unicode, MakeKeyGrbit.NewKey);
@@ -585,7 +1029,7 @@ namespace Imageboard10.Core.ModelStorage.Boards
 					return Api.TrySeek(_table.Session, _table, SeekGrbit.SeekEQ);
 				}
 
-				public IEnumerable Enumerate(PrimaryIndexKey key)
+				public IEnumerable<object> Enumerate(PrimaryIndexKey key)
 				{
 					SetKey(key);
 					if (Api.TrySeek(_table.Session, _table, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange))
@@ -596,7 +1040,7 @@ namespace Imageboard10.Core.ModelStorage.Boards
 					}
 				}
 
-				public IEnumerable EnumerateUnique(PrimaryIndexKey key)
+				public IEnumerable<object> EnumerateUnique(PrimaryIndexKey key)
 				{
 					SetKey(key);
 					if (Api.TrySeek(_table.Session, _table, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange))
@@ -629,6 +1073,7 @@ namespace Imageboard10.Core.ModelStorage.Boards
 				public CategoryIndex(BoardReferenceTable table)
 				{
 					_table = table;
+					_views = new IndexFetchViews(_table);
 				}
 
 				public void SetAsCurrentIndex()
@@ -639,6 +1084,18 @@ namespace Imageboard10.Core.ModelStorage.Boards
 				public struct CategoryIndexKey
 				{
 					public string Category;
+				}
+
+			    // ReSharper disable InconsistentNaming
+				public CategoryIndexKey CreateKey(
+						string Category
+				)
+			    // ReSharper enable InconsistentNaming
+				{
+					return new CategoryIndexKey() {
+						Category = Category,
+					
+					};
 				}
 
 				public void SetKey(CategoryIndexKey key)
@@ -652,7 +1109,7 @@ namespace Imageboard10.Core.ModelStorage.Boards
 					return Api.TrySeek(_table.Session, _table, SeekGrbit.SeekEQ);
 				}
 
-				public IEnumerable Enumerate(CategoryIndexKey key)
+				public IEnumerable<object> Enumerate(CategoryIndexKey key)
 				{
 					SetKey(key);
 					if (Api.TrySeek(_table.Session, _table, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange))
@@ -663,7 +1120,7 @@ namespace Imageboard10.Core.ModelStorage.Boards
 					}
 				}
 
-				public IEnumerable EnumerateUnique(CategoryIndexKey key)
+				public IEnumerable<object> EnumerateUnique(CategoryIndexKey key)
 				{
 					SetKey(key);
 					if (Api.TrySeek(_table.Session, _table, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange))
@@ -686,6 +1143,75 @@ namespace Imageboard10.Core.ModelStorage.Boards
 			        Find(key);
 			        return GetIndexRecordCount();
 			    }
+				public class IndexFetchViews
+				{
+					private readonly BoardReferenceTable _table;
+
+					public IndexFetchViews(BoardReferenceTable table)
+					{
+						_table = table;
+					}
+
+					// ReSharper disable once InconsistentNaming
+					private FetchViews.CategoryFromIndex? __fv_CategoryFromIndex;
+					public FetchViews.CategoryFromIndex CategoryFromIndex
+					{
+						get
+						{
+							if (__fv_CategoryFromIndex == null)
+							{
+								__fv_CategoryFromIndex = new FetchViews.CategoryFromIndex(_table);
+							}
+							return __fv_CategoryFromIndex.Value;
+						}
+					}
+				}
+
+				private readonly IndexFetchViews _views;
+			    // ReSharper disable once ConvertToAutoProperty
+				public IndexFetchViews Views => _views;
+
+				public IEnumerable<ViewValues.CategoryFromIndex> EnumerateAsCategoryFromIndex()
+				{
+					if (Api.TryMoveFirst(_table.Session, _table))
+					{
+						do {
+							yield return Views.CategoryFromIndex.Fetch();
+						} while (Api.TryMoveNext(_table.Session, _table));
+					}
+				}
+
+				public IEnumerable<ViewValues.CategoryFromIndex> EnumerateAsCategoryFromIndex(CategoryIndexKey key)
+				{
+					SetKey(key);
+					if (Api.TrySeek(_table.Session, _table, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange))
+					{
+						do {
+							yield return Views.CategoryFromIndex.Fetch();
+						} while (Api.TryMoveNext(_table.Session, _table));
+					}
+				}
+
+				public IEnumerable<ViewValues.CategoryFromIndex> EnumerateUniqueAsCategoryFromIndex()
+				{
+					if (Api.TryMoveFirst(_table.Session, _table))
+					{
+						do {
+							yield return Views.CategoryFromIndex.Fetch();
+						} while (Api.TryMove(_table.Session, _table, JET_Move.Next, MoveGrbit.MoveKeyNE));
+					}
+				}
+
+				public IEnumerable<ViewValues.CategoryFromIndex> EnumerateUniqueAsCategoryFromIndex(CategoryIndexKey key)
+				{
+					SetKey(key);
+					if (Api.TrySeek(_table.Session, _table, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange))
+					{
+						do {
+							yield return Views.CategoryFromIndex.Fetch();
+						} while (Api.TryMove(_table.Session, _table, JET_Move.Next, MoveGrbit.MoveKeyNE));
+					}
+				}
 				
 			}
 
@@ -708,6 +1234,18 @@ namespace Imageboard10.Core.ModelStorage.Boards
 					public bool IsAdult;
 				}
 
+			    // ReSharper disable InconsistentNaming
+				public IsAdultIndexKey CreateKey(
+						bool IsAdult
+				)
+			    // ReSharper enable InconsistentNaming
+				{
+					return new IsAdultIndexKey() {
+						IsAdult = IsAdult,
+					
+					};
+				}
+
 				public void SetKey(IsAdultIndexKey key)
 				{
 					Api.MakeKey(_table.Session, _table, key.IsAdult,  MakeKeyGrbit.NewKey);
@@ -719,7 +1257,7 @@ namespace Imageboard10.Core.ModelStorage.Boards
 					return Api.TrySeek(_table.Session, _table, SeekGrbit.SeekEQ);
 				}
 
-				public IEnumerable Enumerate(IsAdultIndexKey key)
+				public IEnumerable<object> Enumerate(IsAdultIndexKey key)
 				{
 					SetKey(key);
 					if (Api.TrySeek(_table.Session, _table, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange))
@@ -730,7 +1268,7 @@ namespace Imageboard10.Core.ModelStorage.Boards
 					}
 				}
 
-				public IEnumerable EnumerateUnique(IsAdultIndexKey key)
+				public IEnumerable<object> EnumerateUnique(IsAdultIndexKey key)
 				{
 					SetKey(key);
 					if (Api.TrySeek(_table.Session, _table, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange))
@@ -763,6 +1301,7 @@ namespace Imageboard10.Core.ModelStorage.Boards
 				public IsAdultAndCategoryIndex(BoardReferenceTable table)
 				{
 					_table = table;
+					_views = new IndexFetchViews(_table);
 				}
 
 				public void SetAsCurrentIndex()
@@ -774,6 +1313,20 @@ namespace Imageboard10.Core.ModelStorage.Boards
 				{
 					public bool IsAdult;
 					public string Category;
+				}
+
+			    // ReSharper disable InconsistentNaming
+				public IsAdultAndCategoryIndexKey CreateKey(
+						bool IsAdult
+						,string Category
+				)
+			    // ReSharper enable InconsistentNaming
+				{
+					return new IsAdultAndCategoryIndexKey() {
+						IsAdult = IsAdult,
+						Category = Category,
+					
+					};
 				}
 
 				public void SetKey(IsAdultAndCategoryIndexKey key)
@@ -788,7 +1341,7 @@ namespace Imageboard10.Core.ModelStorage.Boards
 					return Api.TrySeek(_table.Session, _table, SeekGrbit.SeekEQ);
 				}
 
-				public IEnumerable Enumerate(IsAdultAndCategoryIndexKey key)
+				public IEnumerable<object> Enumerate(IsAdultAndCategoryIndexKey key)
 				{
 					SetKey(key);
 					if (Api.TrySeek(_table.Session, _table, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange))
@@ -799,7 +1352,7 @@ namespace Imageboard10.Core.ModelStorage.Boards
 					}
 				}
 
-				public IEnumerable EnumerateUnique(IsAdultAndCategoryIndexKey key)
+				public IEnumerable<object> EnumerateUnique(IsAdultAndCategoryIndexKey key)
 				{
 					SetKey(key);
 					if (Api.TrySeek(_table.Session, _table, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange))
@@ -826,6 +1379,18 @@ namespace Imageboard10.Core.ModelStorage.Boards
 				public struct IsAdultAndCategoryIndexPartialKey1
 				{
 					public bool IsAdult;
+				}
+
+			    // ReSharper disable InconsistentNaming
+				public IsAdultAndCategoryIndexPartialKey1 CreateKey(
+						bool IsAdult
+				)
+			    // ReSharper enable InconsistentNaming
+				{
+					return new IsAdultAndCategoryIndexPartialKey1() {
+						IsAdult = IsAdult,
+					
+					};
 				}
 
 				public void SetKey(IsAdultAndCategoryIndexPartialKey1 key, bool startRange)
@@ -858,7 +1423,7 @@ namespace Imageboard10.Core.ModelStorage.Boards
 					return false;
 				}
 
-				public IEnumerable Enumerate(IsAdultAndCategoryIndexPartialKey1 key)
+				public IEnumerable<object> Enumerate(IsAdultAndCategoryIndexPartialKey1 key)
 				{
 					SetKey(key, true);
 					if (Api.TrySeek(_table.Session, _table, SeekGrbit.SeekGE))
@@ -879,6 +1444,162 @@ namespace Imageboard10.Core.ModelStorage.Boards
 			        return GetIndexRecordCount();
 			    }
 
+				public class IndexFetchViews
+				{
+					private readonly BoardReferenceTable _table;
+
+					public IndexFetchViews(BoardReferenceTable table)
+					{
+						_table = table;
+					}
+
+					// ReSharper disable once InconsistentNaming
+					private FetchViews.IsAdultFromIndex? __fv_IsAdultFromIndex;
+					public FetchViews.IsAdultFromIndex IsAdultFromIndex
+					{
+						get
+						{
+							if (__fv_IsAdultFromIndex == null)
+							{
+								__fv_IsAdultFromIndex = new FetchViews.IsAdultFromIndex(_table);
+							}
+							return __fv_IsAdultFromIndex.Value;
+						}
+					}
+
+					// ReSharper disable once InconsistentNaming
+					private FetchViews.IsAdultAndCategoryFromIndex? __fv_IsAdultAndCategoryFromIndex;
+					public FetchViews.IsAdultAndCategoryFromIndex IsAdultAndCategoryFromIndex
+					{
+						get
+						{
+							if (__fv_IsAdultAndCategoryFromIndex == null)
+							{
+								__fv_IsAdultAndCategoryFromIndex = new FetchViews.IsAdultAndCategoryFromIndex(_table);
+							}
+							return __fv_IsAdultAndCategoryFromIndex.Value;
+						}
+					}
+				}
+
+				private readonly IndexFetchViews _views;
+			    // ReSharper disable once ConvertToAutoProperty
+				public IndexFetchViews Views => _views;
+
+				public IEnumerable<ViewValues.IsAdultFromIndex> EnumerateAsIsAdultFromIndex()
+				{
+					if (Api.TryMoveFirst(_table.Session, _table))
+					{
+						do {
+							yield return Views.IsAdultFromIndex.Fetch();
+						} while (Api.TryMoveNext(_table.Session, _table));
+					}
+				}
+
+				public IEnumerable<ViewValues.IsAdultFromIndex> EnumerateAsIsAdultFromIndex(IsAdultAndCategoryIndexKey key)
+				{
+					SetKey(key);
+					if (Api.TrySeek(_table.Session, _table, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange))
+					{
+						do {
+							yield return Views.IsAdultFromIndex.Fetch();
+						} while (Api.TryMoveNext(_table.Session, _table));
+					}
+				}
+
+				public IEnumerable<ViewValues.IsAdultFromIndex> EnumerateUniqueAsIsAdultFromIndex()
+				{
+					if (Api.TryMoveFirst(_table.Session, _table))
+					{
+						do {
+							yield return Views.IsAdultFromIndex.Fetch();
+						} while (Api.TryMove(_table.Session, _table, JET_Move.Next, MoveGrbit.MoveKeyNE));
+					}
+				}
+
+				public IEnumerable<ViewValues.IsAdultFromIndex> EnumerateUniqueAsIsAdultFromIndex(IsAdultAndCategoryIndexKey key)
+				{
+					SetKey(key);
+					if (Api.TrySeek(_table.Session, _table, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange))
+					{
+						do {
+							yield return Views.IsAdultFromIndex.Fetch();
+						} while (Api.TryMove(_table.Session, _table, JET_Move.Next, MoveGrbit.MoveKeyNE));
+					}
+				}
+
+				public IEnumerable<ViewValues.IsAdultFromIndex> EnumerateAsIsAdultFromIndex(IsAdultAndCategoryIndexPartialKey1 key)
+				{
+					SetKey(key, true);
+					if (Api.TrySeek(_table.Session, _table, SeekGrbit.SeekGE))
+					{
+						SetKey(key, false);
+						if (Api.TrySetIndexRange(_table.Session, _table, SetIndexRangeGrbit.RangeUpperLimit))
+						{
+							do {
+								yield return Views.IsAdultFromIndex.Fetch();
+							} while (Api.TryMoveNext(_table.Session, _table));
+						}
+					}
+				}
+								
+				public IEnumerable<ViewValues.IsAdultAndCategoryFromIndex> EnumerateAsIsAdultAndCategoryFromIndex()
+				{
+					if (Api.TryMoveFirst(_table.Session, _table))
+					{
+						do {
+							yield return Views.IsAdultAndCategoryFromIndex.Fetch();
+						} while (Api.TryMoveNext(_table.Session, _table));
+					}
+				}
+
+				public IEnumerable<ViewValues.IsAdultAndCategoryFromIndex> EnumerateAsIsAdultAndCategoryFromIndex(IsAdultAndCategoryIndexKey key)
+				{
+					SetKey(key);
+					if (Api.TrySeek(_table.Session, _table, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange))
+					{
+						do {
+							yield return Views.IsAdultAndCategoryFromIndex.Fetch();
+						} while (Api.TryMoveNext(_table.Session, _table));
+					}
+				}
+
+				public IEnumerable<ViewValues.IsAdultAndCategoryFromIndex> EnumerateUniqueAsIsAdultAndCategoryFromIndex()
+				{
+					if (Api.TryMoveFirst(_table.Session, _table))
+					{
+						do {
+							yield return Views.IsAdultAndCategoryFromIndex.Fetch();
+						} while (Api.TryMove(_table.Session, _table, JET_Move.Next, MoveGrbit.MoveKeyNE));
+					}
+				}
+
+				public IEnumerable<ViewValues.IsAdultAndCategoryFromIndex> EnumerateUniqueAsIsAdultAndCategoryFromIndex(IsAdultAndCategoryIndexKey key)
+				{
+					SetKey(key);
+					if (Api.TrySeek(_table.Session, _table, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange))
+					{
+						do {
+							yield return Views.IsAdultAndCategoryFromIndex.Fetch();
+						} while (Api.TryMove(_table.Session, _table, JET_Move.Next, MoveGrbit.MoveKeyNE));
+					}
+				}
+
+				public IEnumerable<ViewValues.IsAdultAndCategoryFromIndex> EnumerateAsIsAdultAndCategoryFromIndex(IsAdultAndCategoryIndexPartialKey1 key)
+				{
+					SetKey(key, true);
+					if (Api.TrySeek(_table.Session, _table, SeekGrbit.SeekGE))
+					{
+						SetKey(key, false);
+						if (Api.TrySetIndexRange(_table.Session, _table, SetIndexRangeGrbit.RangeUpperLimit))
+						{
+							do {
+								yield return Views.IsAdultAndCategoryFromIndex.Fetch();
+							} while (Api.TryMoveNext(_table.Session, _table));
+						}
+					}
+				}
+								
 				
 			}
 		}

@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
-<Table Name="BoardReferenceTable" Namespace="Imageboard10.Core.ModelStorage.Boards" Visibility="internal">
+<Table Name="BoardReferenceTable" Namespace="Imageboard10.Core.ModelStorage.Boards" Visibility="public">
   <Columns>
-    <Column Name="Id" Type="LongText" Codepage="Unicode" Grbit="NotNULL"/>
+    <Column Name="Id" Type="Text" Codepage="Unicode" Grbit="NotNULL" Size="50"/>
     <Column Name="Category" Type="LongText" Codepage="Unicode" Grbit="NotNULL" />
     <Column Name="ShortName" Type="LongText" Codepage="Unicode" Grbit="None" />
     <Column Name="DisplayName" Type="LongText" Codepage="Unicode" Grbit="None" />
@@ -21,6 +21,9 @@
       <Fields>
         <Field Name="Category" Sort="Asc"/>
       </Fields>
+      <Views>
+        <ViewName>CategoryFromIndex</ViewName>
+      </Views>
     </Index>
     <Index Name="IsAdultIndex" Grbit="None">
       <Fields>
@@ -32,7 +35,40 @@
         <Field Name="IsAdult" Sort="Asc"/>
         <Field Name="Category" Sort="Asc"/>
       </Fields>
-    </Index>
+      <Views>
+        <ViewName>IsAdultFromIndex</ViewName>
+        <ViewName>IsAdultAndCategoryFromIndex</ViewName>
+      </Views>
+    </Index>    
   </Indexes>
-  <Views />
+  <Views>
+    <View Name="IsAdultFromIndex" Role="IndexFetch">
+      <Field FetchFlags="FromIndex">IsAdult</Field>
+    </View>
+    <View Name="CategoryFromIndex" Role="IndexFetch">
+      <Field FetchFlags="FromIndex">Category</Field>
+    </View>
+    <View Name="IsAdultAndCategoryFromIndex" Role="IndexFetch">
+      <Field FetchFlags="FromIndex">IsAdult</Field>
+      <Field FetchFlags="FromIndex">Category</Field>
+    </View>
+    <View Name="ShortInfoView" Role="Fetch">
+      <Field>Id</Field>
+      <Field>Category</Field>
+      <Field>ShortName</Field>
+      <Field>DisplayName</Field>
+      <Field>IsAdult</Field>
+    </View>
+    <View Name="FullRowView" Role="Fetch Insert Update">
+      <Field>Id</Field>
+      <Field>Category</Field>
+      <Field>ShortName</Field>
+      <Field>DisplayName</Field>
+      <Field>IsAdult</Field>
+      <Field>ExtendedData</Field>
+      <Field>BumpLimit</Field>
+      <Field>DefaultName</Field>
+      <Field>Pages</Field>
+    </View>
+  </Views>
 </Table>
