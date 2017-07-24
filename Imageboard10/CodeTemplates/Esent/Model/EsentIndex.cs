@@ -19,10 +19,9 @@ namespace CodeTemplates.Esent.Model
         [XmlArrayItem(ElementName = "Field")]
         public EsentIndexField[] Fields { get; set; }
 
-        [XmlArray("Searches")]
-        [XmlArrayItem(typeof(EsentSearchSeek), ElementName = "Seek")]
-        [XmlArrayItem(typeof(EsentSearchRange), ElementName = "Range")]
-        public EsentSearch[] Searches { get; set; }
+        [XmlArray("Views")]
+        [XmlArrayItem("ViewName")]
+        public string[] Views { get; set; }
 
         public static string MapToJetIndexGrbit(EsentIndexGrbit grbit)
         {

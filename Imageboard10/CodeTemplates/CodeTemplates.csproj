@@ -52,7 +52,6 @@
     <Compile Include="Esent\Model\EsentIndexGrbit.cs" />
     <Compile Include="Esent\Model\EsentIndexSort.cs" />
     <Compile Include="Esent\Model\EsentMakeKeyGrbit.cs" />
-    <Compile Include="Esent\Model\EsentSearch.cs" />
     <Compile Include="Esent\Model\EsentSeekGrbit.cs" />
     <Compile Include="Esent\Model\EsentSetIndexRangeGrbit.cs" />
     <Compile Include="Esent\Model\EsentTable.cs" />

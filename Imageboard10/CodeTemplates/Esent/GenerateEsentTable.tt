@@ -41,6 +41,7 @@ namespace <#= table.Namespace #>
 			_columnDic = null;
 			Columns = new DefaultView(this);
 			Views = new TableFetchViews(this);
+			Indexes = new TableIndexes(this);
         }
 
         public void Dispose()
@@ -554,6 +555,16 @@ namespace <#= table.Namespace #>
 <#+
 		foreach (var index in table.Indexes)
 		{
+			EsentView[] fetchViews = new EsentView[0];
+			if (index.Views != null && index.Views.Length > 0)
+			{
+				var viewSet = new HashSet<string>();
+				foreach (var v in index.Views)
+				{
+					viewSet.Add(v);
+				}
+				fetchViews = table.Views.Where(v => v.Role.HasFlag(EsentViewRole.IndexFetch) && viewSet.Contains(v.Name)).ToArray();
+			}
 #>
 
 			public struct <#= index.Name #>
@@ -563,6 +574,14 @@ namespace <#= table.Namespace #>
 				public <#= index.Name #>(<#= table.Name #> table)
 				{
 					_table = table;
+<#+
+				if (fetchViews.Length > 0)
+				{
+#>
+					_views = new IndexFetchViews(_table);
+<#+
+				}
+#>
 				}
 
 				public void SetAsCurrentIndex()
@@ -655,11 +674,256 @@ namespace <#= table.Namespace #>
 			        Find(key);
 			        return GetIndexRecordCount();
 			    }
+<#+
+				int partialCnt = 0;
+				var partialKeys = new List<string>();
+				for (var lastIndexField = index.Fields.Length-2; lastIndexField >= 0; lastIndexField--)
+				{
+					partialCnt++;
+					partialKeys.Add(index.Name + "PartialKey" + partialCnt.ToString());
+#>
+
+				public struct <#= index.Name #>PartialKey<#= partialCnt #>
+				{
+<#+
+					for (var i = 0; i <= lastIndexField; i++)
+					{
+						var field = index.Fields[i];
+						var columndef = columnDic.Data[field.Name];
+#>
+					public <#= columndef.GetNetType() #> <#= columndef.Name #>;
+<#+
+					}
+#>
+				}
+
+				public void SetKey(<#= index.Name #>PartialKey<#= partialCnt #> key, bool startRange)
+				{
+					var rangeFlag = startRange ? MakeKeyGrbit.FullColumnStartLimit : MakeKeyGrbit.FullColumnEndLimit;
+<#+
+					for (var i = 0; i <= lastIndexField; i++)
+					{
+						string keyFlags;
+						if (i == 0 && i == lastIndexField)
+						{
+							keyFlags = "MakeKeyGrbit.NewKey | rangeFlag";
+						} else if (i == lastIndexField)
+						{
+							keyFlags = "rangeFlag";
+						} else if (i == 0)
+						{
+							keyFlags = "MakeKeyGrbit.NewKey";
+						} else
+						{
+							keyFlags = "MakeKeyGrbit.None";
+						}
+						var field = index.Fields[i];
+						var columndef = columnDic.Data[field.Name];
+#>
+<#+
+						if (columndef.IsNullable() && !columndef.IsReferenceType())
+						{
+#>
+					if (key.<#= index.Fields[i].Name #> == null)
+					{
+						Api.MakeKey(_table.Session, _table, null, <#= keyFlags #>);
+					} else
+					{
+						Api.MakeKey(_table.Session, _table, key.<#= index.Fields[i].Name #>.Value, <#= keyFlags #>);
+					}
+<#+
+						} else {
+#>
+					Api.MakeKey(_table.Session, _table, key.<#= index.Fields[i].Name #>, <#= keyFlags #>);
+<#+
+						}
+#>
+<#+
+					}
+#>
+				}
+
+				public bool Find(<#= index.Name #>PartialKey<#= partialCnt #> key)
+				{
+					SetKey(key, true);
+					return Api.TrySeek(_table.Session, _table, SeekGrbit.SeekGE);
+				}
+
+				public bool SetPartialUpperRange(<#= index.Name #>PartialKey<#= partialCnt #> key)
+				{
+					SetKey(key, false);
+					return Api.TrySetIndexRange(_table.Session, _table, SetIndexRangeGrbit.RangeUpperLimit);
+				}
+
+				public bool SeekPartial(<#= index.Name #>PartialKey<#= partialCnt #> key)
+				{
+					if (Find(key))
+					{
+						if (SetPartialUpperRange(key))
+						{
+							return true;
+						}
+					}
+					return false;
+				}
+
+				public IEnumerable Enumerate(<#= index.Name #>PartialKey<#= partialCnt #> key)
+				{
+					SetKey(key, true);
+					if (Api.TrySeek(_table.Session, _table, SeekGrbit.SeekGE))
+					{
+						SetKey(key, false);
+						if (Api.TrySetIndexRange(_table.Session, _table, SetIndexRangeGrbit.RangeUpperLimit))
+						{
+							do {
+								yield return _table;
+							} while (Api.TryMoveNext(_table.Session, _table));
+						}
+					}
+				}
+
+				public int GetIndexRecordCount(<#= index.Name #>PartialKey<#= partialCnt #> key)
+			    {
+			        SeekPartial(key);
+			        return GetIndexRecordCount();
+			    }
+
+<#+
+				}
+#>
+
+<#+
+				if (fetchViews.Length > 0)
+				{
+#>
+				public class IndexFetchViews
+				{
+					private readonly <#= table.Name #> _table;
+
+					public IndexFetchViews(<#= table.Name #> table)
+					{
+						_table = table;
+					}
+<#+
+					foreach (var view in fetchViews)
+					{
+#>
+
+					// ReSharper disable once InconsistentNaming
+					private FetchViews.<#= view.Name #>? __fv_<#= view.Name #>;
+					public FetchViews.<#= view.Name #> <#= view.Name #>
+					{
+						get
+						{
+							if (__fv_<#= view.Name #> == null)
+							{
+								__fv_<#= view.Name #> = new FetchViews.<#= view.Name #>(_table);
+							}
+							return __fv_<#= view.Name #>.Value;
+						}
+					}
+<#+
+					}
+#>
+				}
+
+				private readonly IndexFetchViews _views;
+			    // ReSharper disable once ConvertToAutoProperty
+				public IndexFetchViews Views => _views;
+
+<#+
+				foreach (var view in fetchViews)
+				{
+#>
+				public IEnumerable<ViewValues.<#= view.Name #>> EnumerateAs<#= view.Name #>(<#= index.Name #>Key key)
+				{
+					SetKey(key);
+					if (Api.TrySeek(_table.Session, _table, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange))
+					{
+						do {
+							yield return Views.<#= view.Name #>.Fetch();
+						} while (Api.TryMoveNext(_table.Session, _table));
+					}
+				}
+
+				public IEnumerable<ViewValues.<#= view.Name #>> EnumerateUniqueAs<#= view.Name #>(<#= index.Name #>Key key)
+				{
+					SetKey(key);
+					if (Api.TrySeek(_table.Session, _table, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange))
+					{
+						do {
+							yield return Views.<#= view.Name #>.Fetch();
+						} while (Api.TryMove(_table.Session, _table, JET_Move.Next, MoveGrbit.MoveKeyNE));
+					}
+				}
+<#+
+				foreach (var pk in partialKeys)
+				{
+#>
+
+				public IEnumerable<ViewValues.<#= view.Name #>> EnumerateAs<#= view.Name #>(<#= index.Name #>PartialKey<#= partialCnt #> key)
+				{
+					SetKey(key, true);
+					if (Api.TrySeek(_table.Session, _table, SeekGrbit.SeekGE))
+					{
+						SetKey(key, false);
+						if (Api.TrySetIndexRange(_table.Session, _table, SetIndexRangeGrbit.RangeUpperLimit))
+						{
+							do {
+								yield return Views.<#= view.Name #>.Fetch();
+							} while (Api.TryMoveNext(_table.Session, _table));
+						}
+					}
+				}
+								
+<#+
+				}
+#>
+<#+
+				}
+#>
+<#+
+				}
+#>				
 			}
 <#+
 		}
 #>
 		}
+
+		public class TableIndexes
+		{
+			private readonly <#= table.Name #> _table;
+
+			public TableIndexes(<#= table.Name #> table)
+			{
+				_table = table;
+			}
+<#+
+			foreach (var index in table.Indexes)
+			{
+#>
+
+		    // ReSharper disable once InconsistentNaming
+			private IndexDefinitions.<#= index.Name #>? __ti_<#= index.Name #>;
+
+			public IndexDefinitions.<#= index.Name #> <#= index.Name #>
+			{
+				get
+				{
+					if (__ti_<#= index.Name #> == null)
+					{
+						__ti_<#= index.Name #> = new IndexDefinitions.<#= index.Name #>(_table);
+					}
+					return __ti_<#= index.Name #>.Value;
+				}
+			}
+<#+
+			}
+#>
+		}
+
+		public TableIndexes Indexes {get; }
 	}
 }
 <#+

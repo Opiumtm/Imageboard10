@@ -66,7 +66,7 @@
   <xs:complexType name="EsentIndex">
     <xs:sequence>
       <xs:element minOccurs="0" maxOccurs="1" name="Fields" type="ArrayOfEsentIndexField" />
-      <xs:element minOccurs="0" maxOccurs="1" name="Searches" type="ArrayOfChoice1" />
+      <xs:element minOccurs="0" maxOccurs="1" name="Views" type="ArrayOfString" />
     </xs:sequence>
     <xs:attribute name="Name" type="xs:string" />
     <xs:attribute default="None" name="Grbit" type="EsentIndexGrbit" />
@@ -86,63 +86,11 @@
       <xs:enumeration value="Desc" />
     </xs:restriction>
   </xs:simpleType>
-  <xs:complexType name="ArrayOfChoice1">
-    <xs:choice minOccurs="0" maxOccurs="unbounded">
-      <xs:element minOccurs="1" maxOccurs="1" name="Range" nillable="true" type="EsentSearchRange" />
-      <xs:element minOccurs="1" maxOccurs="1" name="Seek" nillable="true" type="EsentSearchSeek" />
-    </xs:choice>
-  </xs:complexType>
-  <xs:complexType name="EsentSearchRange">
-    <xs:complexContent mixed="false">
-      <xs:extension base="EsentSearchSeek">
-        <xs:sequence>
-          <xs:element minOccurs="0" maxOccurs="1" name="RangeKey" type="EsentKey" />
-        </xs:sequence>
-        <xs:attribute name="RangeType" type="EsentSetIndexRangeGrbit" use="required" />
-      </xs:extension>
-    </xs:complexContent>
-  </xs:complexType>
-  <xs:complexType name="EsentSearchSeek">
-    <xs:complexContent mixed="false">
-      <xs:extension base="EsentSearch">
-        <xs:sequence>
-          <xs:element minOccurs="0" maxOccurs="1" name="SeekKey" type="EsentKey" />
-        </xs:sequence>
-        <xs:attribute default="false" name="Unique" type="xs:boolean" />
-      </xs:extension>
-    </xs:complexContent>
-  </xs:complexType>
-  <xs:complexType name="EsentSearch" abstract="true">
-    <xs:attribute name="Name" type="xs:string" />
-    <xs:attribute default="" name="View" type="xs:string" />
-  </xs:complexType>
-  <xs:complexType name="EsentKey">
+  <xs:complexType name="ArrayOfString">
     <xs:sequence>
-      <xs:element minOccurs="0" maxOccurs="unbounded" name="KeyPart" type="EsentMakeKeyGrbit" />
+      <xs:element minOccurs="0" maxOccurs="unbounded" name="ViewName" nillable="true" type="xs:string" />
     </xs:sequence>
   </xs:complexType>
-  <xs:simpleType name="EsentMakeKeyGrbit">
-    <xs:list>
-      <xs:simpleType>
-        <xs:restriction base="xs:string">
-          <xs:enumeration value="NormalizedKey" />
-          <xs:enumeration value="KeyDataZeroLength" />
-          <xs:enumeration value="StrLimit" />
-          <xs:enumeration value="SubStrLimit" />
-          <xs:enumeration value="FullColumnStartLimit" />
-          <xs:enumeration value="FullColumnEndLimit" />
-          <xs:enumeration value="PartialColumnStartLimit" />
-          <xs:enumeration value="PartialColumnEndLimit" />
-        </xs:restriction>
-      </xs:simpleType>
-    </xs:list>
-  </xs:simpleType>
-  <xs:simpleType name="EsentSetIndexRangeGrbit">
-    <xs:restriction base="xs:string">
-      <xs:enumeration value="Inclusive" />
-      <xs:enumeration value="UpperLimit" />
-    </xs:restriction>
-  </xs:simpleType>
   <xs:simpleType name="EsentIndexGrbit">
     <xs:list>
       <xs:simpleType>
@@ -166,10 +114,22 @@
   <xs:element name="EsentIndexGrbit" type="EsentIndexGrbit" />
   <xs:element name="EsentIndexSort" type="EsentIndexSort" />
   <xs:element name="EsentMakeKeyGrbit" type="EsentMakeKeyGrbit" />
-  <xs:element name="EsentSearch" nillable="true" type="EsentSearch" />
-  <xs:element name="EsentSearchSeek" nillable="true" type="EsentSearchSeek" />
-  <xs:element name="EsentSearchRange" nillable="true" type="EsentSearchRange" />
-  <xs:element name="EsentKey" nillable="true" type="EsentKey" />
+  <xs:simpleType name="EsentMakeKeyGrbit">
+    <xs:list>
+      <xs:simpleType>
+        <xs:restriction base="xs:string">
+          <xs:enumeration value="NormalizedKey" />
+          <xs:enumeration value="KeyDataZeroLength" />
+          <xs:enumeration value="StrLimit" />
+          <xs:enumeration value="SubStrLimit" />
+          <xs:enumeration value="FullColumnStartLimit" />
+          <xs:enumeration value="FullColumnEndLimit" />
+          <xs:enumeration value="PartialColumnStartLimit" />
+          <xs:enumeration value="PartialColumnEndLimit" />
+        </xs:restriction>
+      </xs:simpleType>
+    </xs:list>
+  </xs:simpleType>
   <xs:element name="EsentSeekGrbit" type="EsentSeekGrbit" />
   <xs:simpleType name="EsentSeekGrbit">
     <xs:list>
@@ -186,6 +146,12 @@
     </xs:list>
   </xs:simpleType>
   <xs:element name="EsentSetIndexRangeGrbit" type="EsentSetIndexRangeGrbit" />
+  <xs:simpleType name="EsentSetIndexRangeGrbit">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="Inclusive" />
+      <xs:enumeration value="UpperLimit" />
+    </xs:restriction>
+  </xs:simpleType>
   <xs:element name="Table" nillable="true" type="EsentTable" />
   <xs:complexType name="EsentTable">
     <xs:sequence>

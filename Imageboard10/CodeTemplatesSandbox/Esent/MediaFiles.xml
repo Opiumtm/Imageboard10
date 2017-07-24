@@ -16,22 +16,18 @@
       <Fields>
         <Field Name="EntityReferences" />
       </Fields>
+      <Views>
+        <ViewName>IdKey</ViewName>
+      </Views>
     </Index>
     <Index Name="Sequences" Grbit="IgnoreAnyNull">
       <Fields>
         <Field Name="EntityReferences" />
         <Field Name="SequenceNumber" />
       </Fields>
-      <Searches>
-        <Range Name="IdByEntity" RangeType="UpperLimit" View="IdKey">
-          <SeekKey>
-            <KeyPart>FullColumnStartLimit</KeyPart>
-          </SeekKey>
-          <RangeKey>
-            <KeyPart>FullColumnEndLimit</KeyPart>
-          </RangeKey>
-        </Range>
-      </Searches>
+      <Views>
+        <ViewName>IdKey</ViewName>
+      </Views>
     </Index>
   </Indexes>
   <Views>

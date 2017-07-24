@@ -25,6 +25,7 @@ namespace Imageboard10.Core.ModelStorage.Posts.EsentTables
 			_columnDic = null;
 			Columns = new DefaultView(this);
 			Views = new TableFetchViews(this);
+			Indexes = new TableIndexes(this);
         }
 
         public void Dispose()
@@ -585,6 +586,7 @@ namespace Imageboard10.Core.ModelStorage.Posts.EsentTables
 			        Find(key);
 			        return GetIndexRecordCount();
 			    }
+				
 			}
 
 			public struct EntityReferences
@@ -594,6 +596,7 @@ namespace Imageboard10.Core.ModelStorage.Posts.EsentTables
 				public EntityReferences(MediaFiles table)
 				{
 					_table = table;
+					_views = new IndexFetchViews(_table);
 				}
 
 				public void SetAsCurrentIndex()
@@ -657,6 +660,56 @@ namespace Imageboard10.Core.ModelStorage.Posts.EsentTables
 			        Find(key);
 			        return GetIndexRecordCount();
 			    }
+				public class IndexFetchViews
+				{
+					private readonly MediaFiles _table;
+
+					public IndexFetchViews(MediaFiles table)
+					{
+						_table = table;
+					}
+
+					// ReSharper disable once InconsistentNaming
+					private FetchViews.IdKey? __fv_IdKey;
+					public FetchViews.IdKey IdKey
+					{
+						get
+						{
+							if (__fv_IdKey == null)
+							{
+								__fv_IdKey = new FetchViews.IdKey(_table);
+							}
+							return __fv_IdKey.Value;
+						}
+					}
+				}
+
+				private readonly IndexFetchViews _views;
+			    // ReSharper disable once ConvertToAutoProperty
+				public IndexFetchViews Views => _views;
+
+				public IEnumerable<ViewValues.IdKey> EnumerateAsIdKey(EntityReferencesKey key)
+				{
+					SetKey(key);
+					if (Api.TrySeek(_table.Session, _table, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange))
+					{
+						do {
+							yield return Views.IdKey.Fetch();
+						} while (Api.TryMoveNext(_table.Session, _table));
+					}
+				}
+
+				public IEnumerable<ViewValues.IdKey> EnumerateUniqueAsIdKey(EntityReferencesKey key)
+				{
+					SetKey(key);
+					if (Api.TrySeek(_table.Session, _table, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange))
+					{
+						do {
+							yield return Views.IdKey.Fetch();
+						} while (Api.TryMove(_table.Session, _table, JET_Move.Next, MoveGrbit.MoveKeyNE));
+					}
+				}
+				
 			}
 
 			public struct Sequences
@@ -666,6 +719,7 @@ namespace Imageboard10.Core.ModelStorage.Posts.EsentTables
 				public Sequences(MediaFiles table)
 				{
 					_table = table;
+					_views = new IndexFetchViews(_table);
 				}
 
 				public void SetAsCurrentIndex()
@@ -731,7 +785,193 @@ namespace Imageboard10.Core.ModelStorage.Posts.EsentTables
 			        Find(key);
 			        return GetIndexRecordCount();
 			    }
+
+				public struct SequencesPartialKey1
+				{
+					public int? EntityReferences;
+				}
+
+				public void SetKey(SequencesPartialKey1 key, bool startRange)
+				{
+					var rangeFlag = startRange ? MakeKeyGrbit.FullColumnStartLimit : MakeKeyGrbit.FullColumnEndLimit;
+					if (key.EntityReferences == null)
+					{
+						Api.MakeKey(_table.Session, _table, null, MakeKeyGrbit.NewKey | rangeFlag);
+					} else
+					{
+						Api.MakeKey(_table.Session, _table, key.EntityReferences.Value, MakeKeyGrbit.NewKey | rangeFlag);
+					}
+				}
+
+				public bool Find(SequencesPartialKey1 key)
+				{
+					SetKey(key, true);
+					return Api.TrySeek(_table.Session, _table, SeekGrbit.SeekGE);
+				}
+
+				public bool SetPartialUpperRange(SequencesPartialKey1 key)
+				{
+					SetKey(key, false);
+					return Api.TrySetIndexRange(_table.Session, _table, SetIndexRangeGrbit.RangeUpperLimit);
+				}
+
+				public bool SeekPartial(SequencesPartialKey1 key)
+				{
+					if (Find(key))
+					{
+						if (SetPartialUpperRange(key))
+						{
+							return true;
+						}
+					}
+					return false;
+				}
+
+				public IEnumerable Enumerate(SequencesPartialKey1 key)
+				{
+					SetKey(key, true);
+					if (Api.TrySeek(_table.Session, _table, SeekGrbit.SeekGE))
+					{
+						SetKey(key, false);
+						if (Api.TrySetIndexRange(_table.Session, _table, SetIndexRangeGrbit.RangeUpperLimit))
+						{
+							do {
+								yield return _table;
+							} while (Api.TryMoveNext(_table.Session, _table));
+						}
+					}
+				}
+
+				public int GetIndexRecordCount(SequencesPartialKey1 key)
+			    {
+			        SeekPartial(key);
+			        return GetIndexRecordCount();
+			    }
+
+				public class IndexFetchViews
+				{
+					private readonly MediaFiles _table;
+
+					public IndexFetchViews(MediaFiles table)
+					{
+						_table = table;
+					}
+
+					// ReSharper disable once InconsistentNaming
+					private FetchViews.IdKey? __fv_IdKey;
+					public FetchViews.IdKey IdKey
+					{
+						get
+						{
+							if (__fv_IdKey == null)
+							{
+								__fv_IdKey = new FetchViews.IdKey(_table);
+							}
+							return __fv_IdKey.Value;
+						}
+					}
+				}
+
+				private readonly IndexFetchViews _views;
+			    // ReSharper disable once ConvertToAutoProperty
+				public IndexFetchViews Views => _views;
+
+				public IEnumerable<ViewValues.IdKey> EnumerateAsIdKey(SequencesKey key)
+				{
+					SetKey(key);
+					if (Api.TrySeek(_table.Session, _table, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange))
+					{
+						do {
+							yield return Views.IdKey.Fetch();
+						} while (Api.TryMoveNext(_table.Session, _table));
+					}
+				}
+
+				public IEnumerable<ViewValues.IdKey> EnumerateUniqueAsIdKey(SequencesKey key)
+				{
+					SetKey(key);
+					if (Api.TrySeek(_table.Session, _table, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange))
+					{
+						do {
+							yield return Views.IdKey.Fetch();
+						} while (Api.TryMove(_table.Session, _table, JET_Move.Next, MoveGrbit.MoveKeyNE));
+					}
+				}
+
+				public IEnumerable<ViewValues.IdKey> EnumerateAsIdKey(SequencesPartialKey1 key)
+				{
+					SetKey(key, true);
+					if (Api.TrySeek(_table.Session, _table, SeekGrbit.SeekGE))
+					{
+						SetKey(key, false);
+						if (Api.TrySetIndexRange(_table.Session, _table, SetIndexRangeGrbit.RangeUpperLimit))
+						{
+							do {
+								yield return Views.IdKey.Fetch();
+							} while (Api.TryMoveNext(_table.Session, _table));
+						}
+					}
+				}
+								
+				
 			}
 		}
+
+		public class TableIndexes
+		{
+			private readonly MediaFiles _table;
+
+			public TableIndexes(MediaFiles table)
+			{
+				_table = table;
+			}
+
+		    // ReSharper disable once InconsistentNaming
+			private IndexDefinitions.Primary? __ti_Primary;
+
+			public IndexDefinitions.Primary Primary
+			{
+				get
+				{
+					if (__ti_Primary == null)
+					{
+						__ti_Primary = new IndexDefinitions.Primary(_table);
+					}
+					return __ti_Primary.Value;
+				}
+			}
+
+		    // ReSharper disable once InconsistentNaming
+			private IndexDefinitions.EntityReferences? __ti_EntityReferences;
+
+			public IndexDefinitions.EntityReferences EntityReferences
+			{
+				get
+				{
+					if (__ti_EntityReferences == null)
+					{
+						__ti_EntityReferences = new IndexDefinitions.EntityReferences(_table);
+					}
+					return __ti_EntityReferences.Value;
+				}
+			}
+
+		    // ReSharper disable once InconsistentNaming
+			private IndexDefinitions.Sequences? __ti_Sequences;
+
+			public IndexDefinitions.Sequences Sequences
+			{
+				get
+				{
+					if (__ti_Sequences == null)
+					{
+						__ti_Sequences = new IndexDefinitions.Sequences(_table);
+					}
+					return __ti_Sequences.Value;
+				}
+			}
+		}
+
+		public TableIndexes Indexes {get; }
 	}
 }
