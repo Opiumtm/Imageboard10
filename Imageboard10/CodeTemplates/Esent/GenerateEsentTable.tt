@@ -245,21 +245,23 @@ namespace <#= table.Namespace #>
                     Api.RetrieveColumns(_table.Session, _table.Table, r);
                     return r;
                 }
-				set
+				set => SetValues(value);            
+			}
+
+			public void SetValues(T[] value)
+			{
+				if (value == null)
 				{
-					if (value == null)
-					{
-						throw new ArgumentNullException();
-					}
-					Clear();
-                    for (var i = 0; i < value.Length; i++)
-                    {
-						value[i].ItagSequence = i + 1;
-					}
-				    // ReSharper disable once CoVariantArrayConversion
-                    Api.SetColumns(_table.Session, _table.Table, value);
+					throw new ArgumentNullException();
 				}
-            }
+				Clear();
+                for (var i = 0; i < value.Length; i++)
+                {
+					value[i].ItagSequence = i + 1;
+				}
+				// ReSharper disable once CoVariantArrayConversion
+                Api.SetColumns(_table.Session, _table.Table, value);
+			}
         }
 
 
@@ -303,6 +305,12 @@ namespace <#= table.Namespace #>
 
 		    // ReSharper disable once ConvertToAutoProperty
 			public Multivalue<<#= column.GetColumnValueType() #>> <#= column.Name #> => __mv_<#= column.Name #>;
+			
+			public void Set<#= column.Name #>ValueArr(<#= column.GetColumnValueType() #>[] v)
+			{
+			    // ReSharper disable once ImpureMethodCallOnReadonlyValueField
+				__mv_<#= column.Name #>.SetValues(v);
+			}
 <#+
 			} else {
 #>
@@ -351,7 +359,6 @@ namespace <#= table.Namespace #>
 <#+
 			}
 #>
-
 <#+
 			}
 			}
@@ -576,9 +583,86 @@ namespace <#= table.Namespace #>
 			var globalUpdateViews = new List<EsentView>();
 			foreach (var view in table.Views)
 			{
+				if (view.Role.HasFlag(EsentViewRole.Insert))
+				{
+					globalInsertViews.Add(view);
+				}
+				if (view.Role.HasFlag(EsentViewRole.Update))
+				{
+					globalUpdateViews.Add(view);
+				}
+				if (view.Role.HasFlag(EsentViewRole.Insert) || view.Role.HasFlag(EsentViewRole.Update))
+				{
+					var nmFields = view.Fields.Select(f => new { f, c = columnDic.Data[f.Name] }).Where(c => !c.c.IsMultivalue()).Select(c => c.f).ToArray();
+					var mFields = view.Fields.Select(f => new { f, c = columnDic.Data[f.Name] }).Where(c => c.c.IsMultivalue()).Select(c => c.f).ToArray();
+#>
+			public struct <#= view.Name #>
+			{
+				private readonly <#= table.Name #> _table;
+<#+
+				if (nmFields.Length > 0) {
+#>
+				private readonly ColumnValue[] _c;
+<#+
+				}
+#>
+
+				public <#= view.Name #>(<#= table.Name #> table)
+				{
+					_table = table;
+<#+
+					if (nmFields.Length > 0) {
+#>
+
+					_c = new ColumnValue[<#= nmFields.Length #>];
+<#+
+					for (var i = 0; i < nmFields.Length; i++)
+					{
+						var field = nmFields[i];
+						var columndef = columnDic.Data[field.Name];
+#>
+					_c[<#= i #>] = new <#= columndef.GetColumnValueType() #>() {
+						Columnid = _table.ColumnDictionary[<#= table.Name #>.Column.<#= columndef.Name #>],
+						SetGrbit = SetColumnGrbit.None
+					};
+<#+
+						}
 #>
 <#+
+					}
+#>
+				}
+
+				public void Set(ViewValues.<#= view.Name #> value)
+				{
+<#+
+					if (nmFields.Length > 0) {
+#>
+<#+
+					for (var i = 0; i < nmFields.Length; i++)
+					{
+						var field = nmFields[i];
+						var columndef = columnDic.Data[field.Name];
+#>
+					((<#= columndef.GetColumnValueType() #>)_c[<#= i #>]).Value = value.<#= columndef.Name #>;
+<#+
+					}
+#>
+					Api.SetColumns(_table.Session, _table, _c);
+<#+
+					for (var i = 0; i < mFields.Length; i++)
+					{
+#>
+					_table.Columns.Set<#= mFields[i].Name #>ValueArr(value.<#= mFields[i].Name #>);
+<#+
+					}
+#>
+				}
+			}			
+<#+
+				}
 			}
+		}
 #>
 		}
 

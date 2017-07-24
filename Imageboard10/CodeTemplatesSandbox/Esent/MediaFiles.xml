@@ -38,7 +38,7 @@
       <Field FetchFlags="Default">SequenceNumber</Field>
       <Field FetchFlags="Default">MediaData</Field>
     </View>
-    <View Name="SeqDataAll" Role="Fetch">
+    <View Name="SeqDataAll" Role="Fetch Insert Update">
       <Field FetchFlags="Default">EntityReferences</Field>
       <Field FetchFlags="Default">SequenceNumber</Field>
       <Field FetchFlags="Default">MediaData</Field>

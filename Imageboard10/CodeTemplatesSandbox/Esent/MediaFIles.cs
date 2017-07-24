@@ -218,21 +218,23 @@ namespace Imageboard10.Core.ModelStorage.Posts.EsentTables
                     Api.RetrieveColumns(_table.Session, _table.Table, r);
                     return r;
                 }
-				set
+				set => SetValues(value);            
+			}
+
+			public void SetValues(T[] value)
+			{
+				if (value == null)
 				{
-					if (value == null)
-					{
-						throw new ArgumentNullException();
-					}
-					Clear();
-                    for (var i = 0; i < value.Length; i++)
-                    {
-						value[i].ItagSequence = i + 1;
-					}
-				    // ReSharper disable once CoVariantArrayConversion
-                    Api.SetColumns(_table.Session, _table.Table, value);
+					throw new ArgumentNullException();
 				}
-            }
+				Clear();
+                for (var i = 0; i < value.Length; i++)
+                {
+					value[i].ItagSequence = i + 1;
+				}
+				// ReSharper disable once CoVariantArrayConversion
+                Api.SetColumns(_table.Session, _table.Table, value);
+			}
         }
 
 
@@ -268,6 +270,12 @@ namespace Imageboard10.Core.ModelStorage.Posts.EsentTables
 
 		    // ReSharper disable once ConvertToAutoProperty
 			public Multivalue<Int32ColumnValue> EntityReferences => __mv_EntityReferences;
+			
+			public void SetEntityReferencesValueArr(Int32ColumnValue[] v)
+			{
+			    // ReSharper disable once ImpureMethodCallOnReadonlyValueField
+				__mv_EntityReferences.SetValues(v);
+			}
 			public long SequenceNumber
 			{
 			    // ReSharper disable once PossibleInvalidOperationException
@@ -537,6 +545,34 @@ namespace Imageboard10.Core.ModelStorage.Posts.EsentTables
 
 		public static class InsertOrUpdateViews
 		{
+			public struct SeqDataAll
+			{
+				private readonly MediaFiles _table;
+				private readonly ColumnValue[] _c;
+
+				public SeqDataAll(MediaFiles table)
+				{
+					_table = table;
+
+					_c = new ColumnValue[2];
+					_c[0] = new Int64ColumnValue() {
+						Columnid = _table.ColumnDictionary[MediaFiles.Column.SequenceNumber],
+						SetGrbit = SetColumnGrbit.None
+					};
+					_c[1] = new BytesColumnValue() {
+						Columnid = _table.ColumnDictionary[MediaFiles.Column.MediaData],
+						SetGrbit = SetColumnGrbit.None
+					};
+				}
+
+				public void Set(ViewValues.SeqDataAll value)
+				{
+					((Int64ColumnValue)_c[0]).Value = value.SequenceNumber;
+					((BytesColumnValue)_c[1]).Value = value.MediaData;
+					Api.SetColumns(_table.Session, _table, _c);
+					_table.Columns.SetEntityReferencesValueArr(value.EntityReferences);
+				}
+			}			
 		}
 
 		public static class IndexDefinitions
