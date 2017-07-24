@@ -28,6 +28,16 @@ namespace Imageboard10.Core.ModelStorage.Boards
 			Columns = new DefaultView(this);
         }
 
+	    public BoardReferenceTable(Session session, JET_DBID dbid, string tableName, OpenTableGrbit grbit)
+	    {
+	        Session = session;
+	        JET_TABLEID tableid;
+	        Api.OpenTable(session, dbid, tableName, grbit, out tableid);
+	        Table = tableid;
+	        _columnDic = null;
+	        Columns = new DefaultView(this);
+	    }
+
         public void Dispose()
         {
             Api.JetCloseTable(Session, Table);
