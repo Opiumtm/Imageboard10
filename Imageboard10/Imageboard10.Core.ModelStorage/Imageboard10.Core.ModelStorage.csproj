@@ -119,6 +119,16 @@
     <Compile Include="Blobs\InlineBlobStreamBase.cs" />
     <Compile Include="Blobs\InlineFileStream.cs" />
     <Compile Include="Blobs\InputBlob.cs" />
+    <Compile Include="Blobs\BlobsTable.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>BlobsTable.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Blobs\ReferencesTable.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>ReferencesTable.tt</DependentUpon>
+    </Compile>
     <Compile Include="Boards\BoardReferenceStore.cs" />
     <Compile Include="Boards\BoardReferenceTable.cs">
       <AutoGen>True</AutoGen>
@@ -191,6 +201,16 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <Content Include="Blobs\BlobsTable.xml" />
+    <Content Include="Blobs\BlobsTable.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>BlobsTable.cs</LastGenOutput>
+    </Content>
+    <Content Include="Blobs\ReferencesTable.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>ReferencesTable.cs</LastGenOutput>
+    </Content>
+    <Content Include="Blobs\ReferencesTable.xml" />
     <Content Include="Boards\BoardReferenceTable.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>BoardReferenceTable.cs</LastGenOutput>

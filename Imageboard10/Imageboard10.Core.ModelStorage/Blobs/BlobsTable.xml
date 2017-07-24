@@ -1,0 +1,44 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<Table Name="BlobsTable" Visibility="internal" Namespace="Imageboard10.Core.ModelStorage.Blobs.TableDef">
+  <Columns>
+    <Column Name="Id" Type="SignedInt32" Grbit="NotNULL Autoincrement" />
+    <Column Name="Name" Type="LongText" Grbit="NotNULL" Codepage="Unicode" />
+    <Column Name="Category" Type="LongText" Grbit="None" Codepage="Unicode" />
+    <Column Name="Length" Type="SignedInt64" Grbit="NotNULL" />
+    <Column Name="CreatedDate" Type="DateTime" Grbit="NotNULL" />
+    <Column Name="Data" Type="LongBinary" Grbit="Tagged" />
+    <Column Name="ReferenceId" Type="Guid" Grbit="Tagged" />
+    <Column Name="IsCompleted" Type="Boolean" Grbit="NotNULL" />
+    <Column Name="IsFilestream" Type="Boolean" Grbit="NotNULL" />
+  </Columns>
+  <Indexes>
+    <Index Name="PrimaryIndex" Grbit="Primary Unique">
+      <Fields>
+        <Field Name="Id" Sort="Asc"/>
+      </Fields>
+    </Index>
+    <Index Name="NameIndex" Grbit="Unique">
+      <Fields>
+        <Field Name="Name" Sort="Asc"/>
+      </Fields>
+    </Index>
+    <Index Name="CategoryIndex" Grbit="None">
+      <Fields>
+        <Field Name="Category" Sort="Asc"/>
+        <Field Name="IsCompleted" Sort="Asc"/>
+      </Fields>
+    </Index>
+    <Index Name="ReferenceIdIndex" Grbit="None">
+      <Fields>
+        <Field Name="ReferenceId" Sort="Asc"/>
+        <Field Name="IsCompleted" Sort="Asc"/>
+      </Fields>
+    </Index>
+    <Index Name="IsCompletedIndex" Grbit="None">
+      <Fields>
+        <Field Name="IsCompleted" Sort="Asc"/>
+      </Fields>
+    </Index>
+  </Indexes>
+  <Views />
+</Table>
