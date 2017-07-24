@@ -42,6 +42,8 @@ namespace <#= table.Namespace #>
 			Columns = new DefaultView(this);
 			Views = new TableFetchViews(this);
 			Indexes = new TableIndexes(this);
+			Insert = new TableInsertViews(this);
+			Update = new TableUpdateViews(this);
         }
 
         public void Dispose()
@@ -637,8 +639,6 @@ namespace <#= table.Namespace #>
 				{
 <#+
 					if (nmFields.Length > 0) {
-#>
-<#+
 					for (var i = 0; i < nmFields.Length; i++)
 					{
 						var field = nmFields[i];
@@ -656,15 +656,148 @@ namespace <#= table.Namespace #>
 					_table.Columns.Set<#= mFields[i].Name #>ValueArr(value.<#= mFields[i].Name #>);
 <#+
 					}
+				}
+#>
+				}
+
+				public void Set(ref ViewValues.<#= view.Name #> value)
+				{
+<#+
+					if (nmFields.Length > 0) {
+					for (var i = 0; i < nmFields.Length; i++)
+					{
+						var field = nmFields[i];
+						var columndef = columnDic.Data[field.Name];
+#>
+					((<#= columndef.GetColumnValueType() #>)_c[<#= i #>]).Value = value.<#= columndef.Name #>;
+<#+
+					}
+#>
+					Api.SetColumns(_table.Session, _table, _c);
+<#+
+					for (var i = 0; i < mFields.Length; i++)
+					{
+#>
+					_table.Columns.Set<#= mFields[i].Name #>ValueArr(value.<#= mFields[i].Name #>);
+<#+
+					}
+				}
 #>
 				}
 			}			
 <#+
-				}
 			}
 		}
 #>
 		}
+
+		public class TableInsertViews
+		{
+			private readonly <#= table.Name #> _table;
+
+			public TableInsertViews(<#= table.Name #> table)
+			{
+				_table = table;
+			}
+
+			public Update CreateUpdate() => new Update(_table.Session, _table, JET_prep.Insert);
+<#+
+		foreach (var view in globalInsertViews)
+		{
+#>
+
+		    // ReSharper disable once InconsistentNaming
+			private InsertOrUpdateViews.<#= view.Name #>? __iuv_<#= view.Name #>;
+
+			public InsertOrUpdateViews.<#= view.Name #> <#= view.Name #>
+			{
+				get
+				{
+					if (__iuv_<#= view.Name #> == null)
+					{
+						__iuv_<#= view.Name #> = new InsertOrUpdateViews.<#= view.Name #>(_table);
+					}
+					return __iuv_<#= view.Name #>.Value;
+				}
+			}
+
+			public void InsertAs<#= view.Name #>(ViewValues.<#= view.Name #> value)
+			{
+				using (var update = CreateUpdate())
+				{
+					<#= view.Name #>.Set(value);
+					update.Save();
+				}
+			}
+
+			public void InsertAs<#= view.Name #>(ref ViewValues.<#= view.Name #> value)
+			{
+				using (var update = CreateUpdate())
+				{
+					<#= view.Name #>.Set(ref value);
+					update.Save();
+				}
+			}
+<#+
+		}
+#>
+		}
+
+		public TableInsertViews Insert { get; }
+
+		public class TableUpdateViews
+		{
+			private readonly <#= table.Name #> _table;
+
+			public TableUpdateViews(<#= table.Name #> table)
+			{
+				_table = table;
+			}
+
+			public Update CreateUpdate() => new Update(_table.Session, _table, JET_prep.Replace);
+<#+
+		foreach (var view in globalUpdateViews)
+		{
+#>
+
+		    // ReSharper disable once InconsistentNaming
+			private InsertOrUpdateViews.<#= view.Name #>? __iuv_<#= view.Name #>;
+
+			public InsertOrUpdateViews.<#= view.Name #> <#= view.Name #>
+			{
+				get
+				{
+					if (__iuv_<#= view.Name #> == null)
+					{
+						__iuv_<#= view.Name #> = new InsertOrUpdateViews.<#= view.Name #>(_table);
+					}
+					return __iuv_<#= view.Name #>.Value;
+				}
+			}
+
+			public void UpdateAs<#= view.Name #>(ViewValues.<#= view.Name #> value)
+			{
+				using (var update = CreateUpdate())
+				{
+					<#= view.Name #>.Set(value);
+					update.Save();
+				}
+			}
+
+			public void UpdateAs<#= view.Name #>(ref ViewValues.<#= view.Name #> value)
+			{
+				using (var update = CreateUpdate())
+				{
+					<#= view.Name #>.Set(ref value);
+					update.Save();
+				}
+			}
+<#+
+		}
+#>
+		}
+
+		public TableUpdateViews Update { get; }
 
 		public static class IndexDefinitions
 		{

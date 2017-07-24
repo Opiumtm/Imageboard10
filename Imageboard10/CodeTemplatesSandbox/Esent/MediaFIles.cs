@@ -26,6 +26,8 @@ namespace Imageboard10.Core.ModelStorage.Posts.EsentTables
 			Columns = new DefaultView(this);
 			Views = new TableFetchViews(this);
 			Indexes = new TableIndexes(this);
+			Insert = new TableInsertViews(this);
+			Update = new TableUpdateViews(this);
         }
 
         public void Dispose()
@@ -572,8 +574,110 @@ namespace Imageboard10.Core.ModelStorage.Posts.EsentTables
 					Api.SetColumns(_table.Session, _table, _c);
 					_table.Columns.SetEntityReferencesValueArr(value.EntityReferences);
 				}
+
+				public void Set(ref ViewValues.SeqDataAll value)
+				{
+					((Int64ColumnValue)_c[0]).Value = value.SequenceNumber;
+					((BytesColumnValue)_c[1]).Value = value.MediaData;
+					Api.SetColumns(_table.Session, _table, _c);
+					_table.Columns.SetEntityReferencesValueArr(value.EntityReferences);
+				}
 			}			
 		}
+
+		public class TableInsertViews
+		{
+			private readonly MediaFiles _table;
+
+			public TableInsertViews(MediaFiles table)
+			{
+				_table = table;
+			}
+
+			public Update CreateUpdate() => new Update(_table.Session, _table, JET_prep.Insert);
+
+		    // ReSharper disable once InconsistentNaming
+			private InsertOrUpdateViews.SeqDataAll? __iuv_SeqDataAll;
+
+			public InsertOrUpdateViews.SeqDataAll SeqDataAll
+			{
+				get
+				{
+					if (__iuv_SeqDataAll == null)
+					{
+						__iuv_SeqDataAll = new InsertOrUpdateViews.SeqDataAll(_table);
+					}
+					return __iuv_SeqDataAll.Value;
+				}
+			}
+
+			public void InsertAsSeqDataAll(ViewValues.SeqDataAll value)
+			{
+				using (var update = CreateUpdate())
+				{
+					SeqDataAll.Set(value);
+					update.Save();
+				}
+			}
+
+			public void InsertAsSeqDataAll(ref ViewValues.SeqDataAll value)
+			{
+				using (var update = CreateUpdate())
+				{
+					SeqDataAll.Set(ref value);
+					update.Save();
+				}
+			}
+		}
+
+		public TableInsertViews Insert { get; }
+
+		public class TableUpdateViews
+		{
+			private readonly MediaFiles _table;
+
+			public TableUpdateViews(MediaFiles table)
+			{
+				_table = table;
+			}
+
+			public Update CreateUpdate() => new Update(_table.Session, _table, JET_prep.Replace);
+
+		    // ReSharper disable once InconsistentNaming
+			private InsertOrUpdateViews.SeqDataAll? __iuv_SeqDataAll;
+
+			public InsertOrUpdateViews.SeqDataAll SeqDataAll
+			{
+				get
+				{
+					if (__iuv_SeqDataAll == null)
+					{
+						__iuv_SeqDataAll = new InsertOrUpdateViews.SeqDataAll(_table);
+					}
+					return __iuv_SeqDataAll.Value;
+				}
+			}
+
+			public void UpdateAsSeqDataAll(ViewValues.SeqDataAll value)
+			{
+				using (var update = CreateUpdate())
+				{
+					SeqDataAll.Set(value);
+					update.Save();
+				}
+			}
+
+			public void UpdateAsSeqDataAll(ref ViewValues.SeqDataAll value)
+			{
+				using (var update = CreateUpdate())
+				{
+					SeqDataAll.Set(ref value);
+					update.Save();
+				}
+			}
+		}
+
+		public TableUpdateViews Update { get; }
 
 		public static class IndexDefinitions
 		{
