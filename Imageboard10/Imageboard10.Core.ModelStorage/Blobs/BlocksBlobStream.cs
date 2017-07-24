@@ -39,7 +39,7 @@ namespace Imageboard10.Core.ModelStorage.Blobs
                 _transaction = new Transaction(session.Session);
                 try
                 {
-                    _table = session.OpenTable(BlobTableInfo.BlobsTable, OpenTableGrbit.ReadOnly);
+                    _table = session.OpenTable(BlobTableInfo.BlobsTableName, OpenTableGrbit.ReadOnly);
                     try
                     {
                         Api.MakeKey(sid, _table, blobId.Id, MakeKeyGrbit.NewKey);

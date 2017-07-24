@@ -12,7 +12,7 @@ using System.Text;
 
 // ReSharper disable RedundantNameQualifier
 // ReSharper disable once CheckNamespace
-namespace Imageboard10.Core.ModelStorage.Blobs.TableDef
+namespace Imageboard10.Core.ModelStorage.Blobs
 {
 	internal sealed class ReferencesTable : IDisposable
 	{

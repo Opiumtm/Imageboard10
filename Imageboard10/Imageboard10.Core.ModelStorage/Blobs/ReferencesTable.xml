@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
-<Table Name="ReferencesTable" Visibility="internal" Namespace="Imageboard10.Core.ModelStorage.Blobs.TableDef">
+<Table Name="ReferencesTable" Visibility="internal" Namespace="Imageboard10.Core.ModelStorage.Blobs">
   <Columns>
     <Column Name="ReferenceId" Grbit="NotNULL" Type="Guid" />
   </Columns>

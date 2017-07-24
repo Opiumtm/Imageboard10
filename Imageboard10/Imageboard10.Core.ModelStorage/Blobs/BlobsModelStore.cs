@@ -30,8 +30,8 @@ namespace Imageboard10.Core.ModelStorage.Blobs
         protected override async ValueTask<Nothing> CreateOrUpgradeTables()
         {
             await base.CreateOrUpgradeTables();
-            await EnsureTable(BlobsTable, 1, InitializeBlobsTable, null);
-            await EnsureTable(ReferencesTable, 1, InitializeReferencesTable, null);
+            await EnsureTable(BlobsTableName, 1, InitializeBlobsTable, null);
+            await EnsureTable(ReferencesTableName, 1, InitializeReferencesTable, null);
             _filestreamFolder = await CreateFilestreamTable();
             try
             {
@@ -58,91 +58,24 @@ namespace Imageboard10.Core.ModelStorage.Blobs
 
         private void InitializeBlobsTable(IEsentSession session, JET_TABLEID tableid)
         {
-            var sid = session.Session;
-
-            JET_COLUMNID tempid;
-
-            Api.JetAddColumn(sid, tableid, BlobsTableColumns.Id, new JET_COLUMNDEF()
-            {
-                coltyp = JET_coltyp.Long,
-                grbit = ColumndefGrbit.ColumnAutoincrement | ColumndefGrbit.ColumnNotNULL
-            }, null, 0, out tempid);
-
-            Api.JetAddColumn(sid, tableid, BlobsTableColumns.Name, new JET_COLUMNDEF()
-            {
-                coltyp = JET_coltyp.LongText,
-                grbit = ColumndefGrbit.ColumnNotNULL,
-                cp = JET_CP.Unicode
-            }, null, 0, out tempid);
-
-            Api.JetAddColumn(sid, tableid, BlobsTableColumns.Category, new JET_COLUMNDEF()
-            {
-                coltyp = JET_coltyp.LongText,
-                grbit = ColumndefGrbit.None,
-                cp = JET_CP.Unicode
-            }, null, 0, out tempid);
-
-            Api.JetAddColumn(sid, tableid, BlobsTableColumns.Length, new JET_COLUMNDEF()
-            {
-                coltyp = JET_coltyp.Currency,
-                grbit = ColumndefGrbit.ColumnNotNULL,
-            }, null, 0, out tempid);
-
-            Api.JetAddColumn(sid, tableid, BlobsTableColumns.CreatedDate, new JET_COLUMNDEF()
-            {
-                coltyp = JET_coltyp.DateTime,
-                grbit = ColumndefGrbit.ColumnNotNULL,
-            }, null, 0, out tempid);
-
-            Api.JetAddColumn(sid, tableid, BlobsTableColumns.Data, new JET_COLUMNDEF()
-            {
-                coltyp = JET_coltyp.LongBinary,
-                grbit = ColumndefGrbit.ColumnTagged,
-            }, null, 0, out tempid);
-
-            Api.JetAddColumn(sid, tableid, BlobsTableColumns.ReferenceId, new JET_COLUMNDEF()
-            {
-                coltyp = VistaColtyp.GUID,
-                grbit = ColumndefGrbit.ColumnTagged
-            }, null, 0, out tempid);
-
-            Api.JetAddColumn(sid, tableid, BlobsTableColumns.IsCompleted, new JET_COLUMNDEF()
-            {
-                coltyp = JET_coltyp.Bit,
-                grbit = ColumndefGrbit.ColumnNotNULL
-            }, null, 0, out tempid);
-
-            Api.JetAddColumn(sid, tableid, BlobsTableColumns.IsFilestream, new JET_COLUMNDEF()
-            {
-                coltyp = JET_coltyp.Bit,
-                grbit = ColumndefGrbit.ColumnNotNULL
-            }, null, 0, out tempid);
-
-            var pkDef = $"+{BlobsTableColumns.Id}\0\0";
-            var nameDef = $"+{BlobsTableColumns.Name}\0\0";
-            var categoryDef = $"+{BlobsTableColumns.Category}\0+{BlobsTableColumns.IsCompleted}\0\0";
-            var refDef = $"+{BlobsTableColumns.ReferenceId}\0+{BlobsTableColumns.IsCompleted}\0\0";
-            var compDef = $"+{BlobsTableColumns.IsCompleted}\0\0";
-            Api.JetCreateIndex(sid, tableid, BlobsTableIndexes.Primary, CreateIndexGrbit.IndexPrimary | CreateIndexGrbit.IndexUnique, pkDef, pkDef.Length, 100);
-            Api.JetCreateIndex(sid, tableid, BlobsTableIndexes.Name, CreateIndexGrbit.IndexUnique, nameDef, nameDef.Length, 100);
-            Api.JetCreateIndex(sid, tableid, BlobsTableIndexes.Category, CreateIndexGrbit.None, categoryDef, categoryDef.Length, 100);
-            Api.JetCreateIndex(sid, tableid, BlobsTableIndexes.ReferenceId, CreateIndexGrbit.None, refDef, refDef.Length, 100);
-            Api.JetCreateIndex(sid, tableid, BlobsTableIndexes.IsCompleted, CreateIndexGrbit.None, compDef, compDef.Length, 100);
+            BlobsTable.CreateColumnsAndIndexes(session.Session, tableid);
         }
 
         private void InitializeReferencesTable(IEsentSession session, JET_TABLEID tableid)
         {
-            var sid = session.Session;
+            ReferencesTable.CreateColumnsAndIndexes(session.Session, tableid);
+        }
 
-            JET_COLUMNID tempid;
+        private BlobsTable OpenBlobsTable(IEsentSession session, OpenTableGrbit grbit)
+        {
+            var r = session.OpenTable(BlobsTableName, grbit);
+            return new BlobsTable(r.Session, r.Table);
+        }
 
-            Api.JetAddColumn(sid, tableid, ReferencesTableColumns.ReferenceId, new JET_COLUMNDEF()
-            {
-                coltyp = VistaColtyp.GUID,
-                grbit = ColumndefGrbit.ColumnNotNULL
-            }, null, 0, out tempid);
-            var pkDef = $"+{ReferencesTableColumns.ReferenceId}\0\0";
-            Api.JetCreateIndex(sid, tableid, BlobsTableIndexes.Primary, CreateIndexGrbit.IndexPrimary | CreateIndexGrbit.IndexUnique, pkDef, pkDef.Length, 100);
+        private ReferencesTable OpenReferencesTable(IEsentSession session, OpenTableGrbit grbit)
+        {
+            var r = session.OpenTable(ReferencesTableName, grbit);
+            return new ReferencesTable(r.Session, r.Table);
         }
 
         private struct SaveId
@@ -238,63 +171,29 @@ namespace Imageboard10.Core.ModelStorage.Blobs
                     {                        
                         var frs = await session.RunInTransaction(() =>
                         {
-                            using (var table = session.OpenTable(BlobsTable, OpenTableGrbit.None))
+                            using (var table = OpenBlobsTable(session, OpenTableGrbit.None))
                             {
                                 var sid = table.Session;
                                 var columnMap = Api.GetColumnDictionary(sid, table);
                                 // ReSharper disable once AccessToDisposedClosure
                                 var isFile = tmpStream.Length >= FileStreamSize;
-                                using (var update = new Update(sid, table, JET_prep.Insert))
+                                var updateData = new BlobsTable.ViewValues.FullRowUpdate()
                                 {
-                                    var bid = Api.RetrieveColumnAsInt32(sid, table, columnMap[BlobsTableColumns.Id], RetrieveColumnGrbit.RetrieveCopy) ??
-                                              throw new BlobException("Не доступно значение autioncrement Id");
+                                    Name = blob.UniqueName,
+                                    Category = blob.Category,
+                                    CreatedDate = DateTime.Now,
+                                    Data = new byte[0],
+                                    Length = 0,
+                                    ReferenceId = blob.ReferenceId,
+                                    IsCompleted = false,
+                                    IsFilestream = isFile
+                                };
+                                using (var update = table.Insert.CreateUpdate())
+                                {
+                                    var bid = table.Columns.Id_AutoincrementValue;
                                     var bmark = new byte[SystemParameters.BookmarkMost];
                                     int bsize = 0;
-                                    var columns = new ColumnValue[]
-                                    {
-                                        new StringColumnValue()
-                                        {
-                                            Columnid = columnMap[BlobsTableColumns.Name],
-                                            Value = blob.UniqueName,
-                                        },
-                                        new StringColumnValue()
-                                        {
-                                            Columnid = columnMap[BlobsTableColumns.Category],
-                                            Value = blob.Category,
-                                        },
-                                        new DateTimeColumnValue()
-                                        {
-                                            Columnid = columnMap[BlobsTableColumns.CreatedDate],
-                                            Value = DateTime.Now
-                                        },
-                                        new BytesColumnValue()
-                                        {
-                                            Columnid = columnMap[BlobsTableColumns.Data],
-                                            Value = new byte[0]
-                                        },
-                                        new Int64ColumnValue()
-                                        {
-                                            Columnid = columnMap[BlobsTableColumns.Length],
-                                            Value = 0
-                                        },
-                                        new GuidColumnValue()
-                                        {
-                                            Columnid = columnMap[BlobsTableColumns.ReferenceId],
-                                            Value = blob.ReferenceId
-                                        },
-                                        new BoolColumnValue()
-                                        {
-                                            Columnid = columnMap[BlobsTableColumns.IsCompleted],
-                                            Value = false
-                                        },
-                                        new BoolColumnValue()
-                                        {
-                                            Columnid = columnMap[BlobsTableColumns.IsFilestream],
-                                            // ReSharper disable once AccessToDisposedClosure
-                                            Value = isFile
-                                        },
-                                    };
-                                    Api.SetColumns(sid, table, columns);
+                                    table.Insert.FullRowUpdate.Set(ref updateData);
                                     update.Save(bmark, bmark.Length, out bsize);
                                     // ReSharper disable once AccessToDisposedClosure
                                     return (true, new SaveId() {Id = bid, Bookmark = bmark, BookmarkSize = bsize, IsFilestream = isFile });
@@ -327,18 +226,17 @@ namespace Imageboard10.Core.ModelStorage.Blobs
                                 await session.RunInTransaction(() =>
                                 {
                                     token.ThrowIfCancellationRequested();
-                                    using (var table = session.OpenTable(BlobsTable, OpenTableGrbit.None))
+                                    using (var table = OpenBlobsTable(session, OpenTableGrbit.None))
                                     {
                                         var sid = table.Session;
-                                        var columnMap = Api.GetColumnDictionary(sid, table);
 
                                         if (!Api.TryGotoBookmark(table.Session, table, bookmark, bookmarkSize))
                                         {
-                                            throw new BlobException($"Неверные данные в таблице {BlobsTable}, ID={blobId}, pos={counter2}");
+                                            throw new BlobException($"Неверные данные в таблице {BlobsTableName}, ID={blobId}, pos={counter2}");
                                         }
-                                        using (var update = new Update(sid, table, JET_prep.Replace))
+                                        using (var update = table.Update.CreateUpdate())
                                         {
-                                            using (var str = new ColumnStream(sid, table, columnMap[BlobsTableColumns.Data]))
+                                            using (var str = new ColumnStream(sid, table, table.GetColumnid(BlobsTable.Column.Data)))
                                             {
                                                 str.Seek(0, SeekOrigin.End);
                                                 str.Write(buffer, 0, sz);
@@ -370,21 +268,20 @@ namespace Imageboard10.Core.ModelStorage.Blobs
 
                     await session.RunInTransaction(() =>
                     {
-                        using (var table = session.OpenTable(BlobsTable, OpenTableGrbit.None))
+                        using (var table = OpenBlobsTable(session, OpenTableGrbit.None))
                         {
                             var sid = table.Session;
                             var columnMap = Api.GetColumnDictionary(sid, table);
                             if (!Api.TryGotoBookmark(table.Session, table, bookmark, bookmarkSize))
                             {
-                                throw new BlobException($"Неверные данные в таблице {BlobsTable}, ID={blobId}");
+                                throw new BlobException($"Неверные данные в таблице {BlobsTableName}, ID={blobId}");
                             }
-                            using (var update = new Update(sid, table, JET_prep.Replace))
+                            var size = tmpLength;
+                            table.Update.UpdateAsCompletedUpdate(new BlobsTable.ViewValues.CompletedUpdate()
                             {
-                                var size = tmpLength;
-                                Api.SetColumn(sid, table, columnMap[BlobsTableColumns.Length], (long)size);
-                                Api.SetColumn(sid, table, columnMap[BlobsTableColumns.IsCompleted], true);
-                                update.Save();
-                            }
+                                Length = (long)size,
+                                IsCompleted = true
+                            });
                             return true;
                         }
                     }, 1.5);
@@ -399,11 +296,11 @@ namespace Imageboard10.Core.ModelStorage.Blobs
                     {
                         await session.RunInTransaction(() =>
                         {
-                            using (var table = session.OpenTable(BlobsTable, OpenTableGrbit.None))
+                            using (var table = OpenBlobsTable(session, OpenTableGrbit.None))
                             {
                                 if (Api.TryGotoBookmark(table.Session, table, bookmark, bookmarkSize))
                                 {
-                                    Api.JetDelete(table.Session, table);
+                                    table.DeleteCurrentRow();
                                 }
                                 return true;
                             }
@@ -426,11 +323,11 @@ namespace Imageboard10.Core.ModelStorage.Blobs
                     {
                         await session.RunInTransaction(() =>
                         {
-                            using (var table = session.OpenTable(BlobsTable, OpenTableGrbit.None))
+                            using (var table = OpenBlobsTable(session, OpenTableGrbit.None))
                             {
                                 if (Api.TryGotoBookmark(table.Session, table, bookmark, bookmarkSize))
                                 {
-                                    Api.JetDelete(table.Session, table);
+                                    table.DeleteCurrentRow();
                                 }
                                 return true;
                             }
@@ -463,17 +360,16 @@ namespace Imageboard10.Core.ModelStorage.Blobs
                 BlobId? result = null;
                 await session.Run(() =>
                 {
-                    using (var table = session.OpenTable(BlobsTable, OpenTableGrbit.ReadOnly))
+                    using (var table = OpenBlobsTable(session, OpenTableGrbit.ReadOnly))
                     {
-                        Api.JetSetCurrentIndex(table.Session, table, BlobsTableIndexes.Name);
-                        Api.MakeKey(table.Session, table, uniqueName, Encoding.Unicode, MakeKeyGrbit.NewKey);
-                        if (Api.TrySeek(table.Session, table, SeekGrbit.SeekEQ))
+                        table.Indexes.NameIndex.SetAsCurrentIndex();
+                        if (table.Indexes.NameIndex.Find(table.Indexes.NameIndex.CreateKey(uniqueName)))
                         {
-                            if (Api.RetrieveColumnAsBoolean(table.Session, table.Table, Api.GetTableColumnid(table.Session, table.Table, BlobsTableColumns.IsCompleted)) ?? false)
+                            if (table.Columns.IsCompleted)
                             {
                                 result = new BlobId()
                                 {
-                                    Id = Api.RetrieveColumnAsInt32(table.Session, table, Api.GetTableColumnid(table.Session, table, BlobsTableColumns.Id)) ?? 0
+                                    Id = table.Views.IdFromIndexView.Fetch().Id
                                 };
                             }
                         }
@@ -500,36 +396,25 @@ namespace Imageboard10.Core.ModelStorage.Blobs
 
                 void DoLoad()
                 {
-                    using (var table = session.OpenTable(BlobsTable, OpenTableGrbit.ReadOnly))
+                    using (var table = OpenBlobsTable(session, OpenTableGrbit.ReadOnly))
                     {
-                        Api.MakeKey(table.Session, table, id.Id, MakeKeyGrbit.NewKey);
-                        if (Api.TrySeek(table.Session, table, SeekGrbit.SeekEQ))
+                        if (table.Indexes.PrimaryIndex.Find(table.Indexes.PrimaryIndex.CreateKey(id.Id)))
                         {
-                            var columnMap = Api.GetColumnDictionary(table.Session, table);
-                            var isFilestream = Api.RetrieveColumnAsBoolean(table.Session, table, columnMap[BlobsTableColumns.IsFilestream]) ?? false;
+                            var isFilestream = table.Columns.IsFilestream;
                             if (isFilestream)
                             {
-                                //result = new InlineFileStream(GlobalErrorHandler, await _filestreamFolder.OpenStreamForReadAsync(BlobFileName(id.Id)));
                                 filestream = id;
                                 return;
                             }
                             else
                             {
-                                var size = Api.RetrieveColumnSize(table.Session, table, columnMap[BlobsTableColumns.Data]) ?? 0;
+                                var size = Api.RetrieveColumnSize(table.Session, table, table.GetColumnid(BlobsTable.Column.Data)) ?? 0;
                                 if (size <= MaxInlineSize)
                                 {
-                                    var columns = new ColumnValue[]
-                                    {
-                                        new BytesColumnValue()
-                                        {
-                                            Columnid = columnMap[BlobsTableColumns.Data],
-                                        },
-                                    };
-                                    Api.RetrieveColumns(table.Session, table, columns);
-                                    var data = ((BytesColumnValue)columns[0]).Value;
+                                    var data = table.Columns.Data;
                                     if (data == null)
                                     {
-                                        throw new BlobException($"Неверные данные в таблице {BlobsTable}");
+                                        throw new BlobException($"Неверные данные в таблице {BlobsTableName}");
                                     }
                                     result = new InlineBlobStream(GlobalErrorHandler, data);
                                 }
@@ -555,7 +440,7 @@ namespace Imageboard10.Core.ModelStorage.Blobs
 
                 if (result == null)
                 {
-                    throw new BlobException($"Неверные данные в таблице {BlobsTable}");
+                    throw new BlobException($"Неверные данные в таблице {BlobsTableName}");
                 }
                 return result;
             });
@@ -577,15 +462,14 @@ namespace Imageboard10.Core.ModelStorage.Blobs
                 bool result = false;
                 await session.RunInTransaction(() =>
                 {
-                    using (var table = session.OpenTable(BlobsTable, OpenTableGrbit.None))
+                    using (var table = OpenBlobsTable(session, OpenTableGrbit.None))
                     {
-                        Api.MakeKey(table.Session, table, id.Id, MakeKeyGrbit.NewKey);
-                        if (Api.TrySeek(table.Session, table.Table, SeekGrbit.SeekEQ))
+                        if (table.Indexes.PrimaryIndex.Find(table.Indexes.PrimaryIndex.CreateKey(id.Id)))
                         {
-                            isFileStream = Api.RetrieveColumnAsBoolean(table.Session, table, Api.GetTableColumnid(table.Session, table, BlobsTableColumns.IsFilestream)) ?? false;
+                            isFileStream = table.Columns.IsFilestream;
                             if (!isFileStream)
                             {
-                                Api.JetDelete(table.Session, table);
+                                table.DeleteCurrentRow();
                                 result = true;
                             }
                             else
@@ -612,11 +496,11 @@ namespace Imageboard10.Core.ModelStorage.Blobs
                     {
                         await session.RunInTransaction(() =>
                         {
-                            using (var table = session.OpenTable(BlobsTable, OpenTableGrbit.None))
+                            using (var table = OpenBlobsTable(session, OpenTableGrbit.None))
                             {
                                 if (Api.TryGotoBookmark(table.Session, table, bookmark, bookmark.Length))
                                 {
-                                    Api.JetDelete(table.Session, table);
+                                    table.DeleteCurrentRow();
                                     result = true;
                                 }
                             }
@@ -643,7 +527,7 @@ namespace Imageboard10.Core.ModelStorage.Blobs
                 var filestream = new List<(BlobId id, byte[] bookmark)>();
                 await session.RunInTransaction(() =>
                 {
-                    using (var table = session.OpenTable(BlobsTable, OpenTableGrbit.None))
+                    using (var table = session.OpenTable(BlobsTableName, OpenTableGrbit.None))
                     {
                         foreach (var id in idArray)
                         {
@@ -688,7 +572,7 @@ namespace Imageboard10.Core.ModelStorage.Blobs
                     var bookmark = rid.bookmark;
                     await session.RunInTransaction(() =>
                     {
-                        using (var table = session.OpenTable(BlobsTable, OpenTableGrbit.None))
+                        using (var table = session.OpenTable(BlobsTableName, OpenTableGrbit.None))
                         {
                             if (Api.TryGotoBookmark(table.Session, table, bookmark, bookmark.Length))
                             {
@@ -718,7 +602,7 @@ namespace Imageboard10.Core.ModelStorage.Blobs
                 BlobInfo? result = null;
                 await session.Run(() =>
                 {
-                    using (var table = session.OpenTable(BlobsTable, OpenTableGrbit.ReadOnly))
+                    using (var table = session.OpenTable(BlobsTableName, OpenTableGrbit.ReadOnly))
                     {
                         var columnMap = Api.GetColumnDictionary(table.Session, table);
                         result = LoadBlobInfo(table, id, columnMap);
@@ -912,7 +796,7 @@ namespace Imageboard10.Core.ModelStorage.Blobs
                 List<BlobInfo> result = new List<BlobInfo>();
                 await session.Run(() =>
                 {
-                    using (var table = session.OpenTable(BlobsTable, OpenTableGrbit.ReadOnly))
+                    using (var table = session.OpenTable(BlobsTableName, OpenTableGrbit.ReadOnly))
                     {
                         var columnMap = Api.GetColumnDictionary(table.Session, table);
                         Api.JetSetCurrentIndex(table.Session, table.Table, BlobsTableIndexes.Category);
@@ -954,7 +838,7 @@ namespace Imageboard10.Core.ModelStorage.Blobs
                 List<BlobInfo> result = new List<BlobInfo>();
                 await session.Run(() =>
                 {
-                    using (var table = session.OpenTable(BlobsTable, OpenTableGrbit.ReadOnly))
+                    using (var table = session.OpenTable(BlobsTableName, OpenTableGrbit.ReadOnly))
                     {
                         var columnMap = Api.GetColumnDictionary(table.Session, table);
                         Api.JetSetCurrentIndex(table.Session, table.Table, BlobsTableIndexes.ReferenceId);
@@ -996,7 +880,7 @@ namespace Imageboard10.Core.ModelStorage.Blobs
                 long result = 0;
                 await session.Run(() =>
                 {
-                    using (var table = session.OpenTable(BlobsTable, OpenTableGrbit.ReadOnly))
+                    using (var table = session.OpenTable(BlobsTableName, OpenTableGrbit.ReadOnly))
                     {
                         var columnMap = Api.GetColumnDictionary(table.Session, table);
                         Api.JetSetCurrentIndex(table.Session, table.Table, BlobsTableIndexes.Category);
@@ -1029,7 +913,7 @@ namespace Imageboard10.Core.ModelStorage.Blobs
                 int result = 0;
                 await session.Run(() =>
                 {
-                    using (var table = session.OpenTable(BlobsTable, OpenTableGrbit.ReadOnly))
+                    using (var table = session.OpenTable(BlobsTableName, OpenTableGrbit.ReadOnly))
                     {
                         Api.JetSetCurrentIndex(table.Session, table.Table, BlobsTableIndexes.Category);
                         Api.MakeKey(table.Session, table.Table, category, Encoding.Unicode, MakeKeyGrbit.NewKey);
@@ -1058,7 +942,7 @@ namespace Imageboard10.Core.ModelStorage.Blobs
                 long result = 0;
                 await session.Run(() =>
                 {
-                    using (var table = session.OpenTable(BlobsTable, OpenTableGrbit.ReadOnly))
+                    using (var table = session.OpenTable(BlobsTableName, OpenTableGrbit.ReadOnly))
                     {
                         var columnMap = Api.GetColumnDictionary(table.Session, table);
                         Api.JetSetCurrentIndex(table.Session, table.Table, BlobsTableIndexes.ReferenceId);
@@ -1091,7 +975,7 @@ namespace Imageboard10.Core.ModelStorage.Blobs
                 int result = 0;
                 await session.Run(() =>
                 {
-                    using (var table = session.OpenTable(BlobsTable, OpenTableGrbit.ReadOnly))
+                    using (var table = session.OpenTable(BlobsTableName, OpenTableGrbit.ReadOnly))
                     {
                         Api.JetSetCurrentIndex(table.Session, table.Table, BlobsTableIndexes.ReferenceId);
                         Api.MakeKey(table.Session, table.Table, referenceId, MakeKeyGrbit.NewKey);
@@ -1118,7 +1002,7 @@ namespace Imageboard10.Core.ModelStorage.Blobs
             {
                 await session.RunInTransaction(() =>
                 {
-                    using (var table = session.OpenTable(ReferencesTable, OpenTableGrbit.None))
+                    using (var table = session.OpenTable(ReferencesTableName, OpenTableGrbit.None))
                     {
                         Api.MakeKey(table.Session, table, referenceId, MakeKeyGrbit.NewKey);
                         if (!Api.TrySeek(table.Session, table, SeekGrbit.SeekEQ))
@@ -1148,7 +1032,7 @@ namespace Imageboard10.Core.ModelStorage.Blobs
             {
                 await session.RunInTransaction(() =>
                 {
-                    using (var table = session.OpenTable(ReferencesTable, OpenTableGrbit.None))
+                    using (var table = session.OpenTable(ReferencesTableName, OpenTableGrbit.None))
                     {
                         Api.MakeKey(table.Session, table, referenceId, MakeKeyGrbit.NewKey);
                         if (Api.TrySeek(table.Session, table, SeekGrbit.SeekEQ))
@@ -1178,7 +1062,7 @@ namespace Imageboard10.Core.ModelStorage.Blobs
                 HashSet<Guid> result = new HashSet<Guid>();
                 await session.RunInTransaction(() =>
                 {
-                    using (var table = session.OpenTable(ReferencesTable, OpenTableGrbit.ReadOnly))
+                    using (var table = session.OpenTable(ReferencesTableName, OpenTableGrbit.ReadOnly))
                     {
                         foreach (var referenceId in references)
                         {
@@ -1208,7 +1092,7 @@ namespace Imageboard10.Core.ModelStorage.Blobs
                 var filestream = new List<BlobId>();
                 await session.RunInTransaction(() =>
                 {
-                    using (var table = session.OpenTable(BlobsTable, OpenTableGrbit.None))
+                    using (var table = session.OpenTable(BlobsTableName, OpenTableGrbit.None))
                     {
                         if (Api.TryMoveFirst(table.Session, table))
                         {
@@ -1264,7 +1148,7 @@ namespace Imageboard10.Core.ModelStorage.Blobs
             {
                 await session.RunInTransaction(() =>
                 {
-                    using (var table = session.OpenTable(ReferencesTable, OpenTableGrbit.None))
+                    using (var table = session.OpenTable(ReferencesTableName, OpenTableGrbit.None))
                     {
                         if (Api.TryMoveFirst(table.Session, table))
                         {
@@ -1287,7 +1171,7 @@ namespace Imageboard10.Core.ModelStorage.Blobs
                 var filestream = new List<BlobId>();
                 await session.RunInTransaction(() =>
                 {
-                    using (var table = session.OpenTable(BlobsTable, OpenTableGrbit.None))
+                    using (var table = session.OpenTable(BlobsTableName, OpenTableGrbit.None))
                     {
                         Api.JetSetCurrentIndex(table.Session, table, BlobsTableIndexes.IsCompleted);
                         Api.MakeKey(table.Session, table, false, MakeKeyGrbit.NewKey);
@@ -1357,7 +1241,7 @@ namespace Imageboard10.Core.ModelStorage.Blobs
                 int result = 0;
                 await session.Run(() =>
                 {
-                    using (var table = session.OpenTable(BlobsTable, OpenTableGrbit.ReadOnly))
+                    using (var table = session.OpenTable(BlobsTableName, OpenTableGrbit.ReadOnly))
                     {
                         Api.JetSetCurrentIndex(table.Session, table.Table, BlobsTableIndexes.IsCompleted);
                         Api.MakeKey(table.Session, table, true, MakeKeyGrbit.NewKey);
@@ -1384,7 +1268,7 @@ namespace Imageboard10.Core.ModelStorage.Blobs
                 long result = 0;
                 await session.Run(() =>
                 {
-                    using (var table = session.OpenTable(BlobsTable, OpenTableGrbit.ReadOnly))
+                    using (var table = session.OpenTable(BlobsTableName, OpenTableGrbit.ReadOnly))
                     {
                         var columnMap = Api.GetColumnDictionary(table.Session, table);
                         Api.JetSetCurrentIndex(table.Session, table.Table, BlobsTableIndexes.IsCompleted);
@@ -1415,7 +1299,7 @@ namespace Imageboard10.Core.ModelStorage.Blobs
                 int result = 0;
                 await session.Run(() =>
                 {
-                    using (var table = session.OpenTable(BlobsTable, OpenTableGrbit.ReadOnly))
+                    using (var table = session.OpenTable(BlobsTableName, OpenTableGrbit.ReadOnly))
                     {
                         Api.JetSetCurrentIndex(table.Session, table.Table, BlobsTableIndexes.IsCompleted);
                         Api.MakeKey(table.Session, table, false, MakeKeyGrbit.NewKey);
@@ -1443,7 +1327,7 @@ namespace Imageboard10.Core.ModelStorage.Blobs
                 var filestream = new List<BlobId>();
                 await session.Run(() =>
                 {
-                    using (var table = session.OpenTable(BlobsTable, OpenTableGrbit.ReadOnly))
+                    using (var table = session.OpenTable(BlobsTableName, OpenTableGrbit.ReadOnly))
                     {
                         var columnMap = Api.GetColumnDictionary(table.Session, table);
                         Api.JetSetCurrentIndex(table.Session, table.Table, BlobsTableIndexes.IsCompleted);
@@ -1491,7 +1375,7 @@ namespace Imageboard10.Core.ModelStorage.Blobs
                 List<BlobId> result = new List<BlobId>();
                 await session.Run(() =>
                 {
-                    using (var table = session.OpenTable(BlobsTable, OpenTableGrbit.ReadOnly))
+                    using (var table = session.OpenTable(BlobsTableName, OpenTableGrbit.ReadOnly))
                     {
                         var columnMap = Api.GetColumnDictionary(table.Session, table);
                         Api.JetSetCurrentIndex(table.Session, table.Table, BlobsTableIndexes.IsCompleted);
@@ -1523,7 +1407,7 @@ namespace Imageboard10.Core.ModelStorage.Blobs
                 var result = false;
                 await session.RunInTransaction(() =>
                 {
-                    using (var table = session.OpenTable(BlobsTable, OpenTableGrbit.None))
+                    using (var table = session.OpenTable(BlobsTableName, OpenTableGrbit.None))
                     {
                         var columnMap = Api.GetColumnDictionary(table.Session, table);
                         if (SeekBlob(table, id, false))

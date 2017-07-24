@@ -12,7 +12,7 @@ using System.Text;
 
 // ReSharper disable RedundantNameQualifier
 // ReSharper disable once CheckNamespace
-namespace Imageboard10.Core.ModelStorage.Blobs.TableDef
+namespace Imageboard10.Core.ModelStorage.Blobs
 {
 	internal sealed class BlobsTable : IDisposable
 	{
@@ -480,9 +480,62 @@ namespace Imageboard10.Core.ModelStorage.Blobs.TableDef
 
 		public static class ViewValues
 		{
+
+			// ReSharper disable once InconsistentNaming
+			public struct FullRowUpdate
+			{
+				public string Name;
+				public string Category;
+				public DateTime CreatedDate;
+				public byte[] Data;
+				public long Length;
+				public Guid? ReferenceId;
+				public bool IsCompleted;
+				public bool IsFilestream;
+			}
+
+			// ReSharper disable once InconsistentNaming
+			public struct CompletedUpdate
+			{
+				public long Length;
+				public bool IsCompleted;
+			}
+
+			// ReSharper disable once InconsistentNaming
+			public struct IdFromIndexView
+			{
+				public int Id;
+			}
 		}
 
 		public static class FetchViews {
+
+			// ReSharper disable once InconsistentNaming
+			public struct IdFromIndexView
+			{
+				private readonly BlobsTable _table;
+				private readonly ColumnValue[] _c;
+
+				public IdFromIndexView(BlobsTable table)
+				{
+					_table = table;
+
+					_c = new ColumnValue[1];
+					_c[0] = new Int32ColumnValue() {
+						Columnid = _table.ColumnDictionary[BlobsTable.Column.Id],
+						RetrieveGrbit = RetrieveColumnGrbit.RetrieveFromPrimaryBookmark
+					};
+				}
+
+				public ViewValues.IdFromIndexView Fetch()
+				{
+					var r = new ViewValues.IdFromIndexView();
+					Api.RetrieveColumns(_table.Session, _table, _c);
+				    // ReSharper disable once PossibleInvalidOperationException
+					r.Id = ((Int32ColumnValue)_c[0]).Value.Value;
+					return r;
+				}
+			}
 	
 		}
 
@@ -493,6 +546,20 @@ namespace Imageboard10.Core.ModelStorage.Blobs.TableDef
 			public TableFetchViews(BlobsTable table)
 			{
 				_table = table;
+			}
+
+		    // ReSharper disable once InconsistentNaming
+			private FetchViews.IdFromIndexView? __fv_IdFromIndexView;
+			public FetchViews.IdFromIndexView IdFromIndexView
+			{
+				get
+				{
+					if (__fv_IdFromIndexView == null)
+					{
+						__fv_IdFromIndexView = new FetchViews.IdFromIndexView(_table);
+					}
+					return __fv_IdFromIndexView.Value;
+				}
 			}
 		}
 
@@ -513,6 +580,110 @@ namespace Imageboard10.Core.ModelStorage.Blobs.TableDef
 
 		public static class InsertOrUpdateViews
 		{
+			public struct FullRowUpdate
+			{
+				private readonly BlobsTable _table;
+				private readonly ColumnValue[] _c;
+
+				public FullRowUpdate(BlobsTable table)
+				{
+					_table = table;
+
+					_c = new ColumnValue[8];
+					_c[0] = new StringColumnValue() {
+						Columnid = _table.ColumnDictionary[BlobsTable.Column.Name],
+						SetGrbit = SetColumnGrbit.None
+					};
+					_c[1] = new StringColumnValue() {
+						Columnid = _table.ColumnDictionary[BlobsTable.Column.Category],
+						SetGrbit = SetColumnGrbit.None
+					};
+					_c[2] = new DateTimeColumnValue() {
+						Columnid = _table.ColumnDictionary[BlobsTable.Column.CreatedDate],
+						SetGrbit = SetColumnGrbit.None
+					};
+					_c[3] = new BytesColumnValue() {
+						Columnid = _table.ColumnDictionary[BlobsTable.Column.Data],
+						SetGrbit = SetColumnGrbit.None
+					};
+					_c[4] = new Int64ColumnValue() {
+						Columnid = _table.ColumnDictionary[BlobsTable.Column.Length],
+						SetGrbit = SetColumnGrbit.None
+					};
+					_c[5] = new GuidColumnValue() {
+						Columnid = _table.ColumnDictionary[BlobsTable.Column.ReferenceId],
+						SetGrbit = SetColumnGrbit.None
+					};
+					_c[6] = new BoolColumnValue() {
+						Columnid = _table.ColumnDictionary[BlobsTable.Column.IsCompleted],
+						SetGrbit = SetColumnGrbit.None
+					};
+					_c[7] = new BoolColumnValue() {
+						Columnid = _table.ColumnDictionary[BlobsTable.Column.IsFilestream],
+						SetGrbit = SetColumnGrbit.None
+					};
+				}
+
+				public void Set(ViewValues.FullRowUpdate value)
+				{
+					((StringColumnValue)_c[0]).Value = value.Name;
+					((StringColumnValue)_c[1]).Value = value.Category;
+					((DateTimeColumnValue)_c[2]).Value = value.CreatedDate;
+					((BytesColumnValue)_c[3]).Value = value.Data;
+					((Int64ColumnValue)_c[4]).Value = value.Length;
+					((GuidColumnValue)_c[5]).Value = value.ReferenceId;
+					((BoolColumnValue)_c[6]).Value = value.IsCompleted;
+					((BoolColumnValue)_c[7]).Value = value.IsFilestream;
+					Api.SetColumns(_table.Session, _table, _c);
+				}
+
+				public void Set(ref ViewValues.FullRowUpdate value)
+				{
+					((StringColumnValue)_c[0]).Value = value.Name;
+					((StringColumnValue)_c[1]).Value = value.Category;
+					((DateTimeColumnValue)_c[2]).Value = value.CreatedDate;
+					((BytesColumnValue)_c[3]).Value = value.Data;
+					((Int64ColumnValue)_c[4]).Value = value.Length;
+					((GuidColumnValue)_c[5]).Value = value.ReferenceId;
+					((BoolColumnValue)_c[6]).Value = value.IsCompleted;
+					((BoolColumnValue)_c[7]).Value = value.IsFilestream;
+					Api.SetColumns(_table.Session, _table, _c);
+				}
+			}			
+			public struct CompletedUpdate
+			{
+				private readonly BlobsTable _table;
+				private readonly ColumnValue[] _c;
+
+				public CompletedUpdate(BlobsTable table)
+				{
+					_table = table;
+
+					_c = new ColumnValue[2];
+					_c[0] = new Int64ColumnValue() {
+						Columnid = _table.ColumnDictionary[BlobsTable.Column.Length],
+						SetGrbit = SetColumnGrbit.None
+					};
+					_c[1] = new BoolColumnValue() {
+						Columnid = _table.ColumnDictionary[BlobsTable.Column.IsCompleted],
+						SetGrbit = SetColumnGrbit.None
+					};
+				}
+
+				public void Set(ViewValues.CompletedUpdate value)
+				{
+					((Int64ColumnValue)_c[0]).Value = value.Length;
+					((BoolColumnValue)_c[1]).Value = value.IsCompleted;
+					Api.SetColumns(_table.Session, _table, _c);
+				}
+
+				public void Set(ref ViewValues.CompletedUpdate value)
+				{
+					((Int64ColumnValue)_c[0]).Value = value.Length;
+					((BoolColumnValue)_c[1]).Value = value.IsCompleted;
+					Api.SetColumns(_table.Session, _table, _c);
+				}
+			}			
 		}
 
 		public class TableInsertViews
@@ -525,6 +696,39 @@ namespace Imageboard10.Core.ModelStorage.Blobs.TableDef
 			}
 
 			public Update CreateUpdate() => new Update(_table.Session, _table, JET_prep.Insert);
+
+		    // ReSharper disable once InconsistentNaming
+			private InsertOrUpdateViews.FullRowUpdate? __iuv_FullRowUpdate;
+
+			public InsertOrUpdateViews.FullRowUpdate FullRowUpdate
+			{
+				get
+				{
+					if (__iuv_FullRowUpdate == null)
+					{
+						__iuv_FullRowUpdate = new InsertOrUpdateViews.FullRowUpdate(_table);
+					}
+					return __iuv_FullRowUpdate.Value;
+				}
+			}
+
+			public void InsertAsFullRowUpdate(ViewValues.FullRowUpdate value)
+			{
+				using (var update = CreateUpdate())
+				{
+					FullRowUpdate.Set(value);
+					update.Save();
+				}
+			}
+
+			public void InsertAsFullRowUpdate(ref ViewValues.FullRowUpdate value)
+			{
+				using (var update = CreateUpdate())
+				{
+					FullRowUpdate.Set(ref value);
+					update.Save();
+				}
+			}
 		}
 
 		// ReSharper disable once InconsistentNaming
@@ -552,6 +756,72 @@ namespace Imageboard10.Core.ModelStorage.Blobs.TableDef
 			}
 
 			public Update CreateUpdate() => new Update(_table.Session, _table, JET_prep.Replace);
+
+		    // ReSharper disable once InconsistentNaming
+			private InsertOrUpdateViews.FullRowUpdate? __iuv_FullRowUpdate;
+
+			public InsertOrUpdateViews.FullRowUpdate FullRowUpdate
+			{
+				get
+				{
+					if (__iuv_FullRowUpdate == null)
+					{
+						__iuv_FullRowUpdate = new InsertOrUpdateViews.FullRowUpdate(_table);
+					}
+					return __iuv_FullRowUpdate.Value;
+				}
+			}
+
+			public void UpdateAsFullRowUpdate(ViewValues.FullRowUpdate value)
+			{
+				using (var update = CreateUpdate())
+				{
+					FullRowUpdate.Set(value);
+					update.Save();
+				}
+			}
+
+			public void UpdateAsFullRowUpdate(ref ViewValues.FullRowUpdate value)
+			{
+				using (var update = CreateUpdate())
+				{
+					FullRowUpdate.Set(ref value);
+					update.Save();
+				}
+			}
+
+		    // ReSharper disable once InconsistentNaming
+			private InsertOrUpdateViews.CompletedUpdate? __iuv_CompletedUpdate;
+
+			public InsertOrUpdateViews.CompletedUpdate CompletedUpdate
+			{
+				get
+				{
+					if (__iuv_CompletedUpdate == null)
+					{
+						__iuv_CompletedUpdate = new InsertOrUpdateViews.CompletedUpdate(_table);
+					}
+					return __iuv_CompletedUpdate.Value;
+				}
+			}
+
+			public void UpdateAsCompletedUpdate(ViewValues.CompletedUpdate value)
+			{
+				using (var update = CreateUpdate())
+				{
+					CompletedUpdate.Set(value);
+					update.Save();
+				}
+			}
+
+			public void UpdateAsCompletedUpdate(ref ViewValues.CompletedUpdate value)
+			{
+				using (var update = CreateUpdate())
+				{
+					CompletedUpdate.Set(ref value);
+					update.Save();
+				}
+			}
 		}
 
 		// ReSharper disable once InconsistentNaming
