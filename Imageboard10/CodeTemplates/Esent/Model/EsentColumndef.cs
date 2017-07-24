@@ -53,6 +53,11 @@ namespace CodeTemplates.Esent.Model
             return ReferenceTypes.Contains(Type);
         }
 
+        public bool IsAutoincrement()
+        {
+            return Grbit.HasFlag(EsentColumndefGrbit.Autoincrement);
+        }
+
         public static string GetNetType(EsentColtyp coltyp, bool nullable)
         {
             switch (coltyp)

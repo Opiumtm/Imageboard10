@@ -306,15 +306,16 @@ namespace <#= table.Namespace #>
 <#+
 			} else {
 #>
-
 			public <#= column.GetNetType() #> <#= column.Name #>
 			{
 			    // ReSharper disable once PossibleInvalidOperationException
+                [MethodImpl(MethodImplOptions.AggressiveInlining)]
 				get => <#= __GenerateEsentTableRetrieveColumnExpr(columnDic, column.Name, "_table", null, table.Name) #>;
 <#+
 				if (column.IsNullable() && !column.IsReferenceType())
 				{
 #>
+                [MethodImpl(MethodImplOptions.AggressiveInlining)]
 				set {
 					if (value != null)
 					{
@@ -328,11 +329,29 @@ namespace <#= table.Namespace #>
 				} else
 				{
 #>
+                [MethodImpl(MethodImplOptions.AggressiveInlining)]
 				set => Api.SetColumn(_table.Session, _table, _table.ColumnDictionary[<#= table.Name #>.Column.<#= column.Name #>], value);
+
 <#+
 				}
 #>
 			}
+
+<#+
+			if (column.IsAutoincrement())
+			{
+#>
+		    // ReSharper disable once InconsistentNaming
+			public <#= column.GetNetType() #> <#= column.Name #>_AutoincrementValue
+			{
+				// ReSharper disable once PossibleInvalidOperationException
+                [MethodImpl(MethodImplOptions.AggressiveInlining)]
+				get => <#= __GenerateEsentTableRetrieveColumnExprOriginal(columnDic, column.Name, "_table", null, table.Name) #>;
+			}
+<#+
+			}
+#>
+
 <#+
 			}
 			}
@@ -549,6 +568,19 @@ namespace <#= table.Namespace #>
 		}
 
 		public TableFetchViews Views { get; }
+
+		public static class InsertOrUpdateViews
+		{
+<#+
+			var globalInsertViews = new List<EsentView>();
+			var globalUpdateViews = new List<EsentView>();
+			foreach (var view in table.Views)
+			{
+#>
+<#+
+			}
+#>
+		}
 
 		public static class IndexDefinitions
 		{
@@ -944,4 +976,16 @@ private string __GenerateEsentTableRetrieveColumnExpr(__ColumnDic columns, strin
 	}
 	return string.Format("{2}({0}.Session, {0}, {0}.ColumnDictionary[{3}.Column.{1}]).Value", tableArg, name, funcName, tableName);
 }
+
+private string __GenerateEsentTableRetrieveColumnExprOriginal(__ColumnDic columns, string name, string tableArg, bool? forceNullable, string tableName)
+{
+	var cd = columns.Data[name];
+	var funcName = cd.GetRetrieveFuncName();
+	if ((forceNullable ?? cd.IsNullable()) || cd.IsReferenceType())
+	{
+		return string.Format("{2}({0}.Session, {0}, {0}.ColumnDictionary[{3}.Column.{1}], RetrieveColumnGrbit.RetrieveCopy)", tableArg, name, funcName, tableName);
+	}
+	return string.Format("{2}({0}.Session, {0}, {0}.ColumnDictionary[{3}.Column.{1}], RetrieveColumnGrbit.RetrieveCopy).Value", tableArg, name, funcName, tableName);
+}
+
 #>

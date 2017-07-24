@@ -248,30 +248,46 @@ namespace Imageboard10.Core.ModelStorage.Posts.EsentTables
 				_table = table;
 				__mv_EntityReferences = new Multivalue<Int32ColumnValue>(table, table.ColumnDictionary[MediaFiles.Column.EntityReferences]);
 			}
-
 			public int Id
 			{
 			    // ReSharper disable once PossibleInvalidOperationException
+                [MethodImpl(MethodImplOptions.AggressiveInlining)]
 				get => Api.RetrieveColumnAsInt32(_table.Session, _table, _table.ColumnDictionary[MediaFiles.Column.Id]).Value;
+                [MethodImpl(MethodImplOptions.AggressiveInlining)]
 				set => Api.SetColumn(_table.Session, _table, _table.ColumnDictionary[MediaFiles.Column.Id], value);
+
+			}
+
+		    // ReSharper disable once InconsistentNaming
+			public int Id_AutoincrementValue
+			{
+				// ReSharper disable once PossibleInvalidOperationException
+                [MethodImpl(MethodImplOptions.AggressiveInlining)]
+				get => Api.RetrieveColumnAsInt32(_table.Session, _table, _table.ColumnDictionary[MediaFiles.Column.Id], RetrieveColumnGrbit.RetrieveCopy).Value;
 			}
 
 		    // ReSharper disable once ConvertToAutoProperty
 			public Multivalue<Int32ColumnValue> EntityReferences => __mv_EntityReferences;
-
 			public long SequenceNumber
 			{
 			    // ReSharper disable once PossibleInvalidOperationException
+                [MethodImpl(MethodImplOptions.AggressiveInlining)]
 				get => Api.RetrieveColumnAsInt64(_table.Session, _table, _table.ColumnDictionary[MediaFiles.Column.SequenceNumber]).Value;
+                [MethodImpl(MethodImplOptions.AggressiveInlining)]
 				set => Api.SetColumn(_table.Session, _table, _table.ColumnDictionary[MediaFiles.Column.SequenceNumber], value);
+
 			}
 
 			public byte[] MediaData
 			{
 			    // ReSharper disable once PossibleInvalidOperationException
+                [MethodImpl(MethodImplOptions.AggressiveInlining)]
 				get => Api.RetrieveColumn(_table.Session, _table, _table.ColumnDictionary[MediaFiles.Column.MediaData]);
+                [MethodImpl(MethodImplOptions.AggressiveInlining)]
 				set => Api.SetColumn(_table.Session, _table, _table.ColumnDictionary[MediaFiles.Column.MediaData], value);
+
 			}
+
 		}
 
 		public DefaultView Columns { get; }
@@ -518,6 +534,10 @@ namespace Imageboard10.Core.ModelStorage.Posts.EsentTables
 		}
 
 		public TableFetchViews Views { get; }
+
+		public static class InsertOrUpdateViews
+		{
+		}
 
 		public static class IndexDefinitions
 		{
