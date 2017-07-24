@@ -10,6 +10,7 @@ using Microsoft.Isam.Esent.Interop.Windows10;
 using System.Runtime.CompilerServices;
 // ReSharper enable RedundantUsingDirective
 
+// ReSharper disable RedundantNameQualifier
 // ReSharper disable once CheckNamespace
 namespace Imageboard10.Core.ModelStorage.Posts.EsentTables
 {
@@ -24,10 +25,6 @@ namespace Imageboard10.Core.ModelStorage.Posts.EsentTables
             Table = table;
 			_columnDic = null;
 			Columns = new DefaultView(this);
-			Views = new TableFetchViews(this);
-			Indexes = new TableIndexes(this);
-			Insert = new TableInsertViews(this);
-			Update = new TableUpdateViews(this);
         }
 
         public void Dispose()
@@ -543,7 +540,20 @@ namespace Imageboard10.Core.ModelStorage.Posts.EsentTables
 			}
 		}
 
-		public TableFetchViews Views { get; }
+		// ReSharper disable once InconsistentNaming
+		private TableFetchViews __views;
+
+		public TableFetchViews Views
+		{
+			get
+			{
+				if (__views == null)
+				{
+					__views = new TableFetchViews(this);
+				}
+				return __views;
+			}
+		}
 
 		public static class InsertOrUpdateViews
 		{
@@ -630,7 +640,20 @@ namespace Imageboard10.Core.ModelStorage.Posts.EsentTables
 			}
 		}
 
-		public TableInsertViews Insert { get; }
+		// ReSharper disable once InconsistentNaming
+		private TableInsertViews __insert;
+
+		public TableInsertViews Insert
+		{
+			get
+			{
+				if (__insert == null)
+				{
+					__insert = new TableInsertViews(this);
+				}
+				return __insert;
+			}
+		}
 
 		public class TableUpdateViews
 		{
@@ -677,7 +700,20 @@ namespace Imageboard10.Core.ModelStorage.Posts.EsentTables
 			}
 		}
 
-		public TableUpdateViews Update { get; }
+		// ReSharper disable once InconsistentNaming
+		private TableUpdateViews __update;
+
+		public TableUpdateViews Update
+		{
+			get
+			{
+				if (__update == null)
+				{
+					__update = new TableUpdateViews(this);
+				}
+				return __update;
+			}
+		}
 
 		public static class IndexDefinitions
 		{
@@ -1132,6 +1168,20 @@ namespace Imageboard10.Core.ModelStorage.Posts.EsentTables
 			}
 		}
 
-		public TableIndexes Indexes {get; }
+		// ReSharper disable once InconsistentNaming
+		private TableIndexes __indexes;
+
+		public TableIndexes Indexes
+		{
+			get
+			{
+				if (__indexes == null)
+				{
+					__indexes = new TableIndexes(this);
+				}
+				return __indexes;
+			}
+		}
 	}
 }
+// ReSharper enable RedundantNameQualifier
