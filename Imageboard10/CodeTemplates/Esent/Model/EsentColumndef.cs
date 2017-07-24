@@ -58,6 +58,23 @@ namespace CodeTemplates.Esent.Model
             return Grbit.HasFlag(EsentColumndefGrbit.Autoincrement);
         }
 
+        public string GetNetEncoding()
+        {
+            if (Type == EsentColtyp.Text || Type == EsentColtyp.LongText)
+            {
+                if (Codepage == EsentCodepage.Ascii)
+                {
+                    return "Encoding.ASCII";
+                }
+                if (Codepage == EsentCodepage.Unicode)
+                {
+                    return "Encoding.Unicode";
+                }
+                throw new ArgumentException("String column encoding not set");
+            }
+            return null;
+        }
+
         public static string GetNetType(EsentColtyp coltyp, bool nullable)
         {
             switch (coltyp)

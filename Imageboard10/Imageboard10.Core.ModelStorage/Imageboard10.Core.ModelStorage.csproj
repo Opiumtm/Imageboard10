@@ -120,6 +120,11 @@
     <Compile Include="Blobs\InlineFileStream.cs" />
     <Compile Include="Blobs\InputBlob.cs" />
     <Compile Include="Boards\BoardReferenceStore.cs" />
+    <Compile Include="Boards\BoardReferenceTable.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>BoardReferenceTable.tt</DependentUpon>
+    </Compile>
     <Compile Include="Boards\DataContracts\BoardExtendedInfo.cs" />
     <Compile Include="Boards\DataContracts\BoardShortInfo.cs" />
     <Compile Include="IndexDefinition.cs" />
@@ -185,7 +190,16 @@
       <Name>Imageboard10.ModuleInterface</Name>
     </ProjectReference>
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <Content Include="Boards\BoardReferenceTable.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>BoardReferenceTable.cs</LastGenOutput>
+    </Content>
+    <Content Include="Boards\BoardReferenceTable.xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Service Include="{508349B6-6B84-4DF5-91F0-309BEEBAD82D}" />
+  </ItemGroup>
   <PropertyGroup Condition=" '$(VisualStudioVersion)' == '' or '$(VisualStudioVersion)' &lt; '14.0' ">
     <VisualStudioVersion>14.0</VisualStudioVersion>
   </PropertyGroup>

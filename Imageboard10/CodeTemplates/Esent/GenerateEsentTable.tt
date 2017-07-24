@@ -24,6 +24,7 @@ using Microsoft.Isam.Esent.Interop;
 using Microsoft.Isam.Esent.Interop.Vista;
 using Microsoft.Isam.Esent.Interop.Windows10;
 using System.Runtime.CompilerServices;
+using System.Text;
 // ReSharper enable RedundantUsingDirective
 
 // ReSharper disable RedundantNameQualifier
@@ -337,7 +338,7 @@ namespace <#= table.Namespace #>
 				{
 #>
                 [MethodImpl(MethodImplOptions.AggressiveInlining)]
-				set => Api.SetColumn(_table.Session, _table, _table.ColumnDictionary[<#= table.Name #>.Column.<#= column.Name #>], value);
+				set => Api.SetColumn(_table.Session, _table, _table.ColumnDictionary[<#= table.Name #>.Column.<#= column.Name #>], value<#= column.GetNetEncoding() != null ? ", " + column.GetNetEncoding() : "" #>);
 
 <#+
 				}
@@ -910,7 +911,7 @@ namespace <#= table.Namespace #>
 <#+
 						} else {
 #>
-					Api.MakeKey(_table.Session, _table, key.<#= index.Fields[i].Name #>, <#= i == 0 ? "MakeKeyGrbit.NewKey" : "MakeKeyGrbit.None" #>);
+					Api.MakeKey(_table.Session, _table, key.<#= index.Fields[i].Name #>, <#= columndef.GetNetEncoding() != null ? columndef.GetNetEncoding() + "," : "" #> <#= i == 0 ? "MakeKeyGrbit.NewKey" : "MakeKeyGrbit.None" #>);
 <#+
 						}
 #>
@@ -1019,7 +1020,7 @@ namespace <#= table.Namespace #>
 <#+
 						} else {
 #>
-					Api.MakeKey(_table.Session, _table, key.<#= index.Fields[i].Name #>, <#= keyFlags #>);
+					Api.MakeKey(_table.Session, _table, key.<#= index.Fields[i].Name #>, <#= columndef.GetNetEncoding() != null ? columndef.GetNetEncoding() + "," : "" #> <#= keyFlags #>);
 <#+
 						}
 #>

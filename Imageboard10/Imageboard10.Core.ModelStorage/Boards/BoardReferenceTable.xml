@@ -1,0 +1,38 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<Table Name="BoardReferenceTable" Namespace="Imageboard10.Core.ModelStorage.Boards" Visibility="internal">
+  <Columns>
+    <Column Name="Id" Type="LongText" Codepage="Unicode" Grbit="NotNULL"/>
+    <Column Name="Category" Type="LongText" Codepage="Unicode" Grbit="NotNULL" />
+    <Column Name="ShortName" Type="LongText" Codepage="Unicode" Grbit="None" />
+    <Column Name="DisplayName" Type="LongText" Codepage="Unicode" Grbit="None" />
+    <Column Name="IsAdult" Type="Boolean" Codepage="Unicode" Grbit="NotNULL" />
+    <Column Name="ExtendedData" Type="LongBinary" Grbit="None" />
+    <Column Name="BumpLimit" Type="SignedInt32" Grbit="None" />
+    <Column Name="DefaultName" Type="LongText" Codepage="Unicode" Grbit="None" />
+    <Column Name="Pages" Type="SignedInt32" Grbit="None" />
+  </Columns>
+  <Indexes>
+    <Index Name="PrimaryIndex" Grbit="Primary Unique">
+      <Fields>
+        <Field Name="Id" Sort="Asc"/>
+      </Fields>
+    </Index>
+    <Index Name="CategoryIndex" Grbit="None">
+      <Fields>
+        <Field Name="Category" Sort="Asc"/>
+      </Fields>
+    </Index>
+    <Index Name="IsAdultIndex" Grbit="None">
+      <Fields>
+        <Field Name="IsAdult" Sort="Asc"/>
+      </Fields>
+    </Index>
+    <Index Name="IsAdultAndCategoryIndex" Grbit="None">
+      <Fields>
+        <Field Name="IsAdult" Sort="Asc"/>
+        <Field Name="Category" Sort="Asc"/>
+      </Fields>
+    </Index>
+  </Indexes>
+  <Views />
+</Table>
