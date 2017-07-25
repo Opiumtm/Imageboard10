@@ -3,16 +3,13 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Linq;
 using Windows.Storage;
 using Imageboard10.Core.Database;
 using Imageboard10.Core.IO;
-using Imageboard10.Core.Tasks;
 using Microsoft.Isam.Esent.Interop;
-using Microsoft.Isam.Esent.Interop.Vista;
 using static Imageboard10.Core.ModelStorage.Blobs.BlobTableInfo;
 
 namespace Imageboard10.Core.ModelStorage.Blobs
