@@ -152,6 +152,11 @@
     <Compile Include="Posts\PostModelStoreUpload.cs" />
     <Compile Include="Posts\PostModelStoreUtility.cs" />
     <Compile Include="Posts\PostOtherData.cs" />
+    <Compile Include="Posts\PostsTable.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>PostsTable.tt</DependentUpon>
+    </Compile>
     <Compile Include="Posts\PostStoreAccessInfo.cs" />
     <Compile Include="UnitTests\BlobStreamInfo.cs" />
     <Compile Include="UnitTests\IBoardReferenceStoreForTests.cs" />
@@ -216,6 +221,11 @@
       <LastGenOutput>BoardReferenceTable.cs</LastGenOutput>
     </Content>
     <Content Include="Boards\BoardReferenceTable.xml" />
+    <Content Include="Posts\PostsTable.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>PostsTable.cs</LastGenOutput>
+    </Content>
+    <Content Include="Posts\PostsTable.xml" />
   </ItemGroup>
   <ItemGroup>
     <Service Include="{508349B6-6B84-4DF5-91F0-309BEEBAD82D}" />
