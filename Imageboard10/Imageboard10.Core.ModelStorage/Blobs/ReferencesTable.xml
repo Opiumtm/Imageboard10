@@ -10,5 +10,9 @@
       </Fields>
     </Index>
   </Indexes>
-  <Views />
+  <Views>
+    <View Name="ReferenceView" Role="Update Insert Fetch">
+      <Field>ReferenceId</Field>
+    </View>
+  </Views>
 </Table>

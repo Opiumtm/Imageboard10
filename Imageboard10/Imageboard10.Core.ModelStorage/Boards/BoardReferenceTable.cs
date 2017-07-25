@@ -474,12 +474,38 @@ namespace Imageboard10.Core.ModelStorage.Boards
 	    {
 	        return Api.TryMovePrevious(Session, Table);
 	    }
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool TryGotoBookmark(byte[] bookmark)
+		{
+			if (bookmark == null)
+			{
+				throw new ArgumentNullException(nameof(bookmark));
+			}
+			return Api.TryGotoBookmark(Session, Table, bookmark, bookmark.Length);
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool TryGotoBookmark(byte[] bookmark, int bookmarkSize)
+		{
+			if (bookmark == null)
+			{
+				throw new ArgumentNullException(nameof(bookmark));
+			}
+			return Api.TryGotoBookmark(Session, Table, bookmark, bookmarkSize);
+		}
 		
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
 	    public void DeleteCurrentRow()
 	    {
 	        Api.JetDelete(Session, Table);
 	    }
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public byte[] GetBookmark()
+		{
+			return Api.GetBookmark(Session, Table);
+		}
 
 		public static class ViewValues
 		{
@@ -875,6 +901,26 @@ namespace Imageboard10.Core.ModelStorage.Boards
 
 			public Update CreateUpdate() => new Update(_table.Session, _table, JET_prep.Insert);
 
+			private byte[] _bookmarkBuffer;
+
+			private void EnsureBookmarkBuffer()
+			{
+				if (_bookmarkBuffer == null)
+				{
+					_bookmarkBuffer = new byte[SystemParameters.BookmarkMost];
+				}
+			}
+
+			public void SaveUpdateWithBookmark(Update update, out byte[] bookmark)
+			{
+				EnsureBookmarkBuffer();
+				int bsize;
+				update.Save(_bookmarkBuffer, _bookmarkBuffer.Length, out bsize);
+				bookmark = new byte[bsize];
+				Array.Copy(_bookmarkBuffer, bookmark, bsize);
+			}
+
+
 		    // ReSharper disable once InconsistentNaming
 			private InsertOrUpdateViews.FullRowView? __iuv_FullRowView;
 
@@ -907,6 +953,24 @@ namespace Imageboard10.Core.ModelStorage.Boards
 					update.Save();
 				}
 			}
+
+			public void InsertAsFullRowView(ViewValues.FullRowView value, out byte[] bookmark)
+			{
+				using (var update = CreateUpdate())
+				{
+					FullRowView.Set(value);
+					SaveUpdateWithBookmark(update, out bookmark);
+				}
+			}
+
+			public void InsertAsFullRowView(ref ViewValues.FullRowView value, out byte[] bookmark)
+			{
+				using (var update = CreateUpdate())
+				{
+					FullRowView.Set(ref value);
+					SaveUpdateWithBookmark(update, out bookmark);
+				}
+			}
 		}
 
 		// ReSharper disable once InconsistentNaming
@@ -934,6 +998,25 @@ namespace Imageboard10.Core.ModelStorage.Boards
 			}
 
 			public Update CreateUpdate() => new Update(_table.Session, _table, JET_prep.Replace);
+
+			private byte[] _bookmarkBuffer;
+
+			private void EnsureBookmarkBuffer()
+			{
+				if (_bookmarkBuffer == null)
+				{
+					_bookmarkBuffer = new byte[SystemParameters.BookmarkMost];
+				}
+			}
+
+			public void SaveUpdateWithBookmark(Update update, out byte[] bookmark)
+			{
+				EnsureBookmarkBuffer();
+				int bsize;
+				update.Save(_bookmarkBuffer, _bookmarkBuffer.Length, out bsize);
+				bookmark = new byte[bsize];
+				Array.Copy(_bookmarkBuffer, bookmark, bsize);
+			}
 
 		    // ReSharper disable once InconsistentNaming
 			private InsertOrUpdateViews.FullRowView? __iuv_FullRowView;
@@ -965,6 +1048,24 @@ namespace Imageboard10.Core.ModelStorage.Boards
 				{
 					FullRowView.Set(ref value);
 					update.Save();
+				}
+			}
+
+			public void UpdateAsFullRowView(ViewValues.FullRowView value, out byte[] bookmark)
+			{
+				using (var update = CreateUpdate())
+				{
+					FullRowView.Set(value);
+					SaveUpdateWithBookmark(update, out bookmark);
+				}
+			}
+
+			public void UpdateAsFullRowView(ref ViewValues.FullRowView value, out byte[] bookmark)
+			{
+				using (var update = CreateUpdate())
+				{
+					FullRowView.Set(ref value);
+					SaveUpdateWithBookmark(update, out bookmark);
 				}
 			}
 		}
@@ -1026,7 +1127,7 @@ namespace Imageboard10.Core.ModelStorage.Boards
 				public bool Find(PrimaryIndexKey key)
 				{
 					SetKey(key);
-					return Api.TrySeek(_table.Session, _table, SeekGrbit.SeekEQ);
+					return Api.TrySeek(_table.Session, _table, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange);
 				}
 
 				public IEnumerable<object> Enumerate(PrimaryIndexKey key)
@@ -1060,7 +1161,10 @@ namespace Imageboard10.Core.ModelStorage.Boards
 
 			    public int GetIndexRecordCount(PrimaryIndexKey key)
 			    {
-			        Find(key);
+			        if (!Find(key))
+					{
+						return 0;
+					}
 			        return GetIndexRecordCount();
 			    }
 				
@@ -1106,7 +1210,7 @@ namespace Imageboard10.Core.ModelStorage.Boards
 				public bool Find(CategoryIndexKey key)
 				{
 					SetKey(key);
-					return Api.TrySeek(_table.Session, _table, SeekGrbit.SeekEQ);
+					return Api.TrySeek(_table.Session, _table, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange);
 				}
 
 				public IEnumerable<object> Enumerate(CategoryIndexKey key)
@@ -1140,7 +1244,10 @@ namespace Imageboard10.Core.ModelStorage.Boards
 
 			    public int GetIndexRecordCount(CategoryIndexKey key)
 			    {
-			        Find(key);
+			        if (!Find(key))
+					{
+						return 0;
+					}
 			        return GetIndexRecordCount();
 			    }
 				public class IndexFetchViews
@@ -1254,7 +1361,7 @@ namespace Imageboard10.Core.ModelStorage.Boards
 				public bool Find(IsAdultIndexKey key)
 				{
 					SetKey(key);
-					return Api.TrySeek(_table.Session, _table, SeekGrbit.SeekEQ);
+					return Api.TrySeek(_table.Session, _table, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange);
 				}
 
 				public IEnumerable<object> Enumerate(IsAdultIndexKey key)
@@ -1288,7 +1395,10 @@ namespace Imageboard10.Core.ModelStorage.Boards
 
 			    public int GetIndexRecordCount(IsAdultIndexKey key)
 			    {
-			        Find(key);
+			        if (!Find(key))
+					{
+						return 0;
+					}
 			        return GetIndexRecordCount();
 			    }
 				
@@ -1338,7 +1448,7 @@ namespace Imageboard10.Core.ModelStorage.Boards
 				public bool Find(IsAdultAndCategoryIndexKey key)
 				{
 					SetKey(key);
-					return Api.TrySeek(_table.Session, _table, SeekGrbit.SeekEQ);
+					return Api.TrySeek(_table.Session, _table, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange);
 				}
 
 				public IEnumerable<object> Enumerate(IsAdultAndCategoryIndexKey key)
@@ -1372,7 +1482,10 @@ namespace Imageboard10.Core.ModelStorage.Boards
 
 			    public int GetIndexRecordCount(IsAdultAndCategoryIndexKey key)
 			    {
-			        Find(key);
+			        if (!Find(key))
+					{
+						return 0;
+					}
 			        return GetIndexRecordCount();
 			    }
 
@@ -1440,7 +1553,10 @@ namespace Imageboard10.Core.ModelStorage.Boards
 
 				public int GetIndexRecordCount(IsAdultAndCategoryIndexPartialKey1 key)
 			    {
-			        SeekPartial(key);
+					if (!SeekPartial(key))
+					{
+						return 0;
+					}
 			        return GetIndexRecordCount();
 			    }
 

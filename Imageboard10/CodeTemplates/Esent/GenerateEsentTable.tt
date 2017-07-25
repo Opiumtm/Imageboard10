@@ -433,12 +433,38 @@ namespace <#= table.Namespace #>
 	    {
 	        return Api.TryMovePrevious(Session, Table);
 	    }
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool TryGotoBookmark(byte[] bookmark)
+		{
+			if (bookmark == null)
+			{
+				throw new ArgumentNullException(nameof(bookmark));
+			}
+			return Api.TryGotoBookmark(Session, Table, bookmark, bookmark.Length);
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool TryGotoBookmark(byte[] bookmark, int bookmarkSize)
+		{
+			if (bookmark == null)
+			{
+				throw new ArgumentNullException(nameof(bookmark));
+			}
+			return Api.TryGotoBookmark(Session, Table, bookmark, bookmarkSize);
+		}
 		
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
 	    public void DeleteCurrentRow()
 	    {
 	        Api.JetDelete(Session, Table);
 	    }
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public byte[] GetBookmark()
+		{
+			return Api.GetBookmark(Session, Table);
+		}
 
 		public static class ViewValues
 		{
@@ -741,6 +767,26 @@ namespace <#= table.Namespace #>
 			}
 
 			public Update CreateUpdate() => new Update(_table.Session, _table, JET_prep.Insert);
+
+			private byte[] _bookmarkBuffer;
+
+			private void EnsureBookmarkBuffer()
+			{
+				if (_bookmarkBuffer == null)
+				{
+					_bookmarkBuffer = new byte[SystemParameters.BookmarkMost];
+				}
+			}
+
+			public void SaveUpdateWithBookmark(Update update, out byte[] bookmark)
+			{
+				EnsureBookmarkBuffer();
+				int bsize;
+				update.Save(_bookmarkBuffer, _bookmarkBuffer.Length, out bsize);
+				bookmark = new byte[bsize];
+				Array.Copy(_bookmarkBuffer, bookmark, bsize);
+			}
+
 <#+
 		foreach (var view in globalInsertViews)
 		{
@@ -778,6 +824,24 @@ namespace <#= table.Namespace #>
 					update.Save();
 				}
 			}
+
+			public void InsertAs<#= view.Name #>(ViewValues.<#= view.Name #> value, out byte[] bookmark)
+			{
+				using (var update = CreateUpdate())
+				{
+					<#= view.Name #>.Set(value);
+					SaveUpdateWithBookmark(update, out bookmark);
+				}
+			}
+
+			public void InsertAs<#= view.Name #>(ref ViewValues.<#= view.Name #> value, out byte[] bookmark)
+			{
+				using (var update = CreateUpdate())
+				{
+					<#= view.Name #>.Set(ref value);
+					SaveUpdateWithBookmark(update, out bookmark);
+				}
+			}
 <#+
 		}
 #>
@@ -808,6 +872,25 @@ namespace <#= table.Namespace #>
 			}
 
 			public Update CreateUpdate() => new Update(_table.Session, _table, JET_prep.Replace);
+
+			private byte[] _bookmarkBuffer;
+
+			private void EnsureBookmarkBuffer()
+			{
+				if (_bookmarkBuffer == null)
+				{
+					_bookmarkBuffer = new byte[SystemParameters.BookmarkMost];
+				}
+			}
+
+			public void SaveUpdateWithBookmark(Update update, out byte[] bookmark)
+			{
+				EnsureBookmarkBuffer();
+				int bsize;
+				update.Save(_bookmarkBuffer, _bookmarkBuffer.Length, out bsize);
+				bookmark = new byte[bsize];
+				Array.Copy(_bookmarkBuffer, bookmark, bsize);
+			}
 <#+
 		foreach (var view in globalUpdateViews)
 		{
@@ -843,6 +926,24 @@ namespace <#= table.Namespace #>
 				{
 					<#= view.Name #>.Set(ref value);
 					update.Save();
+				}
+			}
+
+			public void UpdateAs<#= view.Name #>(ViewValues.<#= view.Name #> value, out byte[] bookmark)
+			{
+				using (var update = CreateUpdate())
+				{
+					<#= view.Name #>.Set(value);
+					SaveUpdateWithBookmark(update, out bookmark);
+				}
+			}
+
+			public void UpdateAs<#= view.Name #>(ref ViewValues.<#= view.Name #> value, out byte[] bookmark)
+			{
+				using (var update = CreateUpdate())
+				{
+					<#= view.Name #>.Set(ref value);
+					SaveUpdateWithBookmark(update, out bookmark);
 				}
 			}
 <#+
@@ -981,7 +1082,7 @@ namespace <#= table.Namespace #>
 				public bool Find(<#= index.Name #>Key key)
 				{
 					SetKey(key);
-					return Api.TrySeek(_table.Session, _table, SeekGrbit.SeekEQ);
+					return Api.TrySeek(_table.Session, _table, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange);
 				}
 
 				public IEnumerable<object> Enumerate(<#= index.Name #>Key key)
@@ -1015,7 +1116,10 @@ namespace <#= table.Namespace #>
 
 			    public int GetIndexRecordCount(<#= index.Name #>Key key)
 			    {
-			        Find(key);
+			        if (!Find(key))
+					{
+						return 0;
+					}
 			        return GetIndexRecordCount();
 			    }
 <#+
@@ -1157,7 +1261,10 @@ namespace <#= table.Namespace #>
 
 				public int GetIndexRecordCount(<#= index.Name #>PartialKey<#= partialCnt #> key)
 			    {
-			        SeekPartial(key);
+					if (!SeekPartial(key))
+					{
+						return 0;
+					}
 			        return GetIndexRecordCount();
 			    }
 

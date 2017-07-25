@@ -295,6 +295,26 @@ namespace Imageboard10.Core.ModelStorage.Blobs
 	    {
 	        return Api.TryMovePrevious(Session, Table);
 	    }
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool TryGotoBookmark(byte[] bookmark)
+		{
+			if (bookmark == null)
+			{
+				throw new ArgumentNullException(nameof(bookmark));
+			}
+			return Api.TryGotoBookmark(Session, Table, bookmark, bookmark.Length);
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool TryGotoBookmark(byte[] bookmark, int bookmarkSize)
+		{
+			if (bookmark == null)
+			{
+				throw new ArgumentNullException(nameof(bookmark));
+			}
+			return Api.TryGotoBookmark(Session, Table, bookmark, bookmarkSize);
+		}
 		
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
 	    public void DeleteCurrentRow()
@@ -302,11 +322,50 @@ namespace Imageboard10.Core.ModelStorage.Blobs
 	        Api.JetDelete(Session, Table);
 	    }
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public byte[] GetBookmark()
+		{
+			return Api.GetBookmark(Session, Table);
+		}
+
 		public static class ViewValues
 		{
+
+			// ReSharper disable once InconsistentNaming
+			public struct ReferenceView
+			{
+				public Guid ReferenceId;
+			}
 		}
 
 		public static class FetchViews {
+
+			// ReSharper disable once InconsistentNaming
+			public struct ReferenceView
+			{
+				private readonly ReferencesTable _table;
+				private readonly ColumnValue[] _c;
+
+				public ReferenceView(ReferencesTable table)
+				{
+					_table = table;
+
+					_c = new ColumnValue[1];
+					_c[0] = new GuidColumnValue() {
+						Columnid = _table.ColumnDictionary[ReferencesTable.Column.ReferenceId],
+						RetrieveGrbit = RetrieveColumnGrbit.None
+					};
+				}
+
+				public ViewValues.ReferenceView Fetch()
+				{
+					var r = new ViewValues.ReferenceView();
+					Api.RetrieveColumns(_table.Session, _table, _c);
+				    // ReSharper disable once PossibleInvalidOperationException
+					r.ReferenceId = ((GuidColumnValue)_c[0]).Value.Value;
+					return r;
+				}
+			}
 	
 		}
 
@@ -317,6 +376,20 @@ namespace Imageboard10.Core.ModelStorage.Blobs
 			public TableFetchViews(ReferencesTable table)
 			{
 				_table = table;
+			}
+
+		    // ReSharper disable once InconsistentNaming
+			private FetchViews.ReferenceView? __fv_ReferenceView;
+			public FetchViews.ReferenceView ReferenceView
+			{
+				get
+				{
+					if (__fv_ReferenceView == null)
+					{
+						__fv_ReferenceView = new FetchViews.ReferenceView(_table);
+					}
+					return __fv_ReferenceView.Value;
+				}
 			}
 		}
 
@@ -337,6 +410,34 @@ namespace Imageboard10.Core.ModelStorage.Blobs
 
 		public static class InsertOrUpdateViews
 		{
+			public struct ReferenceView
+			{
+				private readonly ReferencesTable _table;
+				private readonly ColumnValue[] _c;
+
+				public ReferenceView(ReferencesTable table)
+				{
+					_table = table;
+
+					_c = new ColumnValue[1];
+					_c[0] = new GuidColumnValue() {
+						Columnid = _table.ColumnDictionary[ReferencesTable.Column.ReferenceId],
+						SetGrbit = SetColumnGrbit.None
+					};
+				}
+
+				public void Set(ViewValues.ReferenceView value)
+				{
+					((GuidColumnValue)_c[0]).Value = value.ReferenceId;
+					Api.SetColumns(_table.Session, _table, _c);
+				}
+
+				public void Set(ref ViewValues.ReferenceView value)
+				{
+					((GuidColumnValue)_c[0]).Value = value.ReferenceId;
+					Api.SetColumns(_table.Session, _table, _c);
+				}
+			}			
 		}
 
 		public class TableInsertViews
@@ -349,6 +450,77 @@ namespace Imageboard10.Core.ModelStorage.Blobs
 			}
 
 			public Update CreateUpdate() => new Update(_table.Session, _table, JET_prep.Insert);
+
+			private byte[] _bookmarkBuffer;
+
+			private void EnsureBookmarkBuffer()
+			{
+				if (_bookmarkBuffer == null)
+				{
+					_bookmarkBuffer = new byte[SystemParameters.BookmarkMost];
+				}
+			}
+
+			public void SaveUpdateWithBookmark(Update update, out byte[] bookmark)
+			{
+				EnsureBookmarkBuffer();
+				int bsize;
+				update.Save(_bookmarkBuffer, _bookmarkBuffer.Length, out bsize);
+				bookmark = new byte[bsize];
+				Array.Copy(_bookmarkBuffer, bookmark, bsize);
+			}
+
+
+		    // ReSharper disable once InconsistentNaming
+			private InsertOrUpdateViews.ReferenceView? __iuv_ReferenceView;
+
+			public InsertOrUpdateViews.ReferenceView ReferenceView
+			{
+				get
+				{
+					if (__iuv_ReferenceView == null)
+					{
+						__iuv_ReferenceView = new InsertOrUpdateViews.ReferenceView(_table);
+					}
+					return __iuv_ReferenceView.Value;
+				}
+			}
+
+			public void InsertAsReferenceView(ViewValues.ReferenceView value)
+			{
+				using (var update = CreateUpdate())
+				{
+					ReferenceView.Set(value);
+					update.Save();
+				}
+			}
+
+			public void InsertAsReferenceView(ref ViewValues.ReferenceView value)
+			{
+				using (var update = CreateUpdate())
+				{
+					ReferenceView.Set(ref value);
+					update.Save();
+				}
+			}
+
+			public void InsertAsReferenceView(ViewValues.ReferenceView value, out byte[] bookmark)
+			{
+				using (var update = CreateUpdate())
+				{
+					ReferenceView.Set(value);
+					SaveUpdateWithBookmark(update, out bookmark);
+				}
+			}
+
+			public void InsertAsReferenceView(ref ViewValues.ReferenceView value, out byte[] bookmark)
+			{
+				using (var update = CreateUpdate())
+				{
+					ReferenceView.Set(ref value);
+					SaveUpdateWithBookmark(update, out bookmark);
+				}
+			}
 		}
 
 		// ReSharper disable once InconsistentNaming
@@ -376,6 +548,76 @@ namespace Imageboard10.Core.ModelStorage.Blobs
 			}
 
 			public Update CreateUpdate() => new Update(_table.Session, _table, JET_prep.Replace);
+
+			private byte[] _bookmarkBuffer;
+
+			private void EnsureBookmarkBuffer()
+			{
+				if (_bookmarkBuffer == null)
+				{
+					_bookmarkBuffer = new byte[SystemParameters.BookmarkMost];
+				}
+			}
+
+			public void SaveUpdateWithBookmark(Update update, out byte[] bookmark)
+			{
+				EnsureBookmarkBuffer();
+				int bsize;
+				update.Save(_bookmarkBuffer, _bookmarkBuffer.Length, out bsize);
+				bookmark = new byte[bsize];
+				Array.Copy(_bookmarkBuffer, bookmark, bsize);
+			}
+
+		    // ReSharper disable once InconsistentNaming
+			private InsertOrUpdateViews.ReferenceView? __iuv_ReferenceView;
+
+			public InsertOrUpdateViews.ReferenceView ReferenceView
+			{
+				get
+				{
+					if (__iuv_ReferenceView == null)
+					{
+						__iuv_ReferenceView = new InsertOrUpdateViews.ReferenceView(_table);
+					}
+					return __iuv_ReferenceView.Value;
+				}
+			}
+
+			public void UpdateAsReferenceView(ViewValues.ReferenceView value)
+			{
+				using (var update = CreateUpdate())
+				{
+					ReferenceView.Set(value);
+					update.Save();
+				}
+			}
+
+			public void UpdateAsReferenceView(ref ViewValues.ReferenceView value)
+			{
+				using (var update = CreateUpdate())
+				{
+					ReferenceView.Set(ref value);
+					update.Save();
+				}
+			}
+
+			public void UpdateAsReferenceView(ViewValues.ReferenceView value, out byte[] bookmark)
+			{
+				using (var update = CreateUpdate())
+				{
+					ReferenceView.Set(value);
+					SaveUpdateWithBookmark(update, out bookmark);
+				}
+			}
+
+			public void UpdateAsReferenceView(ref ViewValues.ReferenceView value, out byte[] bookmark)
+			{
+				using (var update = CreateUpdate())
+				{
+					ReferenceView.Set(ref value);
+					SaveUpdateWithBookmark(update, out bookmark);
+				}
+			}
 		}
 
 		// ReSharper disable once InconsistentNaming
@@ -435,7 +677,7 @@ namespace Imageboard10.Core.ModelStorage.Blobs
 				public bool Find(PrimaryIndexKey key)
 				{
 					SetKey(key);
-					return Api.TrySeek(_table.Session, _table, SeekGrbit.SeekEQ);
+					return Api.TrySeek(_table.Session, _table, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange);
 				}
 
 				public IEnumerable<object> Enumerate(PrimaryIndexKey key)
@@ -469,7 +711,10 @@ namespace Imageboard10.Core.ModelStorage.Blobs
 
 			    public int GetIndexRecordCount(PrimaryIndexKey key)
 			    {
-			        Find(key);
+			        if (!Find(key))
+					{
+						return 0;
+					}
 			        return GetIndexRecordCount();
 			    }
 				

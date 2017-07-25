@@ -471,12 +471,38 @@ namespace Imageboard10.Core.ModelStorage.Blobs
 	    {
 	        return Api.TryMovePrevious(Session, Table);
 	    }
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool TryGotoBookmark(byte[] bookmark)
+		{
+			if (bookmark == null)
+			{
+				throw new ArgumentNullException(nameof(bookmark));
+			}
+			return Api.TryGotoBookmark(Session, Table, bookmark, bookmark.Length);
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool TryGotoBookmark(byte[] bookmark, int bookmarkSize)
+		{
+			if (bookmark == null)
+			{
+				throw new ArgumentNullException(nameof(bookmark));
+			}
+			return Api.TryGotoBookmark(Session, Table, bookmark, bookmarkSize);
+		}
 		
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
 	    public void DeleteCurrentRow()
 	    {
 	        Api.JetDelete(Session, Table);
 	    }
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public byte[] GetBookmark()
+		{
+			return Api.GetBookmark(Session, Table);
+		}
 
 		public static class ViewValues
 		{
@@ -509,6 +535,71 @@ namespace Imageboard10.Core.ModelStorage.Blobs
 		}
 
 		public static class FetchViews {
+
+			// ReSharper disable once InconsistentNaming
+			public struct FullRowUpdate
+			{
+				private readonly BlobsTable _table;
+				private readonly ColumnValue[] _c;
+
+				public FullRowUpdate(BlobsTable table)
+				{
+					_table = table;
+
+					_c = new ColumnValue[8];
+					_c[0] = new StringColumnValue() {
+						Columnid = _table.ColumnDictionary[BlobsTable.Column.Name],
+						RetrieveGrbit = RetrieveColumnGrbit.None
+					};
+					_c[1] = new StringColumnValue() {
+						Columnid = _table.ColumnDictionary[BlobsTable.Column.Category],
+						RetrieveGrbit = RetrieveColumnGrbit.None
+					};
+					_c[2] = new DateTimeColumnValue() {
+						Columnid = _table.ColumnDictionary[BlobsTable.Column.CreatedDate],
+						RetrieveGrbit = RetrieveColumnGrbit.None
+					};
+					_c[3] = new BytesColumnValue() {
+						Columnid = _table.ColumnDictionary[BlobsTable.Column.Data],
+						RetrieveGrbit = RetrieveColumnGrbit.None
+					};
+					_c[4] = new Int64ColumnValue() {
+						Columnid = _table.ColumnDictionary[BlobsTable.Column.Length],
+						RetrieveGrbit = RetrieveColumnGrbit.None
+					};
+					_c[5] = new GuidColumnValue() {
+						Columnid = _table.ColumnDictionary[BlobsTable.Column.ReferenceId],
+						RetrieveGrbit = RetrieveColumnGrbit.None
+					};
+					_c[6] = new BoolColumnValue() {
+						Columnid = _table.ColumnDictionary[BlobsTable.Column.IsCompleted],
+						RetrieveGrbit = RetrieveColumnGrbit.None
+					};
+					_c[7] = new BoolColumnValue() {
+						Columnid = _table.ColumnDictionary[BlobsTable.Column.IsFilestream],
+						RetrieveGrbit = RetrieveColumnGrbit.None
+					};
+				}
+
+				public ViewValues.FullRowUpdate Fetch()
+				{
+					var r = new ViewValues.FullRowUpdate();
+					Api.RetrieveColumns(_table.Session, _table, _c);
+					r.Name = ((StringColumnValue)_c[0]).Value;
+					r.Category = ((StringColumnValue)_c[1]).Value;
+				    // ReSharper disable once PossibleInvalidOperationException
+					r.CreatedDate = ((DateTimeColumnValue)_c[2]).Value.Value;
+					r.Data = ((BytesColumnValue)_c[3]).Value;
+				    // ReSharper disable once PossibleInvalidOperationException
+					r.Length = ((Int64ColumnValue)_c[4]).Value.Value;
+					r.ReferenceId = ((GuidColumnValue)_c[5]).Value;
+				    // ReSharper disable once PossibleInvalidOperationException
+					r.IsCompleted = ((BoolColumnValue)_c[6]).Value.Value;
+				    // ReSharper disable once PossibleInvalidOperationException
+					r.IsFilestream = ((BoolColumnValue)_c[7]).Value.Value;
+					return r;
+				}
+			}
 
 			// ReSharper disable once InconsistentNaming
 			public struct IdFromIndexView
@@ -546,6 +637,20 @@ namespace Imageboard10.Core.ModelStorage.Blobs
 			public TableFetchViews(BlobsTable table)
 			{
 				_table = table;
+			}
+
+		    // ReSharper disable once InconsistentNaming
+			private FetchViews.FullRowUpdate? __fv_FullRowUpdate;
+			public FetchViews.FullRowUpdate FullRowUpdate
+			{
+				get
+				{
+					if (__fv_FullRowUpdate == null)
+					{
+						__fv_FullRowUpdate = new FetchViews.FullRowUpdate(_table);
+					}
+					return __fv_FullRowUpdate.Value;
+				}
 			}
 
 		    // ReSharper disable once InconsistentNaming
@@ -697,6 +802,26 @@ namespace Imageboard10.Core.ModelStorage.Blobs
 
 			public Update CreateUpdate() => new Update(_table.Session, _table, JET_prep.Insert);
 
+			private byte[] _bookmarkBuffer;
+
+			private void EnsureBookmarkBuffer()
+			{
+				if (_bookmarkBuffer == null)
+				{
+					_bookmarkBuffer = new byte[SystemParameters.BookmarkMost];
+				}
+			}
+
+			public void SaveUpdateWithBookmark(Update update, out byte[] bookmark)
+			{
+				EnsureBookmarkBuffer();
+				int bsize;
+				update.Save(_bookmarkBuffer, _bookmarkBuffer.Length, out bsize);
+				bookmark = new byte[bsize];
+				Array.Copy(_bookmarkBuffer, bookmark, bsize);
+			}
+
+
 		    // ReSharper disable once InconsistentNaming
 			private InsertOrUpdateViews.FullRowUpdate? __iuv_FullRowUpdate;
 
@@ -729,6 +854,24 @@ namespace Imageboard10.Core.ModelStorage.Blobs
 					update.Save();
 				}
 			}
+
+			public void InsertAsFullRowUpdate(ViewValues.FullRowUpdate value, out byte[] bookmark)
+			{
+				using (var update = CreateUpdate())
+				{
+					FullRowUpdate.Set(value);
+					SaveUpdateWithBookmark(update, out bookmark);
+				}
+			}
+
+			public void InsertAsFullRowUpdate(ref ViewValues.FullRowUpdate value, out byte[] bookmark)
+			{
+				using (var update = CreateUpdate())
+				{
+					FullRowUpdate.Set(ref value);
+					SaveUpdateWithBookmark(update, out bookmark);
+				}
+			}
 		}
 
 		// ReSharper disable once InconsistentNaming
@@ -756,6 +899,25 @@ namespace Imageboard10.Core.ModelStorage.Blobs
 			}
 
 			public Update CreateUpdate() => new Update(_table.Session, _table, JET_prep.Replace);
+
+			private byte[] _bookmarkBuffer;
+
+			private void EnsureBookmarkBuffer()
+			{
+				if (_bookmarkBuffer == null)
+				{
+					_bookmarkBuffer = new byte[SystemParameters.BookmarkMost];
+				}
+			}
+
+			public void SaveUpdateWithBookmark(Update update, out byte[] bookmark)
+			{
+				EnsureBookmarkBuffer();
+				int bsize;
+				update.Save(_bookmarkBuffer, _bookmarkBuffer.Length, out bsize);
+				bookmark = new byte[bsize];
+				Array.Copy(_bookmarkBuffer, bookmark, bsize);
+			}
 
 		    // ReSharper disable once InconsistentNaming
 			private InsertOrUpdateViews.FullRowUpdate? __iuv_FullRowUpdate;
@@ -790,6 +952,24 @@ namespace Imageboard10.Core.ModelStorage.Blobs
 				}
 			}
 
+			public void UpdateAsFullRowUpdate(ViewValues.FullRowUpdate value, out byte[] bookmark)
+			{
+				using (var update = CreateUpdate())
+				{
+					FullRowUpdate.Set(value);
+					SaveUpdateWithBookmark(update, out bookmark);
+				}
+			}
+
+			public void UpdateAsFullRowUpdate(ref ViewValues.FullRowUpdate value, out byte[] bookmark)
+			{
+				using (var update = CreateUpdate())
+				{
+					FullRowUpdate.Set(ref value);
+					SaveUpdateWithBookmark(update, out bookmark);
+				}
+			}
+
 		    // ReSharper disable once InconsistentNaming
 			private InsertOrUpdateViews.CompletedUpdate? __iuv_CompletedUpdate;
 
@@ -820,6 +1000,24 @@ namespace Imageboard10.Core.ModelStorage.Blobs
 				{
 					CompletedUpdate.Set(ref value);
 					update.Save();
+				}
+			}
+
+			public void UpdateAsCompletedUpdate(ViewValues.CompletedUpdate value, out byte[] bookmark)
+			{
+				using (var update = CreateUpdate())
+				{
+					CompletedUpdate.Set(value);
+					SaveUpdateWithBookmark(update, out bookmark);
+				}
+			}
+
+			public void UpdateAsCompletedUpdate(ref ViewValues.CompletedUpdate value, out byte[] bookmark)
+			{
+				using (var update = CreateUpdate())
+				{
+					CompletedUpdate.Set(ref value);
+					SaveUpdateWithBookmark(update, out bookmark);
 				}
 			}
 		}
@@ -881,7 +1079,7 @@ namespace Imageboard10.Core.ModelStorage.Blobs
 				public bool Find(PrimaryIndexKey key)
 				{
 					SetKey(key);
-					return Api.TrySeek(_table.Session, _table, SeekGrbit.SeekEQ);
+					return Api.TrySeek(_table.Session, _table, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange);
 				}
 
 				public IEnumerable<object> Enumerate(PrimaryIndexKey key)
@@ -915,7 +1113,10 @@ namespace Imageboard10.Core.ModelStorage.Blobs
 
 			    public int GetIndexRecordCount(PrimaryIndexKey key)
 			    {
-			        Find(key);
+			        if (!Find(key))
+					{
+						return 0;
+					}
 			        return GetIndexRecordCount();
 			    }
 				
@@ -960,7 +1161,7 @@ namespace Imageboard10.Core.ModelStorage.Blobs
 				public bool Find(NameIndexKey key)
 				{
 					SetKey(key);
-					return Api.TrySeek(_table.Session, _table, SeekGrbit.SeekEQ);
+					return Api.TrySeek(_table.Session, _table, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange);
 				}
 
 				public IEnumerable<object> Enumerate(NameIndexKey key)
@@ -994,7 +1195,10 @@ namespace Imageboard10.Core.ModelStorage.Blobs
 
 			    public int GetIndexRecordCount(NameIndexKey key)
 			    {
-			        Find(key);
+			        if (!Find(key))
+					{
+						return 0;
+					}
 			        return GetIndexRecordCount();
 			    }
 				
@@ -1043,7 +1247,7 @@ namespace Imageboard10.Core.ModelStorage.Blobs
 				public bool Find(CategoryIndexKey key)
 				{
 					SetKey(key);
-					return Api.TrySeek(_table.Session, _table, SeekGrbit.SeekEQ);
+					return Api.TrySeek(_table.Session, _table, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange);
 				}
 
 				public IEnumerable<object> Enumerate(CategoryIndexKey key)
@@ -1077,7 +1281,10 @@ namespace Imageboard10.Core.ModelStorage.Blobs
 
 			    public int GetIndexRecordCount(CategoryIndexKey key)
 			    {
-			        Find(key);
+			        if (!Find(key))
+					{
+						return 0;
+					}
 			        return GetIndexRecordCount();
 			    }
 
@@ -1145,7 +1352,10 @@ namespace Imageboard10.Core.ModelStorage.Blobs
 
 				public int GetIndexRecordCount(CategoryIndexPartialKey1 key)
 			    {
-			        SeekPartial(key);
+					if (!SeekPartial(key))
+					{
+						return 0;
+					}
 			        return GetIndexRecordCount();
 			    }
 
@@ -1201,7 +1411,7 @@ namespace Imageboard10.Core.ModelStorage.Blobs
 				public bool Find(ReferenceIdIndexKey key)
 				{
 					SetKey(key);
-					return Api.TrySeek(_table.Session, _table, SeekGrbit.SeekEQ);
+					return Api.TrySeek(_table.Session, _table, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange);
 				}
 
 				public IEnumerable<object> Enumerate(ReferenceIdIndexKey key)
@@ -1235,7 +1445,10 @@ namespace Imageboard10.Core.ModelStorage.Blobs
 
 			    public int GetIndexRecordCount(ReferenceIdIndexKey key)
 			    {
-			        Find(key);
+			        if (!Find(key))
+					{
+						return 0;
+					}
 			        return GetIndexRecordCount();
 			    }
 
@@ -1309,7 +1522,10 @@ namespace Imageboard10.Core.ModelStorage.Blobs
 
 				public int GetIndexRecordCount(ReferenceIdIndexPartialKey1 key)
 			    {
-			        SeekPartial(key);
+					if (!SeekPartial(key))
+					{
+						return 0;
+					}
 			        return GetIndexRecordCount();
 			    }
 
@@ -1355,7 +1571,7 @@ namespace Imageboard10.Core.ModelStorage.Blobs
 				public bool Find(IsCompletedIndexKey key)
 				{
 					SetKey(key);
-					return Api.TrySeek(_table.Session, _table, SeekGrbit.SeekEQ);
+					return Api.TrySeek(_table.Session, _table, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange);
 				}
 
 				public IEnumerable<object> Enumerate(IsCompletedIndexKey key)
@@ -1389,7 +1605,10 @@ namespace Imageboard10.Core.ModelStorage.Blobs
 
 			    public int GetIndexRecordCount(IsCompletedIndexKey key)
 			    {
-			        Find(key);
+			        if (!Find(key))
+					{
+						return 0;
+					}
 			        return GetIndexRecordCount();
 			    }
 				

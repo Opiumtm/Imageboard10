@@ -41,7 +41,7 @@
     </Index>
   </Indexes>
   <Views>
-    <View Name="FullRowUpdate" Role="Insert Update">
+    <View Name="FullRowUpdate" Role="Insert Update Fetch">
       <Field>Name</Field>
       <Field>Category</Field>
       <Field>CreatedDate</Field>
