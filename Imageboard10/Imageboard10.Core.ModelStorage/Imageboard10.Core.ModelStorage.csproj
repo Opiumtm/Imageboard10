@@ -138,7 +138,17 @@
     <Compile Include="Boards\DataContracts\BoardExtendedInfo.cs" />
     <Compile Include="Boards\DataContracts\BoardShortInfo.cs" />
     <Compile Include="IndexDefinition.cs" />
+    <Compile Include="Posts\AccessLogTable.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>AccessLogTable.tt</DependentUpon>
+    </Compile>
     <Compile Include="Posts\IPostModelStoreChildrenLoadStageInfo.cs" />
+    <Compile Include="Posts\MediaFilesTable.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>MediaFilesTable.tt</DependentUpon>
+    </Compile>
     <Compile Include="Posts\PostModelStore.cs" />
     <Compile Include="Posts\PostModelStoreBareEntity.cs" />
     <Compile Include="Posts\PostModelStoreBareEntityLink.cs" />
@@ -221,11 +231,21 @@
       <LastGenOutput>BoardReferenceTable.cs</LastGenOutput>
     </Content>
     <Content Include="Boards\BoardReferenceTable.xml" />
-    <Content Include="Posts\PostsTable.tt">
+    <None Include="Posts\MediaFilesTable.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>MediaFilesTable.cs</LastGenOutput>
+    </None>
+    <None Include="Posts\AccessLogTable.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>AccessLogTable.cs</LastGenOutput>
+    </None>
+    <None Include="Posts\AccessLogTable.xml" />
+    <None Include="Posts\MediaFilesTable.xml" />
+    <None Include="Posts\PostsTable.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>PostsTable.cs</LastGenOutput>
-    </Content>
-    <Content Include="Posts\PostsTable.xml" />
+    </None>
+    <None Include="Posts\PostsTable.xml" />
   </ItemGroup>
   <ItemGroup>
     <Service Include="{508349B6-6B84-4DF5-91F0-309BEEBAD82D}" />
