@@ -22,7 +22,14 @@
         <Field Name="EntityReferences" Sort="Asc"/>
         <Field Name="SequenceNumber" Sort="Asc"/>
       </Fields>
+      <Views>
+        <ViewName>MediaDataView</ViewName>
+      </Views>
     </Index>
   </Indexes>
-  <Views />
+  <Views>
+    <View Name="MediaDataView" Role="IndexFetch">
+      <Field>MediaData</Field>
+    </View>
+  </Views>
 </Table>

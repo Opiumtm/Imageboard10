@@ -401,9 +401,41 @@ namespace Imageboard10.Core.ModelStorage.Posts
 
 		public static class ViewValues
 		{
+
+			// ReSharper disable once InconsistentNaming
+			public struct MediaDataView
+			{
+				public byte[] MediaData;
+			}
 		}
 
 		public static class FetchViews {
+
+			// ReSharper disable once InconsistentNaming
+			public struct MediaDataView
+			{
+				private readonly MediaFilesTable _table;
+				private readonly ColumnValue[] _c;
+
+				public MediaDataView(MediaFilesTable table)
+				{
+					_table = table;
+
+					_c = new ColumnValue[1];
+					_c[0] = new BytesColumnValue() {
+						Columnid = _table.ColumnDictionary[MediaFilesTable.Column.MediaData],
+						RetrieveGrbit = RetrieveColumnGrbit.None
+					};
+				}
+
+				public ViewValues.MediaDataView Fetch()
+				{
+					var r = new ViewValues.MediaDataView();
+					Api.RetrieveColumns(_table.Session, _table, _c);
+					r.MediaData = ((BytesColumnValue)_c[0]).Value;
+					return r;
+				}
+			}
 	
 		}
 
@@ -709,6 +741,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
 				public SequencesIndex(MediaFilesTable table)
 				{
 					_table = table;
+					_views = new IndexFetchViews(_table);
 				}
 
 				public void SetAsCurrentIndex()
@@ -869,6 +902,91 @@ namespace Imageboard10.Core.ModelStorage.Posts
 			        return GetIndexRecordCount();
 			    }
 
+				public class IndexFetchViews
+				{
+					private readonly MediaFilesTable _table;
+
+					public IndexFetchViews(MediaFilesTable table)
+					{
+						_table = table;
+					}
+
+					// ReSharper disable once InconsistentNaming
+					private FetchViews.MediaDataView? __fv_MediaDataView;
+					public FetchViews.MediaDataView MediaDataView
+					{
+						get
+						{
+							if (__fv_MediaDataView == null)
+							{
+								__fv_MediaDataView = new FetchViews.MediaDataView(_table);
+							}
+							return __fv_MediaDataView.Value;
+						}
+					}
+				}
+
+				private readonly IndexFetchViews _views;
+			    // ReSharper disable once ConvertToAutoProperty
+				public IndexFetchViews Views => _views;
+
+				public IEnumerable<ViewValues.MediaDataView> EnumerateAsMediaDataView()
+				{
+					if (Api.TryMoveFirst(_table.Session, _table))
+					{
+						do {
+							yield return Views.MediaDataView.Fetch();
+						} while (Api.TryMoveNext(_table.Session, _table));
+					}
+				}
+
+				public IEnumerable<ViewValues.MediaDataView> EnumerateAsMediaDataView(SequencesIndexKey key)
+				{
+					SetKey(key);
+					if (Api.TrySeek(_table.Session, _table, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange))
+					{
+						do {
+							yield return Views.MediaDataView.Fetch();
+						} while (Api.TryMoveNext(_table.Session, _table));
+					}
+				}
+
+				public IEnumerable<ViewValues.MediaDataView> EnumerateUniqueAsMediaDataView()
+				{
+					if (Api.TryMoveFirst(_table.Session, _table))
+					{
+						do {
+							yield return Views.MediaDataView.Fetch();
+						} while (Api.TryMove(_table.Session, _table, JET_Move.Next, MoveGrbit.MoveKeyNE));
+					}
+				}
+
+				public IEnumerable<ViewValues.MediaDataView> EnumerateUniqueAsMediaDataView(SequencesIndexKey key)
+				{
+					SetKey(key);
+					if (Api.TrySeek(_table.Session, _table, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange))
+					{
+						do {
+							yield return Views.MediaDataView.Fetch();
+						} while (Api.TryMove(_table.Session, _table, JET_Move.Next, MoveGrbit.MoveKeyNE));
+					}
+				}
+
+				public IEnumerable<ViewValues.MediaDataView> EnumerateAsMediaDataView(SequencesIndexPartialKey1 key)
+				{
+					SetKey(key, true);
+					if (Api.TrySeek(_table.Session, _table, SeekGrbit.SeekGE))
+					{
+						SetKey(key, false);
+						if (Api.TrySetIndexRange(_table.Session, _table, SetIndexRangeGrbit.RangeUpperLimit))
+						{
+							do {
+								yield return Views.MediaDataView.Fetch();
+							} while (Api.TryMoveNext(_table.Session, _table));
+						}
+					}
+				}
+								
 				
 			}
 		}

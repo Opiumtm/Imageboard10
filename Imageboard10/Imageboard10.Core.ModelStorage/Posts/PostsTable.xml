@@ -37,6 +37,41 @@
         <Field Name="Id" Sort="Asc"/>
       </Fields>
     </Index>
+    <Index Name="ParentIdIndex" Grbit="IgnoreAnyNull">
+      <Fields>
+        <Field Name="ParentId" Sort="Asc"/>
+      </Fields>
+      <Views>
+        <ViewName>RetrieveIdFromIndexView</ViewName>
+      </Views>
+    </Index>
+    <Index Name="TypeIndex" Grbit="None">
+      <Fields>
+        <Field Name="EntityType" Sort="Asc"/>
+      </Fields>
+    </Index>
+    <Index Name="TypeAndIdIndex" Grbit="None">
+      <Fields>
+        <Field Name="EntityType" Sort="Asc"/>
+        <Field Name="Id" Sort="Asc"/>
+      </Fields>
+    </Index>
+    <Index Name="ChildrenLoadStageIndex" Grbit="None">
+      <Fields>
+        <Field Name="ChildrenLoadStage" Sort="Asc"/>
+        <Field Name="Id" Sort="Asc"/>
+      </Fields>
+    </Index>
+    <Index Name="TypeAndPostIdIndex" Grbit="None">
+      <Fields>
+        <Field Name="EntityType" Sort="Asc"/>
+        <Field Name="BoardId" Sort="Asc"/>
+        <Field Name="SequenceNumber" Sort="Asc"/>
+      </Fields>
+      <Views>
+        <ViewName>RetrieveIdFromIndexView</ViewName>
+      </Views>
+    </Index>
     <Index Name="FlagsIndex" Grbit="None">
       <Fields>
         <Field Name="Flags" Sort="Asc"/>
@@ -53,15 +88,80 @@
         <Field Name="DirectParentId" Sort="Asc"/>
         <Field Name="QuotedPosts" Sort="Asc"/>
       </Fields>
+      <Views>
+        <ViewName>SequenceNumberView</ViewName>
+      </Views>
     </Index>
     <Index Name="InThreadPostLinkIndex" Grbit="IgnoreAnyNull">
       <Fields>
         <Field Name="DirectParentId" Sort="Asc"/>
         <Field Name="SequenceNumber" Sort="Asc"/>
       </Fields>
+      <Views>
+        <ViewName>RetrieveIdFromIndexView</ViewName>
+      </Views>
     </Index>
   </Indexes>
   <Views>
-    
+    <View Name="ChildrenLoadStageView" Role="Update">
+      <Field>ChildrenLoadStage</Field>
+    </View>
+    <View Name="RetrieveIdFromIndexView" Role="IndexFetch">
+      <Field FetchFlags="FromPrimaryBookmark">Id</Field>
+    </View>
+    <View Name="SequenceNumberView" Role="Fetch IndexFetch">
+      <Field>SequenceNumber</Field>
+    </View>
+    <View Name="LinkInfoView" Role="Fetch">
+      <Field>BoardId</Field>
+      <Field>SequenceNumber</Field>
+      <Field>ParentSequenceNumber</Field>
+    </View>
+    <View Name="BasicLoadInfoView" Role="Fetch">
+      <Field>Id</Field>
+      <Field>EntityType</Field>
+      <Field>BoardId</Field>
+      <Field>SequenceNumber</Field>
+      <Field>ParentSequenceNumber</Field>
+      <Field>DirectParentId</Field>
+      <AssignableTo>
+        <ViewName>LinkInfoView</ViewName>
+      </AssignableTo>
+    </View>
+    <View Name="BareEntityLoadInfoView" Role="Fetch">
+      <Field>Id</Field>
+      <Field>EntityType</Field>
+      <Field>BoardId</Field>
+      <Field>SequenceNumber</Field>
+      <Field>ParentSequenceNumber</Field>
+      <Field>DirectParentId</Field>
+      <Field>Subject</Field>
+      <Field>Thumbnail</Field>
+      <AssignableTo>
+        <ViewName>LinkInfoView</ViewName>
+        <ViewName>BasicLoadInfoView</ViewName>
+      </AssignableTo>
+    </View>
+    <View Name="PostLightLoadView" Role="Fetch">
+      <Field>Id</Field>
+      <Field>EntityType</Field>
+      <Field>BoardId</Field>
+      <Field>SequenceNumber</Field>
+      <Field>ParentSequenceNumber</Field>
+      <Field>DirectParentId</Field>
+      <Field>Subject</Field>
+      <Field>Thumbnail</Field>
+      <Field>BoardSpecificDate</Field>
+      <Field>Date</Field>
+      <Field>Flags</Field>
+      <Field>ThreadTags</Field>
+      <Field>Likes</Field>
+      <Field>Dislikes</Field>
+      <AssignableTo>
+        <ViewName>LinkInfoView</ViewName>
+        <ViewName>BasicLoadInfoView</ViewName>
+        <ViewName>BareEntityLoadInfoView</ViewName>
+      </AssignableTo>
+    </View>
   </Views>
 </Table>

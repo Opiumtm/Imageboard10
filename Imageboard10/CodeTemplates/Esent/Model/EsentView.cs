@@ -14,5 +14,9 @@ namespace CodeTemplates.Esent.Model
 
         [XmlElement("Field")]
         public EsentViewField[] Fields { get; set; }
+
+        [XmlArray("AssignableTo")]
+        [XmlArrayItem("ViewName")]
+        public string[] AssignableTo { get; set; }
     }
 }

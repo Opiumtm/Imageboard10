@@ -181,6 +181,7 @@
   <xs:complexType name="EsentView">
     <xs:sequence>
       <xs:element minOccurs="0" maxOccurs="unbounded" name="Field" type="EsentViewField" />
+      <xs:element minOccurs="0" maxOccurs="1" name="AssignableTo" type="ArrayOfString" />
     </xs:sequence>
     <xs:attribute name="Name" type="xs:string" />
     <xs:attribute default="None" name="Role" type="EsentViewRole" />

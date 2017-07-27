@@ -29,37 +29,28 @@ namespace Imageboard10.Core.ModelStorage.Posts
             {
                 await session.RunInTransaction(() =>
                 {
-                    using (var table = session.OpenTable(TableName, OpenTableGrbit.None))
+                    using (var table = OpenPostsTable(session, OpenTableGrbit.None))
                     {
-                        using (var accTable = session.OpenTable(AccessLogTableName, OpenTableGrbit.None))
+                        using (var accTable = OpenAccessLogTable(session, OpenTableGrbit.None))
                         {
-                            using (var mediaTable = session.OpenTable(MediaFilesTableName, OpenTableGrbit.None))
+                            using (var mediaTable = OpenMediaFilesTable(session, OpenTableGrbit.None))
                             {
                                 foreach (var id in toDeletePart)
                                 {
-                                    Api.MakeKey(table.Session, table, id.Id, MakeKeyGrbit.NewKey);
-                                    if (Api.TrySeek(table.Session, table, SeekGrbit.SeekEQ))
+                                    if (table.Indexes.PrimaryIndex.Find(table.Indexes.PrimaryIndex.CreateKey(id.Id)))
                                     {
-                                        Api.JetDelete(table.Session, table);
+                                        table.DeleteCurrentRow();
                                         result.Add(id);
                                     }
-                                    Api.JetSetCurrentIndex(accTable.Session, accTable.Table, GetIndexName(AccessLogTableName, nameof(AccessLogIndexes.EntityId)));
-                                    Api.MakeKey(accTable.Session, accTable, id.Id, MakeKeyGrbit.NewKey);
-                                    if (Api.TrySeek(accTable.Session, accTable, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange))
+                                    accTable.Indexes.EntityIdIndex.SetAsCurrentIndex();
+                                    foreach (var _ in accTable.Indexes.EntityIdIndex.Enumerate(accTable.Indexes.EntityIdIndex.CreateKey(id.Id)))
                                     {
-                                        do
-                                        {
-                                            Api.JetDelete(accTable.Session, accTable);
-                                        } while (Api.TryMoveNext(accTable.Session, accTable));
+                                        accTable.DeleteCurrentRow();
                                     }
-                                    Api.JetSetCurrentIndex(mediaTable.Session, mediaTable.Table, GetIndexName(MediaFilesTableName, nameof(MediaFilesIndexes.EntityReferences)));
-                                    Api.MakeKey(mediaTable.Session, mediaTable, id.Id, MakeKeyGrbit.NewKey);
-                                    if (Api.TrySeek(mediaTable.Session, mediaTable, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange))
+                                    mediaTable.Indexes.EntityReferencesIndex.SetAsCurrentIndex();
+                                    foreach (var _ in mediaTable.Indexes.EntityReferencesIndex.Enumerate(mediaTable.Indexes.EntityReferencesIndex.CreateKey(id.Id)))
                                     {
-                                        do
-                                        {
-                                            Api.JetDelete(mediaTable.Session, mediaTable);
-                                        } while (Api.TryMoveNext(mediaTable.Session, mediaTable));
+                                        mediaTable.DeleteCurrentRow();
                                     }
                                 }
                             }
@@ -150,47 +141,40 @@ namespace Imageboard10.Core.ModelStorage.Posts
             }
         }
 
-        private bool SeekExistingEntityInSequence(EsentTable table, PostStoreEntityId directParent, int postId, out PostStoreEntityId id)
+        private bool SeekExistingEntityInSequence(PostsTable table, PostStoreEntityId directParent, int postId, out PostStoreEntityId id)
         {
-            Api.JetSetCurrentIndex(table.Session, table, GetIndexName(TableName, nameof(Indexes.InThreadPostLink)));
-            Api.MakeKey(table.Session, table, directParent.Id, MakeKeyGrbit.NewKey);
-            Api.MakeKey(table.Session, table, postId, MakeKeyGrbit.None);
-            var r = Api.TrySeek(table.Session, table.Table, SeekGrbit.SeekEQ);
+            var index = table.Indexes.InThreadPostLinkIndex;
+            index.SetAsCurrentIndex();
+            var r = index.Find(index.CreateKey(directParent.Id, postId));
             if (r)
             {
-                var id1 = Api.RetrieveColumnAsInt32(table.Session, table.Table, Api.GetTableColumnid(table.Session, table.Table, ColumnNames.Id), RetrieveColumnGrbit.RetrieveFromPrimaryBookmark);
-                if (id1 == null)
-                {
-                    throw new InvalidOperationException($"Невозможно получить первичный ключ для {EngineId}:{directParent},{postId}");
-                }
-                id = new PostStoreEntityId() { Id = id1.Value };
+                id = new PostStoreEntityId() { Id = -1 };
             }
             else
             {
-                id = new PostStoreEntityId() { Id = -1 };
+                id = new PostStoreEntityId()
+                {
+                    Id = index.Views.RetrieveIdFromIndexView.Fetch().Id
+                };
             }
             return r;
         }
 
-        private bool SeekExistingEntityOnBoard(EsentTable table, PostStoreEntityType entityType, string boardId, int sequenceId, out PostStoreEntityId id)
+        private bool SeekExistingEntityOnBoard(PostsTable table, PostStoreEntityType entityType, string boardId, int sequenceId, out PostStoreEntityId id)
         {
-            Api.JetSetCurrentIndex(table.Session, table, GetIndexName(TableName, nameof(Indexes.TypeAndPostId)));
-            Api.MakeKey(table.Session, table, (byte)entityType, MakeKeyGrbit.NewKey);
-            Api.MakeKey(table.Session, table, boardId, Encoding.Unicode, MakeKeyGrbit.None);
-            Api.MakeKey(table.Session, table, sequenceId, MakeKeyGrbit.None);
-            var r = Api.TrySeek(table.Session, table.Table, SeekGrbit.SeekEQ);
+            var index = table.Indexes.TypeAndPostIdIndex;
+            index.SetAsCurrentIndex();
+            var r = index.Find(index.CreateKey((byte)entityType, boardId, sequenceId));
             if (r)
             {
-                var id1 = Api.RetrieveColumnAsInt32(table.Session, table.Table, Api.GetTableColumnid(table.Session, table.Table, ColumnNames.Id), RetrieveColumnGrbit.RetrieveFromPrimaryBookmark);
-                if (id1 == null)
-                {
-                    throw new InvalidOperationException($"Невозможно получить первичный ключ для треда или каталога {EngineId}:{entityType},{boardId},{sequenceId}");
-                }
-                id = new PostStoreEntityId() { Id = id1.Value };
+                id = new PostStoreEntityId() { Id = -1 };
             }
             else
             {
-                id = new PostStoreEntityId() { Id = -1 };
+                id = new PostStoreEntityId()
+                {
+                    Id = index.Views.RetrieveIdFromIndexView.Fetch().Id
+                };
             }
             return r;
         }
@@ -469,73 +453,47 @@ namespace Imageboard10.Core.ModelStorage.Posts
             }
         }
 
-        private IEnumerable<(PostStoreEntityId id, PostStoreEntityId parentId)> FindAllChildren(EsentTable table, IEnumerable<PostStoreEntityId> parents)
+        private IEnumerable<(PostStoreEntityId id, PostStoreEntityId parentId)> FindAllChildren(PostsTable table, IEnumerable<PostStoreEntityId> parents)
         {
-            Api.JetSetCurrentIndex(table.Session, table.Table, GetIndexName(TableName, nameof(Indexes.ParentId)));
-            var colid = Api.GetTableColumnid(table.Session, table, ColumnNames.Id);
+            var index = table.Indexes.ParentIdIndex;
+            index.SetAsCurrentIndex();
             foreach (var id in parents.Distinct())
             {
-                Api.MakeKey(table.Session, table, id.Id, MakeKeyGrbit.NewKey);
-                if (Api.TrySeek(table.Session, table, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange))
+                foreach (var cid in index.EnumerateAsRetrieveIdFromIndexView(index.CreateKey(id.Id)))
                 {
-                    do
-                    {
-                        var cid = Api.RetrieveColumnAsInt32(table.Session, table.Table, colid, RetrieveColumnGrbit.RetrieveFromPrimaryBookmark);
-                        if (cid.HasValue)
-                        {
-                            yield return (new PostStoreEntityId() { Id = cid.Value }, id);
-                        }
-                    } while (Api.TryMoveNext(table.Session, table.Table));
+                    yield return (new PostStoreEntityId() {Id = cid.Id}, id);
                 }
             }
         }
 
-        private IEnumerable<(int sequenceId, PostStoreEntityId parentId)> FindAllChildrenSeqNums(EsentTable table, IEnumerable<PostStoreEntityId> parents)
+        private IEnumerable<(int sequenceId, PostStoreEntityId parentId)> FindAllChildrenSeqNums(PostsTable table, IEnumerable<PostStoreEntityId> parents)
         {
-            Api.JetSetCurrentIndex(table.Session, table.Table, GetIndexName(TableName, nameof(Indexes.ParentId)));
-            var colid = Api.GetTableColumnid(table.Session, table, ColumnNames.SequenceNumber);
+            var index = table.Indexes.ParentIdIndex;
+            index.SetAsCurrentIndex();
             foreach (var id in parents.Distinct())
             {
-                Api.MakeKey(table.Session, table, id.Id, MakeKeyGrbit.NewKey);
-                if (Api.TrySeek(table.Session, table, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange))
+                foreach (var _ in index.Enumerate(index.CreateKey(id.Id)))
                 {
-                    do
-                    {
-                        var cid = Api.RetrieveColumnAsInt32(table.Session, table.Table, colid, RetrieveColumnGrbit.None);
-                        if (cid.HasValue)
-                        {
-                            yield return (cid.Value, id);
-                        }
-                    } while (Api.TryMoveNext(table.Session, table.Table));
+                    yield return (table.Columns.SequenceNumber, id);
                 }
             }
         }
 
-        private IEnumerable<(PostStoreEntityId id, PostStoreEntityId parentId)> FindAllChildren(EsentTable table, PostStoreEntityId parent)
+        private IEnumerable<(PostStoreEntityId id, PostStoreEntityId parentId)> FindAllChildren(PostsTable table, PostStoreEntityId parent)
         {
             return FindAllChildren(table, new[] { parent });
         }
 
-        private IEnumerable<(int sequenceId, PostStoreEntityId parentId)> FindAllChildrenSeqNums(EsentTable table, PostStoreEntityId parent)
+        private IEnumerable<(int sequenceId, PostStoreEntityId parentId)> FindAllChildrenSeqNums(PostsTable table, PostStoreEntityId parent)
         {
             return FindAllChildrenSeqNums(table, new[] { parent });
         }
 
-        private IEnumerable<PostStoreEntityId> FindAllParents(EsentTable table)
+        private IEnumerable<PostStoreEntityId> FindAllParents(PostsTable table)
         {
-            var colid = Api.GetTableColumnid(table.Session, table.Table, ColumnNames.ParentId);
-            Api.JetSetCurrentIndex(table.Session, table.Table, GetIndexName(TableName, nameof(Indexes.ParentId)));
-            if (Api.TryMoveFirst(table.Session, table))
-            {
-                do
-                {
-                    var id = Api.RetrieveColumnAsInt32(table.Session, table, colid);
-                    if (id != null)
-                    {
-                        yield return new PostStoreEntityId() { Id = id.Value };
-                    }
-                } while (Api.TryMove(table.Session, table, JET_Move.Next, MoveGrbit.MoveKeyNE));
-            }
+            var index = table.Indexes.ParentIdIndex;
+            index.SetAsCurrentIndex();
+            return index.EnumerateUniqueAsRetrieveIdFromIndexView().Select(item => new PostStoreEntityId() { Id = item.Id});
         }
 
         private async Task SetEntityChildrenLoadStatus(PostStoreEntityId id, byte status)
@@ -544,16 +502,12 @@ namespace Imageboard10.Core.ModelStorage.Posts
             {
                 await session.RunInTransaction(() =>
                 {
-                    using (var table = session.OpenTable(TableName, OpenTableGrbit.Updatable))
+                    using (var table = OpenPostsTable(session, OpenTableGrbit.Updatable))
                     {
-                        Api.MakeKey(table.Session, table, id.Id, MakeKeyGrbit.NewKey);
-                        if (Api.TrySeek(table.Session, table, SeekGrbit.SeekEQ))
+                        var index = table.Indexes.PrimaryIndex;
+                        if (index.Find(index.CreateKey(id.Id)))
                         {
-                            using (var update = new Update(table.Session, table, JET_prep.Replace))
-                            {
-                                Api.SetColumn(table.Session, table, Api.GetTableColumnid(table.Session, table.Table, ColumnNames.ChildrenLoadStage), status);
-                                update.Save();
-                            }
+                            table.Update.ChildrenLoadStageView.Set(new PostsTable.ViewValues.ChildrenLoadStageView() { ChildrenLoadStage = status });
                         }
                     }
                     return true;
@@ -617,57 +571,40 @@ namespace Imageboard10.Core.ModelStorage.Posts
             }
         }
 
-        private (PostStoreEntityType entityType, string boardId, int sequenceId, int? parentSequenceId) ExtractLinkData(EsentTable table, IDictionary<string, JET_COLUMNID> colids)
+        private (PostStoreEntityType entityType, string boardId, int sequenceId, int? parentSequenceId) ExtractLinkData(PostsTable table)
         {
             return
                 (
-                    entityType: (PostStoreEntityType)(Api.RetrieveColumnAsByte(table.Session, table.Table, colids[ColumnNames.EntityType]) ?? 0),
-                    boardId: Api.RetrieveColumnAsString(table.Session, table, colids[ColumnNames.BoardId]),
-                    sequenceId: Api.RetrieveColumnAsInt32(table.Session, table, colids[ColumnNames.SequenceNumber]) ?? 0,
-                    parentSequenceId: Api.RetrieveColumnAsInt32(table.Session, table, colids[ColumnNames.ParentSequenceNumber])
+                    entityType: (PostStoreEntityType)table.Columns.EntityType,
+                    boardId: table.Columns.BoardId,
+                    sequenceId: table.Columns.SequenceNumber,
+                    parentSequenceId: table.Columns.ParentSequenceNumber
                 );
         }
 
-        private ILink GetLinkAtCurrentPosition(EsentTable table, IDictionary<string, JET_COLUMNID> colids)
+        private ILink GetLinkAtCurrentPosition(PostsTable table)
         {
-            (var entityType, var boardId, var sequenceId, var parentSequenceId) = ExtractLinkData(table, colids);
+            (var entityType, var boardId, var sequenceId, var parentSequenceId) = ExtractLinkData(table);
             return ConstructLink(entityType, boardId, sequenceId, parentSequenceId);
         }
 
-        private int CountDirectParentWithFlag(EsentTable table, PostStoreEntityId directParentId, Guid flag)
+        private int CountDirectParentWithFlag(PostsTable table, PostStoreEntityId directParentId, Guid flag)
         {
-            Api.JetSetCurrentIndex(table.Session, table.Table, GetIndexName(TableName, nameof(Indexes.DirectParentFlags)));
-            Api.MakeKey(table.Session, table, directParentId.Id, MakeKeyGrbit.NewKey);
-            Api.MakeKey(table.Session, table, flag, MakeKeyGrbit.None);
-            if (Api.TrySeek(table.Session, table, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange))
-            {
-                int r;
-                Api.JetIndexRecordCount(table.Session, table, out r, int.MaxValue);
-                return r;
-            }
-            return 0;
+            var index = table.Indexes.DirectParentFlagsIndex;
+            index.SetAsCurrentIndex();
+            return index.GetIndexRecordCount(index.CreateKey(directParentId.Id, flag));
         }
 
-        private int CountDirectParent(EsentTable table, PostStoreEntityId directParentId)
+        private int CountDirectParent(PostsTable table, PostStoreEntityId directParentId)
         {
-            Api.JetSetCurrentIndex(table.Session, table.Table, GetIndexName(TableName, nameof(Indexes.InThreadPostLink)));
-            Api.MakeKey(table.Session, table, directParentId.Id, MakeKeyGrbit.NewKey | MakeKeyGrbit.FullColumnStartLimit);
-            if (Api.TrySeek(table.Session, table, SeekGrbit.SeekGE))
-            {
-                Api.MakeKey(table.Session, table, directParentId.Id, MakeKeyGrbit.NewKey | MakeKeyGrbit.FullColumnEndLimit);
-                if (Api.TrySetIndexRange(table.Session, table, SetIndexRangeGrbit.RangeUpperLimit))
-                {
-                    int r;
-                    Api.JetIndexRecordCount(table.Session, table, out r, int.MaxValue);
-                    return r;
-                }
-            }
-            return 0;
+            var index = table.Indexes.InThreadPostLinkIndex;
+            index.SetAsCurrentIndex();
+            return index.GetIndexRecordCount(index.CreateKey(directParentId.Id));
         }
 
         private int CountDirectParentWithFlag(IEsentSession session, PostStoreEntityId directParentId, Guid flag)
         {
-            using (var table = session.OpenTable(TableName, OpenTableGrbit.ReadOnly))
+            using (var table = OpenPostsTable(session, OpenTableGrbit.ReadOnly))
             {
                 return CountDirectParentWithFlag(table, directParentId, flag);
             }
@@ -675,17 +612,16 @@ namespace Imageboard10.Core.ModelStorage.Posts
 
         private int CountDirectParent(IEsentSession session, PostStoreEntityId directParentId)
         {
-            using (var table = session.OpenTable(TableName, OpenTableGrbit.ReadOnly))
+            using (var table = OpenPostsTable(session, OpenTableGrbit.ReadOnly))
             {
                 return CountDirectParent(table, directParentId);
             }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private bool GotoEntityId(EsentTable table, PostStoreEntityId id)
+        private bool GotoEntityId(PostsTable table, PostStoreEntityId id)
         {
-            Api.MakeKey(table.Session, table, id.Id, MakeKeyGrbit.NewKey);
-            return Api.TrySeek(table.Session, table, SeekGrbit.SeekEQ);
+            return table.Indexes.PrimaryIndex.Find(table.Indexes.PrimaryIndex.CreateKey(id.Id));
         }
     }
 }

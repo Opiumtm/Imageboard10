@@ -492,6 +492,36 @@ namespace <#= table.Namespace #>
 					}
 				}
 #>
+
+<#+
+				if (view.AssignableTo != null)
+				{
+					foreach (var v in view.AssignableTo)
+					{
+						var vn = v;
+						var av = table.Views.FirstOrDefault(vv => vv.Name.Equals(vn, StringComparison.InvariantCultureIgnoreCase));
+						if (av != null)
+						{
+#>
+				public static implicit operator ViewValues.<#= av.Name #>(ViewValues.<#= view.Name #> src)
+				{
+					return new ViewValues.<#= av.Name #>()
+					{
+<#+
+						foreach (var fn in av.Fields)
+						{
+#>
+						<#= fn.Name #> = src.<#= fn.Name #>,
+<#+
+						}
+#>
+					};
+				}
+<#+
+						}
+					}
+				}
+#>
 			}
 <#+
 		}
@@ -1361,7 +1391,7 @@ namespace <#= table.Namespace #>
 				{
 #>
 
-				public IEnumerable<ViewValues.<#= view.Name #>> EnumerateAs<#= view.Name #>(<#= index.Name #>PartialKey<#= partialCnt #> key)
+				public IEnumerable<ViewValues.<#= view.Name #>> EnumerateAs<#= view.Name #>(<#= pk #> key)
 				{
 					SetKey(key, true);
 					if (Api.TrySeek(_table.Session, _table, SeekGrbit.SeekGE))

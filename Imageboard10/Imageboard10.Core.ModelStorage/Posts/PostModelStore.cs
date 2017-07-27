@@ -72,7 +72,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
 
                 return await OpenSession(session =>
                 {
-                    using (var table = session.OpenTable(TableName, OpenTableGrbit.ReadOnly))
+                    using (var table = OpenAccessLogTable(session, OpenTableGrbit.ReadOnly))
                     {
                         var colids = Api.GetColumnDictionary(table.Session, table);
                         Api.MakeKey(table.Session, table, id.Id, MakeKeyGrbit.NewKey);
@@ -517,7 +517,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
 
                 return await OpenSession(session =>
                 {
-                    using (var table = session.OpenTable(TableName, OpenTableGrbit.ReadOnly))
+                    using (var table = OpenPostsTable(session, OpenTableGrbit.ReadOnly))
                     {
                         if (GotoEntityId(table, id))
                         {
