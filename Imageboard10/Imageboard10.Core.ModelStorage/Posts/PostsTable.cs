@@ -1012,6 +1012,14 @@ namespace Imageboard10.Core.ModelStorage.Posts
 			}
 
 			// ReSharper disable once InconsistentNaming
+			public struct LastLinkInfoView
+			{
+				public string BoardId;
+				public int SequenceNumber;
+				public int? LastPostLinkOnServer;
+			}
+
+			// ReSharper disable once InconsistentNaming
 			public struct BasicLoadInfoView
 			{
 				public int Id;
@@ -1118,6 +1126,204 @@ namespace Imageboard10.Core.ModelStorage.Posts
 					};
 				}
 			}
+
+			// ReSharper disable once InconsistentNaming
+			public struct PostFullLoadView
+			{
+				public int Id;
+				public byte EntityType;
+				public string BoardId;
+				public int SequenceNumber;
+				public int? ParentSequenceNumber;
+				public int? DirectParentId;
+				public string Subject;
+				public byte[] Thumbnail;
+				public string BoardSpecificDate;
+				public DateTime? Date;
+				public GuidColumnValue[] Flags;
+				public StringColumnValue[] ThreadTags;
+				public int? Likes;
+				public int? Dislikes;
+				public string PosterName;
+				public byte[] OtherDataBinary;
+				public byte[] Document;
+				public DateTime? LoadedTime;
+				public static implicit operator ViewValues.LinkInfoView(ViewValues.PostFullLoadView src)
+				{
+					return new ViewValues.LinkInfoView()
+					{
+						BoardId = src.BoardId,
+						SequenceNumber = src.SequenceNumber,
+						ParentSequenceNumber = src.ParentSequenceNumber,
+					};
+				}
+				public static implicit operator ViewValues.BasicLoadInfoView(ViewValues.PostFullLoadView src)
+				{
+					return new ViewValues.BasicLoadInfoView()
+					{
+						Id = src.Id,
+						EntityType = src.EntityType,
+						BoardId = src.BoardId,
+						SequenceNumber = src.SequenceNumber,
+						ParentSequenceNumber = src.ParentSequenceNumber,
+						DirectParentId = src.DirectParentId,
+					};
+				}
+				public static implicit operator ViewValues.BareEntityLoadInfoView(ViewValues.PostFullLoadView src)
+				{
+					return new ViewValues.BareEntityLoadInfoView()
+					{
+						Id = src.Id,
+						EntityType = src.EntityType,
+						BoardId = src.BoardId,
+						SequenceNumber = src.SequenceNumber,
+						ParentSequenceNumber = src.ParentSequenceNumber,
+						DirectParentId = src.DirectParentId,
+						Subject = src.Subject,
+						Thumbnail = src.Thumbnail,
+					};
+				}
+				public static implicit operator ViewValues.PostLightLoadView(ViewValues.PostFullLoadView src)
+				{
+					return new ViewValues.PostLightLoadView()
+					{
+						Id = src.Id,
+						EntityType = src.EntityType,
+						BoardId = src.BoardId,
+						SequenceNumber = src.SequenceNumber,
+						ParentSequenceNumber = src.ParentSequenceNumber,
+						DirectParentId = src.DirectParentId,
+						Subject = src.Subject,
+						Thumbnail = src.Thumbnail,
+						BoardSpecificDate = src.BoardSpecificDate,
+						Date = src.Date,
+						Flags = src.Flags,
+						ThreadTags = src.ThreadTags,
+						Likes = src.Likes,
+						Dislikes = src.Dislikes,
+					};
+				}
+			}
+
+			// ReSharper disable once InconsistentNaming
+			public struct PostCollectionLoadInfoView
+			{
+				public int Id;
+				public byte EntityType;
+				public string BoardId;
+				public int SequenceNumber;
+				public int? ParentSequenceNumber;
+				public int? DirectParentId;
+				public string Subject;
+				public byte[] Thumbnail;
+				public string Etag;
+				public byte[] OtherDataBinary;
+				public byte ChildrenLoadStage;
+				public static implicit operator ViewValues.LinkInfoView(ViewValues.PostCollectionLoadInfoView src)
+				{
+					return new ViewValues.LinkInfoView()
+					{
+						BoardId = src.BoardId,
+						SequenceNumber = src.SequenceNumber,
+						ParentSequenceNumber = src.ParentSequenceNumber,
+					};
+				}
+				public static implicit operator ViewValues.BasicLoadInfoView(ViewValues.PostCollectionLoadInfoView src)
+				{
+					return new ViewValues.BasicLoadInfoView()
+					{
+						Id = src.Id,
+						EntityType = src.EntityType,
+						BoardId = src.BoardId,
+						SequenceNumber = src.SequenceNumber,
+						ParentSequenceNumber = src.ParentSequenceNumber,
+						DirectParentId = src.DirectParentId,
+					};
+				}
+				public static implicit operator ViewValues.BareEntityLoadInfoView(ViewValues.PostCollectionLoadInfoView src)
+				{
+					return new ViewValues.BareEntityLoadInfoView()
+					{
+						Id = src.Id,
+						EntityType = src.EntityType,
+						BoardId = src.BoardId,
+						SequenceNumber = src.SequenceNumber,
+						ParentSequenceNumber = src.ParentSequenceNumber,
+						DirectParentId = src.DirectParentId,
+						Subject = src.Subject,
+						Thumbnail = src.Thumbnail,
+					};
+				}
+			}
+
+			// ReSharper disable once InconsistentNaming
+			public struct ThreadPreviewLoadInfoView
+			{
+				public int Id;
+				public byte EntityType;
+				public string BoardId;
+				public int SequenceNumber;
+				public int? ParentSequenceNumber;
+				public int? DirectParentId;
+				public string Subject;
+				public byte[] Thumbnail;
+				public string Etag;
+				public byte[] OtherDataBinary;
+				public byte ChildrenLoadStage;
+				public byte[] PreviewCounts;
+				public static implicit operator ViewValues.LinkInfoView(ViewValues.ThreadPreviewLoadInfoView src)
+				{
+					return new ViewValues.LinkInfoView()
+					{
+						BoardId = src.BoardId,
+						SequenceNumber = src.SequenceNumber,
+						ParentSequenceNumber = src.ParentSequenceNumber,
+					};
+				}
+				public static implicit operator ViewValues.BasicLoadInfoView(ViewValues.ThreadPreviewLoadInfoView src)
+				{
+					return new ViewValues.BasicLoadInfoView()
+					{
+						Id = src.Id,
+						EntityType = src.EntityType,
+						BoardId = src.BoardId,
+						SequenceNumber = src.SequenceNumber,
+						ParentSequenceNumber = src.ParentSequenceNumber,
+						DirectParentId = src.DirectParentId,
+					};
+				}
+				public static implicit operator ViewValues.BareEntityLoadInfoView(ViewValues.ThreadPreviewLoadInfoView src)
+				{
+					return new ViewValues.BareEntityLoadInfoView()
+					{
+						Id = src.Id,
+						EntityType = src.EntityType,
+						BoardId = src.BoardId,
+						SequenceNumber = src.SequenceNumber,
+						ParentSequenceNumber = src.ParentSequenceNumber,
+						DirectParentId = src.DirectParentId,
+						Subject = src.Subject,
+						Thumbnail = src.Thumbnail,
+					};
+				}
+				public static implicit operator ViewValues.PostCollectionLoadInfoView(ViewValues.ThreadPreviewLoadInfoView src)
+				{
+					return new ViewValues.PostCollectionLoadInfoView()
+					{
+						Id = src.Id,
+						EntityType = src.EntityType,
+						BoardId = src.BoardId,
+						SequenceNumber = src.SequenceNumber,
+						ParentSequenceNumber = src.ParentSequenceNumber,
+						DirectParentId = src.DirectParentId,
+						Subject = src.Subject,
+						Thumbnail = src.Thumbnail,
+						Etag = src.Etag,
+						OtherDataBinary = src.OtherDataBinary,
+						ChildrenLoadStage = src.ChildrenLoadStage,
+					};
+				}
+			}
 		}
 
 		public static class FetchViews {
@@ -1209,6 +1415,43 @@ namespace Imageboard10.Core.ModelStorage.Posts
 				    // ReSharper disable once PossibleInvalidOperationException
 					r.SequenceNumber = ((Int32ColumnValue)_c[1]).Value.Value;
 					r.ParentSequenceNumber = ((Int32ColumnValue)_c[2]).Value;
+					return r;
+				}
+			}
+
+			// ReSharper disable once InconsistentNaming
+			public struct LastLinkInfoView
+			{
+				private readonly PostsTable _table;
+				private readonly ColumnValue[] _c;
+
+				public LastLinkInfoView(PostsTable table)
+				{
+					_table = table;
+
+					_c = new ColumnValue[3];
+					_c[0] = new StringColumnValue() {
+						Columnid = _table.ColumnDictionary[PostsTable.Column.BoardId],
+						RetrieveGrbit = RetrieveColumnGrbit.None
+					};
+					_c[1] = new Int32ColumnValue() {
+						Columnid = _table.ColumnDictionary[PostsTable.Column.SequenceNumber],
+						RetrieveGrbit = RetrieveColumnGrbit.None
+					};
+					_c[2] = new Int32ColumnValue() {
+						Columnid = _table.ColumnDictionary[PostsTable.Column.LastPostLinkOnServer],
+						RetrieveGrbit = RetrieveColumnGrbit.None
+					};
+				}
+
+				public ViewValues.LastLinkInfoView Fetch()
+				{
+					var r = new ViewValues.LastLinkInfoView();
+					Api.RetrieveColumns(_table.Session, _table, _c);
+					r.BoardId = ((StringColumnValue)_c[0]).Value;
+				    // ReSharper disable once PossibleInvalidOperationException
+					r.SequenceNumber = ((Int32ColumnValue)_c[1]).Value.Value;
+					r.LastPostLinkOnServer = ((Int32ColumnValue)_c[2]).Value;
 					return r;
 				}
 			}
@@ -1416,6 +1659,277 @@ namespace Imageboard10.Core.ModelStorage.Posts
 					return r;
 				}
 			}
+
+			// ReSharper disable once InconsistentNaming
+			public struct PostFullLoadView
+			{
+				private readonly PostsTable _table;
+				private readonly ColumnValue[] _c;
+
+				public PostFullLoadView(PostsTable table)
+				{
+					_table = table;
+
+					_c = new ColumnValue[16];
+					_c[0] = new Int32ColumnValue() {
+						Columnid = _table.ColumnDictionary[PostsTable.Column.Id],
+						RetrieveGrbit = RetrieveColumnGrbit.None
+					};
+					_c[1] = new ByteColumnValue() {
+						Columnid = _table.ColumnDictionary[PostsTable.Column.EntityType],
+						RetrieveGrbit = RetrieveColumnGrbit.None
+					};
+					_c[2] = new StringColumnValue() {
+						Columnid = _table.ColumnDictionary[PostsTable.Column.BoardId],
+						RetrieveGrbit = RetrieveColumnGrbit.None
+					};
+					_c[3] = new Int32ColumnValue() {
+						Columnid = _table.ColumnDictionary[PostsTable.Column.SequenceNumber],
+						RetrieveGrbit = RetrieveColumnGrbit.None
+					};
+					_c[4] = new Int32ColumnValue() {
+						Columnid = _table.ColumnDictionary[PostsTable.Column.ParentSequenceNumber],
+						RetrieveGrbit = RetrieveColumnGrbit.None
+					};
+					_c[5] = new Int32ColumnValue() {
+						Columnid = _table.ColumnDictionary[PostsTable.Column.DirectParentId],
+						RetrieveGrbit = RetrieveColumnGrbit.None
+					};
+					_c[6] = new StringColumnValue() {
+						Columnid = _table.ColumnDictionary[PostsTable.Column.Subject],
+						RetrieveGrbit = RetrieveColumnGrbit.None
+					};
+					_c[7] = new BytesColumnValue() {
+						Columnid = _table.ColumnDictionary[PostsTable.Column.Thumbnail],
+						RetrieveGrbit = RetrieveColumnGrbit.None
+					};
+					_c[8] = new StringColumnValue() {
+						Columnid = _table.ColumnDictionary[PostsTable.Column.BoardSpecificDate],
+						RetrieveGrbit = RetrieveColumnGrbit.None
+					};
+					_c[9] = new DateTimeColumnValue() {
+						Columnid = _table.ColumnDictionary[PostsTable.Column.Date],
+						RetrieveGrbit = RetrieveColumnGrbit.None
+					};
+					_c[10] = new Int32ColumnValue() {
+						Columnid = _table.ColumnDictionary[PostsTable.Column.Likes],
+						RetrieveGrbit = RetrieveColumnGrbit.None
+					};
+					_c[11] = new Int32ColumnValue() {
+						Columnid = _table.ColumnDictionary[PostsTable.Column.Dislikes],
+						RetrieveGrbit = RetrieveColumnGrbit.None
+					};
+					_c[12] = new StringColumnValue() {
+						Columnid = _table.ColumnDictionary[PostsTable.Column.PosterName],
+						RetrieveGrbit = RetrieveColumnGrbit.None
+					};
+					_c[13] = new BytesColumnValue() {
+						Columnid = _table.ColumnDictionary[PostsTable.Column.OtherDataBinary],
+						RetrieveGrbit = RetrieveColumnGrbit.None
+					};
+					_c[14] = new BytesColumnValue() {
+						Columnid = _table.ColumnDictionary[PostsTable.Column.Document],
+						RetrieveGrbit = RetrieveColumnGrbit.None
+					};
+					_c[15] = new DateTimeColumnValue() {
+						Columnid = _table.ColumnDictionary[PostsTable.Column.LoadedTime],
+						RetrieveGrbit = RetrieveColumnGrbit.None
+					};
+				}
+
+				public ViewValues.PostFullLoadView Fetch()
+				{
+					var r = new ViewValues.PostFullLoadView();
+					Api.RetrieveColumns(_table.Session, _table, _c);
+				    // ReSharper disable once PossibleInvalidOperationException
+					r.Id = ((Int32ColumnValue)_c[0]).Value.Value;
+				    // ReSharper disable once PossibleInvalidOperationException
+					r.EntityType = ((ByteColumnValue)_c[1]).Value.Value;
+					r.BoardId = ((StringColumnValue)_c[2]).Value;
+				    // ReSharper disable once PossibleInvalidOperationException
+					r.SequenceNumber = ((Int32ColumnValue)_c[3]).Value.Value;
+					r.ParentSequenceNumber = ((Int32ColumnValue)_c[4]).Value;
+					r.DirectParentId = ((Int32ColumnValue)_c[5]).Value;
+					r.Subject = ((StringColumnValue)_c[6]).Value;
+					r.Thumbnail = ((BytesColumnValue)_c[7]).Value;
+					r.BoardSpecificDate = ((StringColumnValue)_c[8]).Value;
+					r.Date = ((DateTimeColumnValue)_c[9]).Value;
+					r.Likes = ((Int32ColumnValue)_c[10]).Value;
+					r.Dislikes = ((Int32ColumnValue)_c[11]).Value;
+					r.PosterName = ((StringColumnValue)_c[12]).Value;
+					r.OtherDataBinary = ((BytesColumnValue)_c[13]).Value;
+					r.Document = ((BytesColumnValue)_c[14]).Value;
+					r.LoadedTime = ((DateTimeColumnValue)_c[15]).Value;
+					r.Flags = _table.Columns.Flags.Values;
+					r.ThreadTags = _table.Columns.ThreadTags.Values;
+					return r;
+				}
+			}
+
+			// ReSharper disable once InconsistentNaming
+			public struct PostCollectionLoadInfoView
+			{
+				private readonly PostsTable _table;
+				private readonly ColumnValue[] _c;
+
+				public PostCollectionLoadInfoView(PostsTable table)
+				{
+					_table = table;
+
+					_c = new ColumnValue[11];
+					_c[0] = new Int32ColumnValue() {
+						Columnid = _table.ColumnDictionary[PostsTable.Column.Id],
+						RetrieveGrbit = RetrieveColumnGrbit.None
+					};
+					_c[1] = new ByteColumnValue() {
+						Columnid = _table.ColumnDictionary[PostsTable.Column.EntityType],
+						RetrieveGrbit = RetrieveColumnGrbit.None
+					};
+					_c[2] = new StringColumnValue() {
+						Columnid = _table.ColumnDictionary[PostsTable.Column.BoardId],
+						RetrieveGrbit = RetrieveColumnGrbit.None
+					};
+					_c[3] = new Int32ColumnValue() {
+						Columnid = _table.ColumnDictionary[PostsTable.Column.SequenceNumber],
+						RetrieveGrbit = RetrieveColumnGrbit.None
+					};
+					_c[4] = new Int32ColumnValue() {
+						Columnid = _table.ColumnDictionary[PostsTable.Column.ParentSequenceNumber],
+						RetrieveGrbit = RetrieveColumnGrbit.None
+					};
+					_c[5] = new Int32ColumnValue() {
+						Columnid = _table.ColumnDictionary[PostsTable.Column.DirectParentId],
+						RetrieveGrbit = RetrieveColumnGrbit.None
+					};
+					_c[6] = new StringColumnValue() {
+						Columnid = _table.ColumnDictionary[PostsTable.Column.Subject],
+						RetrieveGrbit = RetrieveColumnGrbit.None
+					};
+					_c[7] = new BytesColumnValue() {
+						Columnid = _table.ColumnDictionary[PostsTable.Column.Thumbnail],
+						RetrieveGrbit = RetrieveColumnGrbit.None
+					};
+					_c[8] = new StringColumnValue() {
+						Columnid = _table.ColumnDictionary[PostsTable.Column.Etag],
+						RetrieveGrbit = RetrieveColumnGrbit.None
+					};
+					_c[9] = new BytesColumnValue() {
+						Columnid = _table.ColumnDictionary[PostsTable.Column.OtherDataBinary],
+						RetrieveGrbit = RetrieveColumnGrbit.None
+					};
+					_c[10] = new ByteColumnValue() {
+						Columnid = _table.ColumnDictionary[PostsTable.Column.ChildrenLoadStage],
+						RetrieveGrbit = RetrieveColumnGrbit.None
+					};
+				}
+
+				public ViewValues.PostCollectionLoadInfoView Fetch()
+				{
+					var r = new ViewValues.PostCollectionLoadInfoView();
+					Api.RetrieveColumns(_table.Session, _table, _c);
+				    // ReSharper disable once PossibleInvalidOperationException
+					r.Id = ((Int32ColumnValue)_c[0]).Value.Value;
+				    // ReSharper disable once PossibleInvalidOperationException
+					r.EntityType = ((ByteColumnValue)_c[1]).Value.Value;
+					r.BoardId = ((StringColumnValue)_c[2]).Value;
+				    // ReSharper disable once PossibleInvalidOperationException
+					r.SequenceNumber = ((Int32ColumnValue)_c[3]).Value.Value;
+					r.ParentSequenceNumber = ((Int32ColumnValue)_c[4]).Value;
+					r.DirectParentId = ((Int32ColumnValue)_c[5]).Value;
+					r.Subject = ((StringColumnValue)_c[6]).Value;
+					r.Thumbnail = ((BytesColumnValue)_c[7]).Value;
+					r.Etag = ((StringColumnValue)_c[8]).Value;
+					r.OtherDataBinary = ((BytesColumnValue)_c[9]).Value;
+				    // ReSharper disable once PossibleInvalidOperationException
+					r.ChildrenLoadStage = ((ByteColumnValue)_c[10]).Value.Value;
+					return r;
+				}
+			}
+
+			// ReSharper disable once InconsistentNaming
+			public struct ThreadPreviewLoadInfoView
+			{
+				private readonly PostsTable _table;
+				private readonly ColumnValue[] _c;
+
+				public ThreadPreviewLoadInfoView(PostsTable table)
+				{
+					_table = table;
+
+					_c = new ColumnValue[12];
+					_c[0] = new Int32ColumnValue() {
+						Columnid = _table.ColumnDictionary[PostsTable.Column.Id],
+						RetrieveGrbit = RetrieveColumnGrbit.None
+					};
+					_c[1] = new ByteColumnValue() {
+						Columnid = _table.ColumnDictionary[PostsTable.Column.EntityType],
+						RetrieveGrbit = RetrieveColumnGrbit.None
+					};
+					_c[2] = new StringColumnValue() {
+						Columnid = _table.ColumnDictionary[PostsTable.Column.BoardId],
+						RetrieveGrbit = RetrieveColumnGrbit.None
+					};
+					_c[3] = new Int32ColumnValue() {
+						Columnid = _table.ColumnDictionary[PostsTable.Column.SequenceNumber],
+						RetrieveGrbit = RetrieveColumnGrbit.None
+					};
+					_c[4] = new Int32ColumnValue() {
+						Columnid = _table.ColumnDictionary[PostsTable.Column.ParentSequenceNumber],
+						RetrieveGrbit = RetrieveColumnGrbit.None
+					};
+					_c[5] = new Int32ColumnValue() {
+						Columnid = _table.ColumnDictionary[PostsTable.Column.DirectParentId],
+						RetrieveGrbit = RetrieveColumnGrbit.None
+					};
+					_c[6] = new StringColumnValue() {
+						Columnid = _table.ColumnDictionary[PostsTable.Column.Subject],
+						RetrieveGrbit = RetrieveColumnGrbit.None
+					};
+					_c[7] = new BytesColumnValue() {
+						Columnid = _table.ColumnDictionary[PostsTable.Column.Thumbnail],
+						RetrieveGrbit = RetrieveColumnGrbit.None
+					};
+					_c[8] = new StringColumnValue() {
+						Columnid = _table.ColumnDictionary[PostsTable.Column.Etag],
+						RetrieveGrbit = RetrieveColumnGrbit.None
+					};
+					_c[9] = new BytesColumnValue() {
+						Columnid = _table.ColumnDictionary[PostsTable.Column.OtherDataBinary],
+						RetrieveGrbit = RetrieveColumnGrbit.None
+					};
+					_c[10] = new ByteColumnValue() {
+						Columnid = _table.ColumnDictionary[PostsTable.Column.ChildrenLoadStage],
+						RetrieveGrbit = RetrieveColumnGrbit.None
+					};
+					_c[11] = new BytesColumnValue() {
+						Columnid = _table.ColumnDictionary[PostsTable.Column.PreviewCounts],
+						RetrieveGrbit = RetrieveColumnGrbit.None
+					};
+				}
+
+				public ViewValues.ThreadPreviewLoadInfoView Fetch()
+				{
+					var r = new ViewValues.ThreadPreviewLoadInfoView();
+					Api.RetrieveColumns(_table.Session, _table, _c);
+				    // ReSharper disable once PossibleInvalidOperationException
+					r.Id = ((Int32ColumnValue)_c[0]).Value.Value;
+				    // ReSharper disable once PossibleInvalidOperationException
+					r.EntityType = ((ByteColumnValue)_c[1]).Value.Value;
+					r.BoardId = ((StringColumnValue)_c[2]).Value;
+				    // ReSharper disable once PossibleInvalidOperationException
+					r.SequenceNumber = ((Int32ColumnValue)_c[3]).Value.Value;
+					r.ParentSequenceNumber = ((Int32ColumnValue)_c[4]).Value;
+					r.DirectParentId = ((Int32ColumnValue)_c[5]).Value;
+					r.Subject = ((StringColumnValue)_c[6]).Value;
+					r.Thumbnail = ((BytesColumnValue)_c[7]).Value;
+					r.Etag = ((StringColumnValue)_c[8]).Value;
+					r.OtherDataBinary = ((BytesColumnValue)_c[9]).Value;
+				    // ReSharper disable once PossibleInvalidOperationException
+					r.ChildrenLoadStage = ((ByteColumnValue)_c[10]).Value.Value;
+					r.PreviewCounts = ((BytesColumnValue)_c[11]).Value;
+					return r;
+				}
+			}
 	
 		}
 
@@ -1453,6 +1967,20 @@ namespace Imageboard10.Core.ModelStorage.Posts
 						__fv_LinkInfoView = new FetchViews.LinkInfoView(_table);
 					}
 					return __fv_LinkInfoView.Value;
+				}
+			}
+
+		    // ReSharper disable once InconsistentNaming
+			private FetchViews.LastLinkInfoView? __fv_LastLinkInfoView;
+			public FetchViews.LastLinkInfoView LastLinkInfoView
+			{
+				get
+				{
+					if (__fv_LastLinkInfoView == null)
+					{
+						__fv_LastLinkInfoView = new FetchViews.LastLinkInfoView(_table);
+					}
+					return __fv_LastLinkInfoView.Value;
 				}
 			}
 
@@ -1495,6 +2023,48 @@ namespace Imageboard10.Core.ModelStorage.Posts
 						__fv_PostLightLoadView = new FetchViews.PostLightLoadView(_table);
 					}
 					return __fv_PostLightLoadView.Value;
+				}
+			}
+
+		    // ReSharper disable once InconsistentNaming
+			private FetchViews.PostFullLoadView? __fv_PostFullLoadView;
+			public FetchViews.PostFullLoadView PostFullLoadView
+			{
+				get
+				{
+					if (__fv_PostFullLoadView == null)
+					{
+						__fv_PostFullLoadView = new FetchViews.PostFullLoadView(_table);
+					}
+					return __fv_PostFullLoadView.Value;
+				}
+			}
+
+		    // ReSharper disable once InconsistentNaming
+			private FetchViews.PostCollectionLoadInfoView? __fv_PostCollectionLoadInfoView;
+			public FetchViews.PostCollectionLoadInfoView PostCollectionLoadInfoView
+			{
+				get
+				{
+					if (__fv_PostCollectionLoadInfoView == null)
+					{
+						__fv_PostCollectionLoadInfoView = new FetchViews.PostCollectionLoadInfoView(_table);
+					}
+					return __fv_PostCollectionLoadInfoView.Value;
+				}
+			}
+
+		    // ReSharper disable once InconsistentNaming
+			private FetchViews.ThreadPreviewLoadInfoView? __fv_ThreadPreviewLoadInfoView;
+			public FetchViews.ThreadPreviewLoadInfoView ThreadPreviewLoadInfoView
+			{
+				get
+				{
+					if (__fv_ThreadPreviewLoadInfoView == null)
+					{
+						__fv_ThreadPreviewLoadInfoView = new FetchViews.ThreadPreviewLoadInfoView(_table);
+					}
+					return __fv_ThreadPreviewLoadInfoView.Value;
 				}
 			}
 		}
@@ -3387,6 +3957,20 @@ namespace Imageboard10.Core.ModelStorage.Posts
 							return __fv_RetrieveIdFromIndexView.Value;
 						}
 					}
+
+					// ReSharper disable once InconsistentNaming
+					private FetchViews.SequenceNumberView? __fv_SequenceNumberView;
+					public FetchViews.SequenceNumberView SequenceNumberView
+					{
+						get
+						{
+							if (__fv_SequenceNumberView == null)
+							{
+								__fv_SequenceNumberView = new FetchViews.SequenceNumberView(_table);
+							}
+							return __fv_SequenceNumberView.Value;
+						}
+					}
 				}
 
 				private readonly IndexFetchViews _views;
@@ -3445,6 +4029,63 @@ namespace Imageboard10.Core.ModelStorage.Posts
 						{
 							do {
 								yield return Views.RetrieveIdFromIndexView.Fetch();
+							} while (Api.TryMoveNext(_table.Session, _table));
+						}
+					}
+				}
+								
+				public IEnumerable<ViewValues.SequenceNumberView> EnumerateAsSequenceNumberView()
+				{
+					if (Api.TryMoveFirst(_table.Session, _table))
+					{
+						do {
+							yield return Views.SequenceNumberView.Fetch();
+						} while (Api.TryMoveNext(_table.Session, _table));
+					}
+				}
+
+				public IEnumerable<ViewValues.SequenceNumberView> EnumerateAsSequenceNumberView(InThreadPostLinkIndexKey key)
+				{
+					SetKey(key);
+					if (Api.TrySeek(_table.Session, _table, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange))
+					{
+						do {
+							yield return Views.SequenceNumberView.Fetch();
+						} while (Api.TryMoveNext(_table.Session, _table));
+					}
+				}
+
+				public IEnumerable<ViewValues.SequenceNumberView> EnumerateUniqueAsSequenceNumberView()
+				{
+					if (Api.TryMoveFirst(_table.Session, _table))
+					{
+						do {
+							yield return Views.SequenceNumberView.Fetch();
+						} while (Api.TryMove(_table.Session, _table, JET_Move.Next, MoveGrbit.MoveKeyNE));
+					}
+				}
+
+				public IEnumerable<ViewValues.SequenceNumberView> EnumerateUniqueAsSequenceNumberView(InThreadPostLinkIndexKey key)
+				{
+					SetKey(key);
+					if (Api.TrySeek(_table.Session, _table, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange))
+					{
+						do {
+							yield return Views.SequenceNumberView.Fetch();
+						} while (Api.TryMove(_table.Session, _table, JET_Move.Next, MoveGrbit.MoveKeyNE));
+					}
+				}
+
+				public IEnumerable<ViewValues.SequenceNumberView> EnumerateAsSequenceNumberView(InThreadPostLinkIndexPartialKey1 key)
+				{
+					SetKey(key, true);
+					if (Api.TrySeek(_table.Session, _table, SeekGrbit.SeekGE))
+					{
+						SetKey(key, false);
+						if (Api.TrySetIndexRange(_table.Session, _table, SetIndexRangeGrbit.RangeUpperLimit))
+						{
+							do {
+								yield return Views.SequenceNumberView.Fetch();
 							} while (Api.TryMoveNext(_table.Session, _table));
 						}
 					}

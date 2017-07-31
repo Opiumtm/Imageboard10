@@ -372,9 +372,49 @@ namespace Imageboard10.Core.ModelStorage.Posts
 
 		public static class ViewValues
 		{
+
+			// ReSharper disable once InconsistentNaming
+			public struct AccessTimeAndId
+			{
+				public Guid Id;
+				public DateTime AccessTime;
+			}
 		}
 
 		public static class FetchViews {
+
+			// ReSharper disable once InconsistentNaming
+			public struct AccessTimeAndId
+			{
+				private readonly AccessLogTable _table;
+				private readonly ColumnValue[] _c;
+
+				public AccessTimeAndId(AccessLogTable table)
+				{
+					_table = table;
+
+					_c = new ColumnValue[2];
+					_c[0] = new GuidColumnValue() {
+						Columnid = _table.ColumnDictionary[AccessLogTable.Column.Id],
+						RetrieveGrbit = RetrieveColumnGrbit.None
+					};
+					_c[1] = new DateTimeColumnValue() {
+						Columnid = _table.ColumnDictionary[AccessLogTable.Column.AccessTime],
+						RetrieveGrbit = RetrieveColumnGrbit.None
+					};
+				}
+
+				public ViewValues.AccessTimeAndId Fetch()
+				{
+					var r = new ViewValues.AccessTimeAndId();
+					Api.RetrieveColumns(_table.Session, _table, _c);
+				    // ReSharper disable once PossibleInvalidOperationException
+					r.Id = ((GuidColumnValue)_c[0]).Value.Value;
+				    // ReSharper disable once PossibleInvalidOperationException
+					r.AccessTime = ((DateTimeColumnValue)_c[1]).Value.Value;
+					return r;
+				}
+			}
 	
 		}
 
@@ -385,6 +425,20 @@ namespace Imageboard10.Core.ModelStorage.Posts
 			public TableFetchViews(AccessLogTable table)
 			{
 				_table = table;
+			}
+
+		    // ReSharper disable once InconsistentNaming
+			private FetchViews.AccessTimeAndId? __fv_AccessTimeAndId;
+			public FetchViews.AccessTimeAndId AccessTimeAndId
+			{
+				get
+				{
+					if (__fv_AccessTimeAndId == null)
+					{
+						__fv_AccessTimeAndId = new FetchViews.AccessTimeAndId(_table);
+					}
+					return __fv_AccessTimeAndId.Value;
+				}
 			}
 		}
 
@@ -674,6 +728,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
 				public EntityIdAndAccessTimeIndex(AccessLogTable table)
 				{
 					_table = table;
+					_views = new IndexFetchViews(_table);
 				}
 
 				public void SetAsCurrentIndex()
@@ -822,6 +877,91 @@ namespace Imageboard10.Core.ModelStorage.Posts
 			        return GetIndexRecordCount();
 			    }
 
+				public class IndexFetchViews
+				{
+					private readonly AccessLogTable _table;
+
+					public IndexFetchViews(AccessLogTable table)
+					{
+						_table = table;
+					}
+
+					// ReSharper disable once InconsistentNaming
+					private FetchViews.AccessTimeAndId? __fv_AccessTimeAndId;
+					public FetchViews.AccessTimeAndId AccessTimeAndId
+					{
+						get
+						{
+							if (__fv_AccessTimeAndId == null)
+							{
+								__fv_AccessTimeAndId = new FetchViews.AccessTimeAndId(_table);
+							}
+							return __fv_AccessTimeAndId.Value;
+						}
+					}
+				}
+
+				private readonly IndexFetchViews _views;
+			    // ReSharper disable once ConvertToAutoProperty
+				public IndexFetchViews Views => _views;
+
+				public IEnumerable<ViewValues.AccessTimeAndId> EnumerateAsAccessTimeAndId()
+				{
+					if (Api.TryMoveFirst(_table.Session, _table))
+					{
+						do {
+							yield return Views.AccessTimeAndId.Fetch();
+						} while (Api.TryMoveNext(_table.Session, _table));
+					}
+				}
+
+				public IEnumerable<ViewValues.AccessTimeAndId> EnumerateAsAccessTimeAndId(EntityIdAndAccessTimeIndexKey key)
+				{
+					SetKey(key);
+					if (Api.TrySeek(_table.Session, _table, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange))
+					{
+						do {
+							yield return Views.AccessTimeAndId.Fetch();
+						} while (Api.TryMoveNext(_table.Session, _table));
+					}
+				}
+
+				public IEnumerable<ViewValues.AccessTimeAndId> EnumerateUniqueAsAccessTimeAndId()
+				{
+					if (Api.TryMoveFirst(_table.Session, _table))
+					{
+						do {
+							yield return Views.AccessTimeAndId.Fetch();
+						} while (Api.TryMove(_table.Session, _table, JET_Move.Next, MoveGrbit.MoveKeyNE));
+					}
+				}
+
+				public IEnumerable<ViewValues.AccessTimeAndId> EnumerateUniqueAsAccessTimeAndId(EntityIdAndAccessTimeIndexKey key)
+				{
+					SetKey(key);
+					if (Api.TrySeek(_table.Session, _table, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange))
+					{
+						do {
+							yield return Views.AccessTimeAndId.Fetch();
+						} while (Api.TryMove(_table.Session, _table, JET_Move.Next, MoveGrbit.MoveKeyNE));
+					}
+				}
+
+				public IEnumerable<ViewValues.AccessTimeAndId> EnumerateAsAccessTimeAndId(EntityIdAndAccessTimeIndexPartialKey1 key)
+				{
+					SetKey(key, true);
+					if (Api.TrySeek(_table.Session, _table, SeekGrbit.SeekGE))
+					{
+						SetKey(key, false);
+						if (Api.TrySetIndexRange(_table.Session, _table, SetIndexRangeGrbit.RangeUpperLimit))
+						{
+							do {
+								yield return Views.AccessTimeAndId.Fetch();
+							} while (Api.TryMoveNext(_table.Session, _table));
+						}
+					}
+				}
+								
 				
 			}
 		}

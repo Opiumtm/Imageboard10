@@ -99,6 +99,7 @@
       </Fields>
       <Views>
         <ViewName>RetrieveIdFromIndexView</ViewName>
+        <ViewName>SequenceNumberView</ViewName>
       </Views>
     </Index>
   </Indexes>
@@ -116,6 +117,11 @@
       <Field>BoardId</Field>
       <Field>SequenceNumber</Field>
       <Field>ParentSequenceNumber</Field>
+    </View>
+    <View Name="LastLinkInfoView" Role="Fetch">
+      <Field>BoardId</Field>
+      <Field>SequenceNumber</Field>
+      <Field>LastPostLinkOnServer</Field>
     </View>
     <View Name="BasicLoadInfoView" Role="Fetch">
       <Field>Id</Field>
@@ -161,6 +167,70 @@
         <ViewName>LinkInfoView</ViewName>
         <ViewName>BasicLoadInfoView</ViewName>
         <ViewName>BareEntityLoadInfoView</ViewName>
+      </AssignableTo>
+    </View>
+    <View Name="PostFullLoadView" Role="Fetch">
+      <Field>Id</Field>
+      <Field>EntityType</Field>
+      <Field>BoardId</Field>
+      <Field>SequenceNumber</Field>
+      <Field>ParentSequenceNumber</Field>
+      <Field>DirectParentId</Field>
+      <Field>Subject</Field>
+      <Field>Thumbnail</Field>
+      <Field>BoardSpecificDate</Field>
+      <Field>Date</Field>
+      <Field>Flags</Field>
+      <Field>ThreadTags</Field>
+      <Field>Likes</Field>
+      <Field>Dislikes</Field>
+      <Field>PosterName</Field>
+      <Field>OtherDataBinary</Field>
+      <Field>Document</Field>
+      <Field>LoadedTime</Field>
+      <AssignableTo>
+        <ViewName>LinkInfoView</ViewName>
+        <ViewName>BasicLoadInfoView</ViewName>
+        <ViewName>BareEntityLoadInfoView</ViewName>
+        <ViewName>PostLightLoadView</ViewName>
+      </AssignableTo>
+    </View>
+    <View Name="PostCollectionLoadInfoView" Role="Fetch">
+      <Field>Id</Field>
+      <Field>EntityType</Field>
+      <Field>BoardId</Field>
+      <Field>SequenceNumber</Field>
+      <Field>ParentSequenceNumber</Field>
+      <Field>DirectParentId</Field>
+      <Field>Subject</Field>
+      <Field>Thumbnail</Field>
+      <Field>Etag</Field>
+      <Field>OtherDataBinary</Field>
+      <Field>ChildrenLoadStage</Field>
+      <AssignableTo>
+        <ViewName>LinkInfoView</ViewName>
+        <ViewName>BasicLoadInfoView</ViewName>
+        <ViewName>BareEntityLoadInfoView</ViewName>
+      </AssignableTo>
+    </View>
+    <View Name="ThreadPreviewLoadInfoView" Role="Fetch">
+      <Field>Id</Field>
+      <Field>EntityType</Field>
+      <Field>BoardId</Field>
+      <Field>SequenceNumber</Field>
+      <Field>ParentSequenceNumber</Field>
+      <Field>DirectParentId</Field>
+      <Field>Subject</Field>
+      <Field>Thumbnail</Field>
+      <Field>Etag</Field>
+      <Field>OtherDataBinary</Field>
+      <Field>ChildrenLoadStage</Field>
+      <Field>PreviewCounts</Field>
+      <AssignableTo>
+        <ViewName>LinkInfoView</ViewName>
+        <ViewName>BasicLoadInfoView</ViewName>
+        <ViewName>BareEntityLoadInfoView</ViewName>
+        <ViewName>PostCollectionLoadInfoView</ViewName>
       </AssignableTo>
     </View>
   </Views>
