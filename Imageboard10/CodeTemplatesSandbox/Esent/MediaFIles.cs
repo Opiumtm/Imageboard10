@@ -2,12 +2,12 @@
 
 // ReSharper disable RedundantUsingDirective
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using Microsoft.Isam.Esent.Interop;
 using Microsoft.Isam.Esent.Interop.Vista;
 using Microsoft.Isam.Esent.Interop.Windows10;
 using System.Runtime.CompilerServices;
+using System.Text;
 // ReSharper enable RedundantUsingDirective
 
 // ReSharper disable RedundantNameQualifier
@@ -26,6 +26,16 @@ namespace Imageboard10.Core.ModelStorage.Posts.EsentTables
 			_columnDic = null;
 			Columns = new DefaultView(this);
         }
+
+	    public MediaFiles(Session session, JET_DBID dbid, string tableName, OpenTableGrbit grbit)
+	    {
+	        Session = session;
+	        JET_TABLEID tableid;
+	        Api.OpenTable(session, dbid, tableName, grbit, out tableid);
+	        Table = tableid;
+	        _columnDic = null;
+	        Columns = new DefaultView(this);
+	    }
 
         public void Dispose()
         {
@@ -230,6 +240,7 @@ namespace Imageboard10.Core.ModelStorage.Posts.EsentTables
                 for (var i = 0; i < value.Length; i++)
                 {
 					value[i].ItagSequence = i + 1;
+					value[i].Columnid = _columnid;
 				}
 				// ReSharper disable once CoVariantArrayConversion
                 Api.SetColumns(_table.Session, _table.Table, value);
@@ -299,12 +310,63 @@ namespace Imageboard10.Core.ModelStorage.Posts.EsentTables
 
 		public DefaultView Columns { get; }
 
-	    public IEnumerable EnumerateToEnd()
+	    public IEnumerable<object> EnumerateToEnd()
 	    {
 	        while (Api.TryMoveNext(Session, Table))
 	        {
 	            yield return this;
 	        }
+	    }
+
+	    public IEnumerable<object> EnumerateToEnd(int skip, int? maxCount)
+	    {
+			if (skip > 0)
+			{
+				if (!TryMove(skip))
+				{
+					yield break;
+				}
+			}
+	        while (Api.TryMoveNext(Session, Table) && (maxCount > 0 || maxCount == null))
+	        {
+	            yield return this;
+				if (maxCount != null)
+				{
+					maxCount--;
+				}
+	        }
+	    }
+
+	    public IEnumerable<object> EnumerateToEnd(int? maxCount)
+	    {
+	        while (Api.TryMoveNext(Session, Table) && (maxCount > 0 || maxCount == null))
+	        {
+	            yield return this;
+				if (maxCount != null)
+				{
+					maxCount--;
+				}
+	        }
+	    }
+
+	    public IEnumerable<object> Enumerate()
+	    {
+			if (Api.TryMoveFirst(Session, Table))
+			{
+				do {
+					yield return this;
+				} while (Api.TryMoveNext(Session, Table));
+			}
+	    }
+
+	    public IEnumerable<object> EnumerateUnique()
+	    {
+			if (Api.TryMoveFirst(Session, Table))
+			{
+				do {
+					yield return this;
+				} while (Api.TryMove(Session, Table, JET_Move.Next, MoveGrbit.MoveKeyNE));
+			}
 	    }
 
 	    [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -336,12 +398,44 @@ namespace Imageboard10.Core.ModelStorage.Posts.EsentTables
 	    {
 	        return Api.TryMovePrevious(Session, Table);
 	    }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+	    public bool TryMove(int delta)
+	    {
+	        return Api.TryMove(Session, Table, (JET_Move)delta, MoveGrbit.None);
+	    }
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool TryGotoBookmark(byte[] bookmark)
+		{
+			if (bookmark == null)
+			{
+				throw new ArgumentNullException(nameof(bookmark));
+			}
+			return Api.TryGotoBookmark(Session, Table, bookmark, bookmark.Length);
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool TryGotoBookmark(byte[] bookmark, int bookmarkSize)
+		{
+			if (bookmark == null)
+			{
+				throw new ArgumentNullException(nameof(bookmark));
+			}
+			return Api.TryGotoBookmark(Session, Table, bookmark, bookmarkSize);
+		}
 		
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
 	    public void DeleteCurrentRow()
 	    {
 	        Api.JetDelete(Session, Table);
 	    }
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public byte[] GetBookmark()
+		{
+			return Api.GetBookmark(Session, Table);
+		}
 
 		public static class ViewValues
 		{
@@ -606,6 +700,26 @@ namespace Imageboard10.Core.ModelStorage.Posts.EsentTables
 
 			public Update CreateUpdate() => new Update(_table.Session, _table, JET_prep.Insert);
 
+			private byte[] _bookmarkBuffer;
+
+			private void EnsureBookmarkBuffer()
+			{
+				if (_bookmarkBuffer == null)
+				{
+					_bookmarkBuffer = new byte[SystemParameters.BookmarkMost];
+				}
+			}
+
+			public void SaveUpdateWithBookmark(Update update, out byte[] bookmark)
+			{
+				EnsureBookmarkBuffer();
+				int bsize;
+				update.Save(_bookmarkBuffer, _bookmarkBuffer.Length, out bsize);
+				bookmark = new byte[bsize];
+				Array.Copy(_bookmarkBuffer, bookmark, bsize);
+			}
+
+
 		    // ReSharper disable once InconsistentNaming
 			private InsertOrUpdateViews.SeqDataAll? __iuv_SeqDataAll;
 
@@ -638,6 +752,24 @@ namespace Imageboard10.Core.ModelStorage.Posts.EsentTables
 					update.Save();
 				}
 			}
+
+			public void InsertAsSeqDataAll(ViewValues.SeqDataAll value, out byte[] bookmark)
+			{
+				using (var update = CreateUpdate())
+				{
+					SeqDataAll.Set(value);
+					SaveUpdateWithBookmark(update, out bookmark);
+				}
+			}
+
+			public void InsertAsSeqDataAll(ref ViewValues.SeqDataAll value, out byte[] bookmark)
+			{
+				using (var update = CreateUpdate())
+				{
+					SeqDataAll.Set(ref value);
+					SaveUpdateWithBookmark(update, out bookmark);
+				}
+			}
 		}
 
 		// ReSharper disable once InconsistentNaming
@@ -665,6 +797,25 @@ namespace Imageboard10.Core.ModelStorage.Posts.EsentTables
 			}
 
 			public Update CreateUpdate() => new Update(_table.Session, _table, JET_prep.Replace);
+
+			private byte[] _bookmarkBuffer;
+
+			private void EnsureBookmarkBuffer()
+			{
+				if (_bookmarkBuffer == null)
+				{
+					_bookmarkBuffer = new byte[SystemParameters.BookmarkMost];
+				}
+			}
+
+			public void SaveUpdateWithBookmark(Update update, out byte[] bookmark)
+			{
+				EnsureBookmarkBuffer();
+				int bsize;
+				update.Save(_bookmarkBuffer, _bookmarkBuffer.Length, out bsize);
+				bookmark = new byte[bsize];
+				Array.Copy(_bookmarkBuffer, bookmark, bsize);
+			}
 
 		    // ReSharper disable once InconsistentNaming
 			private InsertOrUpdateViews.SeqDataAll? __iuv_SeqDataAll;
@@ -696,6 +847,24 @@ namespace Imageboard10.Core.ModelStorage.Posts.EsentTables
 				{
 					SeqDataAll.Set(ref value);
 					update.Save();
+				}
+			}
+
+			public void UpdateAsSeqDataAll(ViewValues.SeqDataAll value, out byte[] bookmark)
+			{
+				using (var update = CreateUpdate())
+				{
+					SeqDataAll.Set(value);
+					SaveUpdateWithBookmark(update, out bookmark);
+				}
+			}
+
+			public void UpdateAsSeqDataAll(ref ViewValues.SeqDataAll value, out byte[] bookmark)
+			{
+				using (var update = CreateUpdate())
+				{
+					SeqDataAll.Set(ref value);
+					SaveUpdateWithBookmark(update, out bookmark);
 				}
 			}
 		}
@@ -737,18 +906,30 @@ namespace Imageboard10.Core.ModelStorage.Posts.EsentTables
 					public int Id;
 				}
 
+			    // ReSharper disable InconsistentNaming
+				public PrimaryKey CreateKey(
+						int Id
+				)
+			    // ReSharper enable InconsistentNaming
+				{
+					return new PrimaryKey() {
+						Id = Id,
+					
+					};
+				}
+
 				public void SetKey(PrimaryKey key)
 				{
-					Api.MakeKey(_table.Session, _table, key.Id, MakeKeyGrbit.NewKey);
+					Api.MakeKey(_table.Session, _table, key.Id,  MakeKeyGrbit.NewKey);
 				}
 
 				public bool Find(PrimaryKey key)
 				{
 					SetKey(key);
-					return Api.TrySeek(_table.Session, _table, SeekGrbit.SeekEQ);
+					return Api.TrySeek(_table.Session, _table, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange);
 				}
 
-				public IEnumerable Enumerate(PrimaryKey key)
+				public IEnumerable<object> Enumerate(PrimaryKey key)
 				{
 					SetKey(key);
 					if (Api.TrySeek(_table.Session, _table, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange))
@@ -759,7 +940,7 @@ namespace Imageboard10.Core.ModelStorage.Posts.EsentTables
 					}
 				}
 
-				public IEnumerable EnumerateUnique(PrimaryKey key)
+				public IEnumerable<object> EnumerateUnique(PrimaryKey key)
 				{
 					SetKey(key);
 					if (Api.TrySeek(_table.Session, _table, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange))
@@ -779,7 +960,10 @@ namespace Imageboard10.Core.ModelStorage.Posts.EsentTables
 
 			    public int GetIndexRecordCount(PrimaryKey key)
 			    {
-			        Find(key);
+			        if (!Find(key))
+					{
+						return 0;
+					}
 			        return GetIndexRecordCount();
 			    }
 				
@@ -805,6 +989,18 @@ namespace Imageboard10.Core.ModelStorage.Posts.EsentTables
 					public int? EntityReferences;
 				}
 
+			    // ReSharper disable InconsistentNaming
+				public EntityReferencesKey CreateKey(
+						int? EntityReferences
+				)
+			    // ReSharper enable InconsistentNaming
+				{
+					return new EntityReferencesKey() {
+						EntityReferences = EntityReferences,
+					
+					};
+				}
+
 				public void SetKey(EntityReferencesKey key)
 				{
 					if (key.EntityReferences == null)
@@ -819,10 +1015,10 @@ namespace Imageboard10.Core.ModelStorage.Posts.EsentTables
 				public bool Find(EntityReferencesKey key)
 				{
 					SetKey(key);
-					return Api.TrySeek(_table.Session, _table, SeekGrbit.SeekEQ);
+					return Api.TrySeek(_table.Session, _table, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange);
 				}
 
-				public IEnumerable Enumerate(EntityReferencesKey key)
+				public IEnumerable<object> Enumerate(EntityReferencesKey key)
 				{
 					SetKey(key);
 					if (Api.TrySeek(_table.Session, _table, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange))
@@ -833,7 +1029,7 @@ namespace Imageboard10.Core.ModelStorage.Posts.EsentTables
 					}
 				}
 
-				public IEnumerable EnumerateUnique(EntityReferencesKey key)
+				public IEnumerable<object> EnumerateUnique(EntityReferencesKey key)
 				{
 					SetKey(key);
 					if (Api.TrySeek(_table.Session, _table, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange))
@@ -853,7 +1049,10 @@ namespace Imageboard10.Core.ModelStorage.Posts.EsentTables
 
 			    public int GetIndexRecordCount(EntityReferencesKey key)
 			    {
-			        Find(key);
+			        if (!Find(key))
+					{
+						return 0;
+					}
 			        return GetIndexRecordCount();
 			    }
 				public class IndexFetchViews
@@ -884,6 +1083,16 @@ namespace Imageboard10.Core.ModelStorage.Posts.EsentTables
 			    // ReSharper disable once ConvertToAutoProperty
 				public IndexFetchViews Views => _views;
 
+				public IEnumerable<ViewValues.IdKey> EnumerateAsIdKey()
+				{
+					if (Api.TryMoveFirst(_table.Session, _table))
+					{
+						do {
+							yield return Views.IdKey.Fetch();
+						} while (Api.TryMoveNext(_table.Session, _table));
+					}
+				}
+
 				public IEnumerable<ViewValues.IdKey> EnumerateAsIdKey(EntityReferencesKey key)
 				{
 					SetKey(key);
@@ -892,6 +1101,16 @@ namespace Imageboard10.Core.ModelStorage.Posts.EsentTables
 						do {
 							yield return Views.IdKey.Fetch();
 						} while (Api.TryMoveNext(_table.Session, _table));
+					}
+				}
+
+				public IEnumerable<ViewValues.IdKey> EnumerateUniqueAsIdKey()
+				{
+					if (Api.TryMoveFirst(_table.Session, _table))
+					{
+						do {
+							yield return Views.IdKey.Fetch();
+						} while (Api.TryMove(_table.Session, _table, JET_Move.Next, MoveGrbit.MoveKeyNE));
 					}
 				}
 
@@ -929,6 +1148,20 @@ namespace Imageboard10.Core.ModelStorage.Posts.EsentTables
 					public long SequenceNumber;
 				}
 
+			    // ReSharper disable InconsistentNaming
+				public SequencesKey CreateKey(
+						int? EntityReferences
+						,long SequenceNumber
+				)
+			    // ReSharper enable InconsistentNaming
+				{
+					return new SequencesKey() {
+						EntityReferences = EntityReferences,
+						SequenceNumber = SequenceNumber,
+					
+					};
+				}
+
 				public void SetKey(SequencesKey key)
 				{
 					if (key.EntityReferences == null)
@@ -938,16 +1171,16 @@ namespace Imageboard10.Core.ModelStorage.Posts.EsentTables
 					{
 						Api.MakeKey(_table.Session, _table, key.EntityReferences.Value, MakeKeyGrbit.NewKey);
 					}
-					Api.MakeKey(_table.Session, _table, key.SequenceNumber, MakeKeyGrbit.None);
+					Api.MakeKey(_table.Session, _table, key.SequenceNumber,  MakeKeyGrbit.None);
 				}
 
 				public bool Find(SequencesKey key)
 				{
 					SetKey(key);
-					return Api.TrySeek(_table.Session, _table, SeekGrbit.SeekEQ);
+					return Api.TrySeek(_table.Session, _table, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange);
 				}
 
-				public IEnumerable Enumerate(SequencesKey key)
+				public IEnumerable<object> Enumerate(SequencesKey key)
 				{
 					SetKey(key);
 					if (Api.TrySeek(_table.Session, _table, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange))
@@ -958,7 +1191,7 @@ namespace Imageboard10.Core.ModelStorage.Posts.EsentTables
 					}
 				}
 
-				public IEnumerable EnumerateUnique(SequencesKey key)
+				public IEnumerable<object> EnumerateUnique(SequencesKey key)
 				{
 					SetKey(key);
 					if (Api.TrySeek(_table.Session, _table, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange))
@@ -978,13 +1211,28 @@ namespace Imageboard10.Core.ModelStorage.Posts.EsentTables
 
 			    public int GetIndexRecordCount(SequencesKey key)
 			    {
-			        Find(key);
+			        if (!Find(key))
+					{
+						return 0;
+					}
 			        return GetIndexRecordCount();
 			    }
 
 				public struct SequencesPartialKey1
 				{
 					public int? EntityReferences;
+				}
+
+			    // ReSharper disable InconsistentNaming
+				public SequencesPartialKey1 CreateKey(
+						int? EntityReferences
+				)
+			    // ReSharper enable InconsistentNaming
+				{
+					return new SequencesPartialKey1() {
+						EntityReferences = EntityReferences,
+					
+					};
 				}
 
 				public void SetKey(SequencesPartialKey1 key, bool startRange)
@@ -1023,7 +1271,7 @@ namespace Imageboard10.Core.ModelStorage.Posts.EsentTables
 					return false;
 				}
 
-				public IEnumerable Enumerate(SequencesPartialKey1 key)
+				public IEnumerable<object> Enumerate(SequencesPartialKey1 key)
 				{
 					SetKey(key, true);
 					if (Api.TrySeek(_table.Session, _table, SeekGrbit.SeekGE))
@@ -1040,7 +1288,10 @@ namespace Imageboard10.Core.ModelStorage.Posts.EsentTables
 
 				public int GetIndexRecordCount(SequencesPartialKey1 key)
 			    {
-			        SeekPartial(key);
+					if (!SeekPartial(key))
+					{
+						return 0;
+					}
 			        return GetIndexRecordCount();
 			    }
 
@@ -1072,6 +1323,16 @@ namespace Imageboard10.Core.ModelStorage.Posts.EsentTables
 			    // ReSharper disable once ConvertToAutoProperty
 				public IndexFetchViews Views => _views;
 
+				public IEnumerable<ViewValues.IdKey> EnumerateAsIdKey()
+				{
+					if (Api.TryMoveFirst(_table.Session, _table))
+					{
+						do {
+							yield return Views.IdKey.Fetch();
+						} while (Api.TryMoveNext(_table.Session, _table));
+					}
+				}
+
 				public IEnumerable<ViewValues.IdKey> EnumerateAsIdKey(SequencesKey key)
 				{
 					SetKey(key);
@@ -1080,6 +1341,16 @@ namespace Imageboard10.Core.ModelStorage.Posts.EsentTables
 						do {
 							yield return Views.IdKey.Fetch();
 						} while (Api.TryMoveNext(_table.Session, _table));
+					}
+				}
+
+				public IEnumerable<ViewValues.IdKey> EnumerateUniqueAsIdKey()
+				{
+					if (Api.TryMoveFirst(_table.Session, _table))
+					{
+						do {
+							yield return Views.IdKey.Fetch();
+						} while (Api.TryMove(_table.Session, _table, JET_Move.Next, MoveGrbit.MoveKeyNE));
 					}
 				}
 

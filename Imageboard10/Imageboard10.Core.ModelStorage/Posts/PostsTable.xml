@@ -50,17 +50,22 @@
         <Field Name="EntityType" Sort="Asc"/>
       </Fields>
     </Index>
+    <!--
     <Index Name="TypeAndIdIndex" Grbit="None">
       <Fields>
         <Field Name="EntityType" Sort="Asc"/>
         <Field Name="Id" Sort="Asc"/>
       </Fields>
     </Index>
+    -->
     <Index Name="ChildrenLoadStageIndex" Grbit="None">
       <Fields>
         <Field Name="ChildrenLoadStage" Sort="Asc"/>
-        <Field Name="Id" Sort="Asc"/>
+        <!-- <Field Name="Id" Sort="Asc"/> -->
       </Fields>
+      <Views>
+        <ViewName>RetrieveIdFromIndexView</ViewName>
+      </Views>
     </Index>
     <Index Name="TypeAndPostIdIndex" Grbit="None">
       <Fields>

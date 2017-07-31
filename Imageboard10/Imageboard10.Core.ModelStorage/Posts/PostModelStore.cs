@@ -917,21 +917,11 @@ namespace Imageboard10.Core.ModelStorage.Posts
 
                 return await OpenSession(session =>
                 {
-                    using (var table = session.OpenTable(MediaFilesTableName, OpenTableGrbit.ReadOnly))
+                    using (var table = OpenMediaFilesTable(session, OpenTableGrbit.ReadOnly))
                     {
-                        Api.JetSetCurrentIndex(table.Session, table, GetIndexName(MediaFilesTableName, nameof(MediaFilesIndexes.EntityReferences)));
-                        Api.MakeKey(table.Session, table, id.Id, MakeKeyGrbit.NewKey | MakeKeyGrbit.FullColumnStartLimit);
-                        if (Api.TrySeek(table.Session, table, SeekGrbit.SeekGE))
-                        {
-                            Api.MakeKey(table.Session, table, id.Id, MakeKeyGrbit.NewKey | MakeKeyGrbit.FullColumnEndLimit);
-                            if (Api.TrySetIndexRange(table.Session, table.Table, SetIndexRangeGrbit.RangeUpperLimit))
-                            {
-                                int cnt;
-                                Api.JetIndexRecordCount(table.Session, table.Table, out cnt, int.MaxValue);
-                                return cnt;
-                            }
-                        }
-                        return 0;
+                        var index = table.Indexes.EntityReferencesIndex;
+                        index.SetAsCurrentIndex();
+                        return index.GetIndexRecordCount(index.CreateKey(id.Id));
                     }
                 });
             }
@@ -955,38 +945,20 @@ namespace Imageboard10.Core.ModelStorage.Posts
 
                 return await OpenSession(session =>
                 {
-                    using (var table = session.OpenTable(MediaFilesTableName, OpenTableGrbit.ReadOnly))
+                    using (var table = OpenMediaFilesTable(session, OpenTableGrbit.ReadOnly))
                     {
                         var result = new List<IPostMedia>();
-                        var colid = table.GetColumnid(MediaFilesColumnNames.MediaData);
-                        Api.JetSetCurrentIndex(table.Session, table, GetIndexName(MediaFilesTableName, nameof(MediaFilesIndexes.Sequences)));
-                        Api.MakeKey(table.Session, table, id.Id, MakeKeyGrbit.NewKey | MakeKeyGrbit.FullColumnStartLimit);
-                        if (Api.TrySeek(table.Session, table, SeekGrbit.SeekGE))
+                        var index = table.Indexes.SequencesIndex;
+                        index.SetAsCurrentIndex();
+                        if (index.SeekPartial(index.CreateKey(id.Id)))
                         {
-                            Api.MakeKey(table.Session, table, id.Id, MakeKeyGrbit.NewKey | MakeKeyGrbit.FullColumnEndLimit);
-                            Api.TrySetIndexRange(table.Session, table, SetIndexRangeGrbit.RangeUpperLimit);
-                            int counted = 0;
-                            bool skipped = true;
-                            if (skip > 0)
+                            foreach (var _ in table.EnumerateToEnd(skip, count))
                             {
-                                skipped = Api.TryMove(table.Session, table, (JET_Move)skip, MoveGrbit.None);
-                            }
-                            if (skipped)
-                            {
-                                do
+                                var pm = ObjectSerializationService.Deserialize(table.Columns.MediaData) as IPostMedia;
+                                if (pm != null)
                                 {
-                                    counted++;
-                                    if (counted > count)
-                                    {
-                                        break;
-                                    }
-                                    var bt = Api.RetrieveColumn(table.Session, table, colid);
-                                    var pm = ObjectSerializationService.Deserialize(bt) as IPostMedia;
-                                    if (pm != null)
-                                    {
-                                        result.Add(pm);
-                                    }
-                                } while (Api.TryMoveNext(table.Session, table.Table));
+                                    result.Add(pm);
+                                }
                             }
                         }
                         return result;
@@ -1011,13 +983,11 @@ namespace Imageboard10.Core.ModelStorage.Posts
 
                 return await OpenSession(session =>
                 {
-                    using (var table = session.OpenTable(TableName, OpenTableGrbit.ReadOnly))
+                    using (var table = OpenPostsTable(session, OpenTableGrbit.ReadOnly))
                     {
-                        Api.MakeKey(table.Session, table, id.Id, MakeKeyGrbit.NewKey);
-                        if (Api.TrySeek(table.Session, table.Table, SeekGrbit.SeekEQ))
+                        if (GotoEntityId(table, id))
                         {
-                            var bt = Api.RetrieveColumn(table.Session, table, table.GetColumnid(ColumnNames.Document));
-                            return ObjectSerializationService.Deserialize(bt) as IPostDocument;
+                            return ObjectSerializationService.Deserialize(table.Columns.Document) as IPostDocument;
                         }
                         return null;
                     }
@@ -1042,7 +1012,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
 
                 var allEntities = await OpenSession(session =>
                 {
-                    using (var table = session.OpenTable(TableName, OpenTableGrbit.ReadOnly))
+                    using (var table = OpenPostsTable(session, OpenTableGrbit.ReadOnly))
                     {
                         return FindAllChildren(table, ids).ToArray();
                     }
@@ -1074,20 +1044,20 @@ namespace Imageboard10.Core.ModelStorage.Posts
                         await session.RunInTransaction(() =>
                         {
                             int counter = 200;
-                            using (var table = session.OpenTable(TableName, OpenTableGrbit.Updatable))
+                            using (var table = OpenPostsTable(session, OpenTableGrbit.Updatable))
                             {
-                                if (Api.TryMoveFirst(table.Session, table))
+                                if (table.TryMoveFirst())
                                 {
                                     do
                                     {
                                         counter--;
-                                        Api.JetDelete(table.Session, table);
-                                    } while (counter > 0 && Api.TryMoveNext(table.Session, table));
+                                        table.DeleteCurrentRow();
+                                    } while (counter > 0 && table.TryMoveNext());
                                 }
                                 else foundAny = false;
                             }
                             return true;
-                        }, 1, CommitTransactionGrbit.None);
+                        }, 1);
                         return Nothing.Value;
                     });
                 } while (foundAny);
@@ -1138,39 +1108,29 @@ namespace Imageboard10.Core.ModelStorage.Posts
 
         private async Task DoClearUnfinishedData()
         {
-            var toDelete = new Dictionary<int, List<int>>();
+            var toDelete = new Dictionary<int, HashSet<int>>();
             var orphanParents = new HashSet<int>();
             await OpenSession(session =>
             {
-                using (var parTable = session.OpenTable(TableName, OpenTableGrbit.ReadOnly))
+                using (var parTable = OpenPostsTable(session, OpenTableGrbit.ReadOnly))
                 {
-                    using (var idTable = session.OpenTable(TableName, OpenTableGrbit.ReadOnly))
+                    using (var idTable = OpenPostsTable(session, OpenTableGrbit.ReadOnly))
                     {
                         foreach (var id in FindAllParents(parTable))
                         {
-                            Api.MakeKey(idTable.Session, idTable.Table, id.Id, MakeKeyGrbit.NewKey);
-                            if (!Api.TrySeek(idTable.Session, idTable.Table, SeekGrbit.SeekEQ))
+                            if (GotoEntityId(idTable, id))
                             {
                                 orphanParents.Add(id.Id);
                             }
                         }
                     }
                 }
-                using (var incTable = session.OpenTable(TableName, OpenTableGrbit.ReadOnly))
+                using (var incTable = OpenPostsTable(session, OpenTableGrbit.ReadOnly))
                 {
-                    var colIds = Api.GetColumnDictionary(incTable.Session, incTable.Table);
-                    Api.JetSetCurrentIndex(incTable.Session, incTable.Table, GetIndexName(TableName, nameof(Indexes.ChildrenLoadStage)));
-                    Api.MakeKey(incTable.Session, incTable.Table, ChildrenLoadStageId.Started, MakeKeyGrbit.NewKey);
-                    if (Api.TryMoveFirst(incTable.Session, incTable.Table))
+                    var index = incTable.Indexes.ChildrenLoadStageIndex;
+                    foreach (var id in index.EnumerateAsRetrieveIdFromIndexView(index.CreateKey(ChildrenLoadStageId.Started)))
                     {
-                        do
-                        {
-                            var id = Api.RetrieveColumnAsInt32(incTable.Session, incTable.Table, colIds[ColumnNames.Id], RetrieveColumnGrbit.RetrieveFromIndex);
-                            if (id != null)
-                            {
-                                orphanParents.Add(id.Value);
-                            }
-                        } while (Api.TryMoveNext(incTable.Session, incTable.Table));
+                        orphanParents.Add(id.Id);
                     }
                 }
                 return Nothing.Value;
@@ -1179,14 +1139,13 @@ namespace Imageboard10.Core.ModelStorage.Posts
             {
                 await OpenSession(session =>
                 {
-                    using (var table = session.OpenTable(TableName, OpenTableGrbit.ReadOnly))
+                    using (var table = OpenPostsTable(session, OpenTableGrbit.ReadOnly))
                     {
-                        Api.JetSetCurrentIndex(table.Session, table.Table, GetIndexName(TableName, nameof(Indexes.ParentId)));
                         foreach (var child in FindAllChildren(table, orphanParents.Select(p => new PostStoreEntityId() { Id = p })))
                         {
                             if (!toDelete.ContainsKey(child.parentId.Id))
                             {
-                                toDelete[child.parentId.Id] = new List<int>();
+                                toDelete[child.parentId.Id] = new HashSet<int>();
                             }
                             toDelete[child.parentId.Id].Add(child.id.Id);
                         }

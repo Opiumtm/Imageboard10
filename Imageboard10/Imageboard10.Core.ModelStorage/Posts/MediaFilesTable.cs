@@ -240,6 +240,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
                 for (var i = 0; i < value.Length; i++)
                 {
 					value[i].ItagSequence = i + 1;
+					value[i].Columnid = _columnid;
 				}
 				// ReSharper disable once CoVariantArrayConversion
                 Api.SetColumns(_table.Session, _table.Table, value);
@@ -317,6 +318,37 @@ namespace Imageboard10.Core.ModelStorage.Posts
 	        }
 	    }
 
+	    public IEnumerable<object> EnumerateToEnd(int skip, int? maxCount)
+	    {
+			if (skip > 0)
+			{
+				if (!TryMove(skip))
+				{
+					yield break;
+				}
+			}
+	        while (Api.TryMoveNext(Session, Table) && (maxCount > 0 || maxCount == null))
+	        {
+	            yield return this;
+				if (maxCount != null)
+				{
+					maxCount--;
+				}
+	        }
+	    }
+
+	    public IEnumerable<object> EnumerateToEnd(int? maxCount)
+	    {
+	        while (Api.TryMoveNext(Session, Table) && (maxCount > 0 || maxCount == null))
+	        {
+	            yield return this;
+				if (maxCount != null)
+				{
+					maxCount--;
+				}
+	        }
+	    }
+
 	    public IEnumerable<object> Enumerate()
 	    {
 			if (Api.TryMoveFirst(Session, Table))
@@ -365,6 +397,12 @@ namespace Imageboard10.Core.ModelStorage.Posts
 	    public bool TryMovePrevious()
 	    {
 	        return Api.TryMovePrevious(Session, Table);
+	    }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+	    public bool TryMove(int delta)
+	    {
+	        return Api.TryMove(Session, Table, (JET_Move)delta, MoveGrbit.None);
 	    }
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
