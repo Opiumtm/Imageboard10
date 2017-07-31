@@ -31,5 +31,10 @@
       <Field>Id</Field>
       <Field>AccessTime</Field>
     </View>
+    <View Name="InsertAllColumnsView" Role="Insert">
+      <Field>Id</Field>
+      <Field>EntityId</Field>
+      <Field>AccessTime</Field>
+    </View>
   </Views>
 </Table>

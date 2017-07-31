@@ -288,6 +288,37 @@ namespace Imageboard10.Core.ModelStorage.Posts
 	        }
 	    }
 
+	    public IEnumerable<object> EnumerateToEnd(int skip, int? maxCount)
+	    {
+			if (skip > 0)
+			{
+				if (!TryMove(skip))
+				{
+					yield break;
+				}
+			}
+	        while (Api.TryMoveNext(Session, Table) && (maxCount > 0 || maxCount == null))
+	        {
+	            yield return this;
+				if (maxCount != null)
+				{
+					maxCount--;
+				}
+	        }
+	    }
+
+	    public IEnumerable<object> EnumerateToEnd(int? maxCount)
+	    {
+	        while (Api.TryMoveNext(Session, Table) && (maxCount > 0 || maxCount == null))
+	        {
+	            yield return this;
+				if (maxCount != null)
+				{
+					maxCount--;
+				}
+	        }
+	    }
+
 	    public IEnumerable<object> Enumerate()
 	    {
 			if (Api.TryMoveFirst(Session, Table))
@@ -338,6 +369,12 @@ namespace Imageboard10.Core.ModelStorage.Posts
 	        return Api.TryMovePrevious(Session, Table);
 	    }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+	    public bool TryMove(int delta)
+	    {
+	        return Api.TryMove(Session, Table, (JET_Move)delta, MoveGrbit.None);
+	    }
+
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool TryGotoBookmark(byte[] bookmark)
 		{
@@ -377,6 +414,14 @@ namespace Imageboard10.Core.ModelStorage.Posts
 			public struct AccessTimeAndId
 			{
 				public Guid Id;
+				public DateTime AccessTime;
+			}
+
+			// ReSharper disable once InconsistentNaming
+			public struct InsertAllColumnsView
+			{
+				public Guid Id;
+				public int EntityId;
 				public DateTime AccessTime;
 			}
 		}
@@ -459,6 +504,46 @@ namespace Imageboard10.Core.ModelStorage.Posts
 
 		public static class InsertOrUpdateViews
 		{
+			public struct InsertAllColumnsView
+			{
+				private readonly AccessLogTable _table;
+				private readonly ColumnValue[] _c;
+
+				public InsertAllColumnsView(AccessLogTable table)
+				{
+					_table = table;
+
+					_c = new ColumnValue[3];
+					_c[0] = new GuidColumnValue() {
+						Columnid = _table.ColumnDictionary[AccessLogTable.Column.Id],
+						SetGrbit = SetColumnGrbit.None
+					};
+					_c[1] = new Int32ColumnValue() {
+						Columnid = _table.ColumnDictionary[AccessLogTable.Column.EntityId],
+						SetGrbit = SetColumnGrbit.None
+					};
+					_c[2] = new DateTimeColumnValue() {
+						Columnid = _table.ColumnDictionary[AccessLogTable.Column.AccessTime],
+						SetGrbit = SetColumnGrbit.None
+					};
+				}
+
+				public void Set(ViewValues.InsertAllColumnsView value)
+				{
+					((GuidColumnValue)_c[0]).Value = value.Id;
+					((Int32ColumnValue)_c[1]).Value = value.EntityId;
+					((DateTimeColumnValue)_c[2]).Value = value.AccessTime;
+					Api.SetColumns(_table.Session, _table, _c);
+				}
+
+				public void Set(ref ViewValues.InsertAllColumnsView value)
+				{
+					((GuidColumnValue)_c[0]).Value = value.Id;
+					((Int32ColumnValue)_c[1]).Value = value.EntityId;
+					((DateTimeColumnValue)_c[2]).Value = value.AccessTime;
+					Api.SetColumns(_table.Session, _table, _c);
+				}
+			}			
 		}
 
 		public class TableInsertViews
@@ -491,6 +576,57 @@ namespace Imageboard10.Core.ModelStorage.Posts
 				Array.Copy(_bookmarkBuffer, bookmark, bsize);
 			}
 
+
+		    // ReSharper disable once InconsistentNaming
+			private InsertOrUpdateViews.InsertAllColumnsView? __iuv_InsertAllColumnsView;
+
+			public InsertOrUpdateViews.InsertAllColumnsView InsertAllColumnsView
+			{
+				get
+				{
+					if (__iuv_InsertAllColumnsView == null)
+					{
+						__iuv_InsertAllColumnsView = new InsertOrUpdateViews.InsertAllColumnsView(_table);
+					}
+					return __iuv_InsertAllColumnsView.Value;
+				}
+			}
+
+			public void InsertAsInsertAllColumnsView(ViewValues.InsertAllColumnsView value)
+			{
+				using (var update = CreateUpdate())
+				{
+					InsertAllColumnsView.Set(value);
+					update.Save();
+				}
+			}
+
+			public void InsertAsInsertAllColumnsView(ref ViewValues.InsertAllColumnsView value)
+			{
+				using (var update = CreateUpdate())
+				{
+					InsertAllColumnsView.Set(ref value);
+					update.Save();
+				}
+			}
+
+			public void InsertAsInsertAllColumnsView(ViewValues.InsertAllColumnsView value, out byte[] bookmark)
+			{
+				using (var update = CreateUpdate())
+				{
+					InsertAllColumnsView.Set(value);
+					SaveUpdateWithBookmark(update, out bookmark);
+				}
+			}
+
+			public void InsertAsInsertAllColumnsView(ref ViewValues.InsertAllColumnsView value, out byte[] bookmark)
+			{
+				using (var update = CreateUpdate())
+				{
+					InsertAllColumnsView.Set(ref value);
+					SaveUpdateWithBookmark(update, out bookmark);
+				}
+			}
 		}
 
 		// ReSharper disable once InconsistentNaming

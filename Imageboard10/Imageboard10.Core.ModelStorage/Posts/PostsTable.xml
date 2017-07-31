@@ -70,6 +70,7 @@
       </Fields>
       <Views>
         <ViewName>RetrieveIdFromIndexView</ViewName>
+        <ViewName>ParentsAndIdViewForIndex</ViewName>
       </Views>
     </Index>
     <Index Name="FlagsIndex" Grbit="None">
@@ -89,6 +90,7 @@
         <Field Name="QuotedPosts" Sort="Asc"/>
       </Fields>
       <Views>
+        <ViewName>RetrieveIdFromIndexView</ViewName>
         <ViewName>SequenceNumberView</ViewName>
       </Views>
     </Index>
@@ -232,6 +234,17 @@
         <ViewName>BareEntityLoadInfoView</ViewName>
         <ViewName>PostCollectionLoadInfoView</ViewName>
       </AssignableTo>
+    </View>
+    <View Name="ParentsAndIdViewForIndex" Role="IndexFetch">
+      <Field FetchFlags="FromPrimaryBookmark">Id</Field>
+      <Field>ParentId</Field>
+    </View>
+    <View Name="NumberOfReadPostsUpdateView" Role="Update">
+      <Field>NumberOfReadPosts</Field>
+    </View>
+    <View Name="DirectParentAndSequenceNumberView" Role="Fetch">
+      <Field>DirectParentId</Field>
+      <Field>SequenceNumber</Field>
     </View>
   </Views>
 </Table>
