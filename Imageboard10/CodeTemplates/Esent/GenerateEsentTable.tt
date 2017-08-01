@@ -203,10 +203,20 @@ namespace <#= table.Namespace #>
 				{
                     _c[0] = value ?? throw new ArgumentNullException();
 					_c[0].ItagSequence = i + 1;
+					_c[0].Columnid = _columnid;
 				    // ReSharper disable once CoVariantArrayConversion
                     Api.SetColumns(_table.Session, _table.Table, _c);
 				}
             }
+
+			public void Add(T value)
+			{
+                _c[0] = value ?? throw new ArgumentNullException();
+				_c[0].ItagSequence = 0;
+				_c[0].Columnid = _columnid;
+				// ReSharper disable once CoVariantArrayConversion
+                Api.SetColumns(_table.Session, _table.Table, _c);
+			}
 
 			public IEnumerable<T> Enumerate()
 			{

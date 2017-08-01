@@ -31,5 +31,10 @@
     <View Name="MediaDataView" Role="IndexFetch">
       <Field>MediaData</Field>
     </View>
+    <View Name="InsertView" Role="Insert">
+      <Field>EntityReferences</Field>
+      <Field>SequenceNumber</Field>
+      <Field>MediaData</Field>
+    </View>
   </Views>
 </Table>

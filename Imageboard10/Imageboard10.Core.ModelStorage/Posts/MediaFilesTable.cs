@@ -445,6 +445,14 @@ namespace Imageboard10.Core.ModelStorage.Posts
 			{
 				public byte[] MediaData;
 			}
+
+			// ReSharper disable once InconsistentNaming
+			public struct InsertView
+			{
+				public Int32ColumnValue[] EntityReferences;
+				public long SequenceNumber;
+				public byte[] MediaData;
+			}
 		}
 
 		public static class FetchViews {
@@ -504,6 +512,42 @@ namespace Imageboard10.Core.ModelStorage.Posts
 
 		public static class InsertOrUpdateViews
 		{
+			public struct InsertView
+			{
+				private readonly MediaFilesTable _table;
+				private readonly ColumnValue[] _c;
+
+				public InsertView(MediaFilesTable table)
+				{
+					_table = table;
+
+					_c = new ColumnValue[2];
+					_c[0] = new Int64ColumnValue() {
+						Columnid = _table.ColumnDictionary[MediaFilesTable.Column.SequenceNumber],
+						SetGrbit = SetColumnGrbit.None
+					};
+					_c[1] = new BytesColumnValue() {
+						Columnid = _table.ColumnDictionary[MediaFilesTable.Column.MediaData],
+						SetGrbit = SetColumnGrbit.None
+					};
+				}
+
+				public void Set(ViewValues.InsertView value)
+				{
+					((Int64ColumnValue)_c[0]).Value = value.SequenceNumber;
+					((BytesColumnValue)_c[1]).Value = value.MediaData;
+					Api.SetColumns(_table.Session, _table, _c);
+					_table.Columns.SetEntityReferencesValueArr(value.EntityReferences);
+				}
+
+				public void Set(ref ViewValues.InsertView value)
+				{
+					((Int64ColumnValue)_c[0]).Value = value.SequenceNumber;
+					((BytesColumnValue)_c[1]).Value = value.MediaData;
+					Api.SetColumns(_table.Session, _table, _c);
+					_table.Columns.SetEntityReferencesValueArr(value.EntityReferences);
+				}
+			}			
 		}
 
 		public class TableInsertViews
@@ -536,6 +580,57 @@ namespace Imageboard10.Core.ModelStorage.Posts
 				Array.Copy(_bookmarkBuffer, bookmark, bsize);
 			}
 
+
+		    // ReSharper disable once InconsistentNaming
+			private InsertOrUpdateViews.InsertView? __iuv_InsertView;
+
+			public InsertOrUpdateViews.InsertView InsertView
+			{
+				get
+				{
+					if (__iuv_InsertView == null)
+					{
+						__iuv_InsertView = new InsertOrUpdateViews.InsertView(_table);
+					}
+					return __iuv_InsertView.Value;
+				}
+			}
+
+			public void InsertAsInsertView(ViewValues.InsertView value)
+			{
+				using (var update = CreateUpdate())
+				{
+					InsertView.Set(value);
+					update.Save();
+				}
+			}
+
+			public void InsertAsInsertView(ref ViewValues.InsertView value)
+			{
+				using (var update = CreateUpdate())
+				{
+					InsertView.Set(ref value);
+					update.Save();
+				}
+			}
+
+			public void InsertAsInsertView(ViewValues.InsertView value, out byte[] bookmark)
+			{
+				using (var update = CreateUpdate())
+				{
+					InsertView.Set(value);
+					SaveUpdateWithBookmark(update, out bookmark);
+				}
+			}
+
+			public void InsertAsInsertView(ref ViewValues.InsertView value, out byte[] bookmark)
+			{
+				using (var update = CreateUpdate())
+				{
+					InsertView.Set(ref value);
+					SaveUpdateWithBookmark(update, out bookmark);
+				}
+			}
 		}
 
 		// ReSharper disable once InconsistentNaming

@@ -251,5 +251,31 @@
       <Field>DirectParentId</Field>
       <Field>SequenceNumber</Field>
     </View>
+    <View Name="PostDataIdentityUpdateView" Role="Insert">
+      <Field>ParentId</Field>
+      <Field>DirectParentId</Field>
+      <Field>EntityType</Field>
+      <Field>DataLoaded</Field>
+      <Field>ChildrenLoadStage</Field>
+      <Field>BoardId</Field>
+      <Field>ParentSequenceNumber</Field>
+      <Field>SequenceNumber</Field>
+    </View>
+    <View Name="PostDataUpdateView" Role="Insert Update">
+      <Field>Subject</Field>      
+      <Field>Thumbnail</Field>      
+      <Field>Date</Field>      
+      <Field>BoardSpecificDate</Field>      
+      <Field>Flags</Field>      
+      <Field>ThreadTags</Field>      
+      <Field>Likes</Field>      
+      <Field>Dislikes</Field>      
+      <Field>Document</Field>      
+      <Field>QuotedPosts</Field>      
+      <Field>LoadedTime</Field>      
+      <Field>PosterName</Field>      
+      <Field>OnServerSequenceCounter</Field>      
+      <Field>OtherDataBinary</Field>      
+    </View>
   </Views>
 </Table>

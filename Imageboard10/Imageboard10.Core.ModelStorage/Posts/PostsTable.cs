@@ -421,10 +421,20 @@ namespace Imageboard10.Core.ModelStorage.Posts
 				{
                     _c[0] = value ?? throw new ArgumentNullException();
 					_c[0].ItagSequence = i + 1;
+					_c[0].Columnid = _columnid;
 				    // ReSharper disable once CoVariantArrayConversion
                     Api.SetColumns(_table.Session, _table.Table, _c);
 				}
             }
+
+			public void Add(T value)
+			{
+                _c[0] = value ?? throw new ArgumentNullException();
+				_c[0].ItagSequence = 0;
+				_c[0].Columnid = _columnid;
+				// ReSharper disable once CoVariantArrayConversion
+                Api.SetColumns(_table.Session, _table.Table, _c);
+			}
 
 			public IEnumerable<T> Enumerate()
 			{
@@ -1380,6 +1390,38 @@ namespace Imageboard10.Core.ModelStorage.Posts
 				public int? DirectParentId;
 				public int SequenceNumber;
 			}
+
+			// ReSharper disable once InconsistentNaming
+			public struct PostDataIdentityUpdateView
+			{
+				public Int32ColumnValue[] ParentId;
+				public int? DirectParentId;
+				public byte EntityType;
+				public bool DataLoaded;
+				public byte ChildrenLoadStage;
+				public string BoardId;
+				public int? ParentSequenceNumber;
+				public int SequenceNumber;
+			}
+
+			// ReSharper disable once InconsistentNaming
+			public struct PostDataUpdateView
+			{
+				public string Subject;
+				public byte[] Thumbnail;
+				public DateTime? Date;
+				public string BoardSpecificDate;
+				public GuidColumnValue[] Flags;
+				public StringColumnValue[] ThreadTags;
+				public int? Likes;
+				public int? Dislikes;
+				public byte[] Document;
+				public Int32ColumnValue[] QuotedPosts;
+				public DateTime? LoadedTime;
+				public string PosterName;
+				public int? OnServerSequenceCounter;
+				public byte[] OtherDataBinary;
+			}
 		}
 
 		public static class FetchViews {
@@ -2272,6 +2314,166 @@ namespace Imageboard10.Core.ModelStorage.Posts
 					Api.SetColumns(_table.Session, _table, _c);
 				}
 			}			
+			public struct PostDataIdentityUpdateView
+			{
+				private readonly PostsTable _table;
+				private readonly ColumnValue[] _c;
+
+				public PostDataIdentityUpdateView(PostsTable table)
+				{
+					_table = table;
+
+					_c = new ColumnValue[7];
+					_c[0] = new Int32ColumnValue() {
+						Columnid = _table.ColumnDictionary[PostsTable.Column.DirectParentId],
+						SetGrbit = SetColumnGrbit.None
+					};
+					_c[1] = new ByteColumnValue() {
+						Columnid = _table.ColumnDictionary[PostsTable.Column.EntityType],
+						SetGrbit = SetColumnGrbit.None
+					};
+					_c[2] = new BoolColumnValue() {
+						Columnid = _table.ColumnDictionary[PostsTable.Column.DataLoaded],
+						SetGrbit = SetColumnGrbit.None
+					};
+					_c[3] = new ByteColumnValue() {
+						Columnid = _table.ColumnDictionary[PostsTable.Column.ChildrenLoadStage],
+						SetGrbit = SetColumnGrbit.None
+					};
+					_c[4] = new StringColumnValue() {
+						Columnid = _table.ColumnDictionary[PostsTable.Column.BoardId],
+						SetGrbit = SetColumnGrbit.None
+					};
+					_c[5] = new Int32ColumnValue() {
+						Columnid = _table.ColumnDictionary[PostsTable.Column.ParentSequenceNumber],
+						SetGrbit = SetColumnGrbit.None
+					};
+					_c[6] = new Int32ColumnValue() {
+						Columnid = _table.ColumnDictionary[PostsTable.Column.SequenceNumber],
+						SetGrbit = SetColumnGrbit.None
+					};
+				}
+
+				public void Set(ViewValues.PostDataIdentityUpdateView value)
+				{
+					((Int32ColumnValue)_c[0]).Value = value.DirectParentId;
+					((ByteColumnValue)_c[1]).Value = value.EntityType;
+					((BoolColumnValue)_c[2]).Value = value.DataLoaded;
+					((ByteColumnValue)_c[3]).Value = value.ChildrenLoadStage;
+					((StringColumnValue)_c[4]).Value = value.BoardId;
+					((Int32ColumnValue)_c[5]).Value = value.ParentSequenceNumber;
+					((Int32ColumnValue)_c[6]).Value = value.SequenceNumber;
+					Api.SetColumns(_table.Session, _table, _c);
+					_table.Columns.SetParentIdValueArr(value.ParentId);
+				}
+
+				public void Set(ref ViewValues.PostDataIdentityUpdateView value)
+				{
+					((Int32ColumnValue)_c[0]).Value = value.DirectParentId;
+					((ByteColumnValue)_c[1]).Value = value.EntityType;
+					((BoolColumnValue)_c[2]).Value = value.DataLoaded;
+					((ByteColumnValue)_c[3]).Value = value.ChildrenLoadStage;
+					((StringColumnValue)_c[4]).Value = value.BoardId;
+					((Int32ColumnValue)_c[5]).Value = value.ParentSequenceNumber;
+					((Int32ColumnValue)_c[6]).Value = value.SequenceNumber;
+					Api.SetColumns(_table.Session, _table, _c);
+					_table.Columns.SetParentIdValueArr(value.ParentId);
+				}
+			}			
+			public struct PostDataUpdateView
+			{
+				private readonly PostsTable _table;
+				private readonly ColumnValue[] _c;
+
+				public PostDataUpdateView(PostsTable table)
+				{
+					_table = table;
+
+					_c = new ColumnValue[11];
+					_c[0] = new StringColumnValue() {
+						Columnid = _table.ColumnDictionary[PostsTable.Column.Subject],
+						SetGrbit = SetColumnGrbit.None
+					};
+					_c[1] = new BytesColumnValue() {
+						Columnid = _table.ColumnDictionary[PostsTable.Column.Thumbnail],
+						SetGrbit = SetColumnGrbit.None
+					};
+					_c[2] = new DateTimeColumnValue() {
+						Columnid = _table.ColumnDictionary[PostsTable.Column.Date],
+						SetGrbit = SetColumnGrbit.None
+					};
+					_c[3] = new StringColumnValue() {
+						Columnid = _table.ColumnDictionary[PostsTable.Column.BoardSpecificDate],
+						SetGrbit = SetColumnGrbit.None
+					};
+					_c[4] = new Int32ColumnValue() {
+						Columnid = _table.ColumnDictionary[PostsTable.Column.Likes],
+						SetGrbit = SetColumnGrbit.None
+					};
+					_c[5] = new Int32ColumnValue() {
+						Columnid = _table.ColumnDictionary[PostsTable.Column.Dislikes],
+						SetGrbit = SetColumnGrbit.None
+					};
+					_c[6] = new BytesColumnValue() {
+						Columnid = _table.ColumnDictionary[PostsTable.Column.Document],
+						SetGrbit = SetColumnGrbit.None
+					};
+					_c[7] = new DateTimeColumnValue() {
+						Columnid = _table.ColumnDictionary[PostsTable.Column.LoadedTime],
+						SetGrbit = SetColumnGrbit.None
+					};
+					_c[8] = new StringColumnValue() {
+						Columnid = _table.ColumnDictionary[PostsTable.Column.PosterName],
+						SetGrbit = SetColumnGrbit.None
+					};
+					_c[9] = new Int32ColumnValue() {
+						Columnid = _table.ColumnDictionary[PostsTable.Column.OnServerSequenceCounter],
+						SetGrbit = SetColumnGrbit.None
+					};
+					_c[10] = new BytesColumnValue() {
+						Columnid = _table.ColumnDictionary[PostsTable.Column.OtherDataBinary],
+						SetGrbit = SetColumnGrbit.None
+					};
+				}
+
+				public void Set(ViewValues.PostDataUpdateView value)
+				{
+					((StringColumnValue)_c[0]).Value = value.Subject;
+					((BytesColumnValue)_c[1]).Value = value.Thumbnail;
+					((DateTimeColumnValue)_c[2]).Value = value.Date;
+					((StringColumnValue)_c[3]).Value = value.BoardSpecificDate;
+					((Int32ColumnValue)_c[4]).Value = value.Likes;
+					((Int32ColumnValue)_c[5]).Value = value.Dislikes;
+					((BytesColumnValue)_c[6]).Value = value.Document;
+					((DateTimeColumnValue)_c[7]).Value = value.LoadedTime;
+					((StringColumnValue)_c[8]).Value = value.PosterName;
+					((Int32ColumnValue)_c[9]).Value = value.OnServerSequenceCounter;
+					((BytesColumnValue)_c[10]).Value = value.OtherDataBinary;
+					Api.SetColumns(_table.Session, _table, _c);
+					_table.Columns.SetFlagsValueArr(value.Flags);
+					_table.Columns.SetThreadTagsValueArr(value.ThreadTags);
+					_table.Columns.SetQuotedPostsValueArr(value.QuotedPosts);
+				}
+
+				public void Set(ref ViewValues.PostDataUpdateView value)
+				{
+					((StringColumnValue)_c[0]).Value = value.Subject;
+					((BytesColumnValue)_c[1]).Value = value.Thumbnail;
+					((DateTimeColumnValue)_c[2]).Value = value.Date;
+					((StringColumnValue)_c[3]).Value = value.BoardSpecificDate;
+					((Int32ColumnValue)_c[4]).Value = value.Likes;
+					((Int32ColumnValue)_c[5]).Value = value.Dislikes;
+					((BytesColumnValue)_c[6]).Value = value.Document;
+					((DateTimeColumnValue)_c[7]).Value = value.LoadedTime;
+					((StringColumnValue)_c[8]).Value = value.PosterName;
+					((Int32ColumnValue)_c[9]).Value = value.OnServerSequenceCounter;
+					((BytesColumnValue)_c[10]).Value = value.OtherDataBinary;
+					Api.SetColumns(_table.Session, _table, _c);
+					_table.Columns.SetFlagsValueArr(value.Flags);
+					_table.Columns.SetThreadTagsValueArr(value.ThreadTags);
+					_table.Columns.SetQuotedPostsValueArr(value.QuotedPosts);
+				}
+			}			
 		}
 
 		public class TableInsertViews
@@ -2304,6 +2506,108 @@ namespace Imageboard10.Core.ModelStorage.Posts
 				Array.Copy(_bookmarkBuffer, bookmark, bsize);
 			}
 
+
+		    // ReSharper disable once InconsistentNaming
+			private InsertOrUpdateViews.PostDataIdentityUpdateView? __iuv_PostDataIdentityUpdateView;
+
+			public InsertOrUpdateViews.PostDataIdentityUpdateView PostDataIdentityUpdateView
+			{
+				get
+				{
+					if (__iuv_PostDataIdentityUpdateView == null)
+					{
+						__iuv_PostDataIdentityUpdateView = new InsertOrUpdateViews.PostDataIdentityUpdateView(_table);
+					}
+					return __iuv_PostDataIdentityUpdateView.Value;
+				}
+			}
+
+			public void InsertAsPostDataIdentityUpdateView(ViewValues.PostDataIdentityUpdateView value)
+			{
+				using (var update = CreateUpdate())
+				{
+					PostDataIdentityUpdateView.Set(value);
+					update.Save();
+				}
+			}
+
+			public void InsertAsPostDataIdentityUpdateView(ref ViewValues.PostDataIdentityUpdateView value)
+			{
+				using (var update = CreateUpdate())
+				{
+					PostDataIdentityUpdateView.Set(ref value);
+					update.Save();
+				}
+			}
+
+			public void InsertAsPostDataIdentityUpdateView(ViewValues.PostDataIdentityUpdateView value, out byte[] bookmark)
+			{
+				using (var update = CreateUpdate())
+				{
+					PostDataIdentityUpdateView.Set(value);
+					SaveUpdateWithBookmark(update, out bookmark);
+				}
+			}
+
+			public void InsertAsPostDataIdentityUpdateView(ref ViewValues.PostDataIdentityUpdateView value, out byte[] bookmark)
+			{
+				using (var update = CreateUpdate())
+				{
+					PostDataIdentityUpdateView.Set(ref value);
+					SaveUpdateWithBookmark(update, out bookmark);
+				}
+			}
+
+		    // ReSharper disable once InconsistentNaming
+			private InsertOrUpdateViews.PostDataUpdateView? __iuv_PostDataUpdateView;
+
+			public InsertOrUpdateViews.PostDataUpdateView PostDataUpdateView
+			{
+				get
+				{
+					if (__iuv_PostDataUpdateView == null)
+					{
+						__iuv_PostDataUpdateView = new InsertOrUpdateViews.PostDataUpdateView(_table);
+					}
+					return __iuv_PostDataUpdateView.Value;
+				}
+			}
+
+			public void InsertAsPostDataUpdateView(ViewValues.PostDataUpdateView value)
+			{
+				using (var update = CreateUpdate())
+				{
+					PostDataUpdateView.Set(value);
+					update.Save();
+				}
+			}
+
+			public void InsertAsPostDataUpdateView(ref ViewValues.PostDataUpdateView value)
+			{
+				using (var update = CreateUpdate())
+				{
+					PostDataUpdateView.Set(ref value);
+					update.Save();
+				}
+			}
+
+			public void InsertAsPostDataUpdateView(ViewValues.PostDataUpdateView value, out byte[] bookmark)
+			{
+				using (var update = CreateUpdate())
+				{
+					PostDataUpdateView.Set(value);
+					SaveUpdateWithBookmark(update, out bookmark);
+				}
+			}
+
+			public void InsertAsPostDataUpdateView(ref ViewValues.PostDataUpdateView value, out byte[] bookmark)
+			{
+				using (var update = CreateUpdate())
+				{
+					PostDataUpdateView.Set(ref value);
+					SaveUpdateWithBookmark(update, out bookmark);
+				}
+			}
 		}
 
 		// ReSharper disable once InconsistentNaming
@@ -2449,6 +2753,57 @@ namespace Imageboard10.Core.ModelStorage.Posts
 				using (var update = CreateUpdate())
 				{
 					NumberOfReadPostsUpdateView.Set(ref value);
+					SaveUpdateWithBookmark(update, out bookmark);
+				}
+			}
+
+		    // ReSharper disable once InconsistentNaming
+			private InsertOrUpdateViews.PostDataUpdateView? __iuv_PostDataUpdateView;
+
+			public InsertOrUpdateViews.PostDataUpdateView PostDataUpdateView
+			{
+				get
+				{
+					if (__iuv_PostDataUpdateView == null)
+					{
+						__iuv_PostDataUpdateView = new InsertOrUpdateViews.PostDataUpdateView(_table);
+					}
+					return __iuv_PostDataUpdateView.Value;
+				}
+			}
+
+			public void UpdateAsPostDataUpdateView(ViewValues.PostDataUpdateView value)
+			{
+				using (var update = CreateUpdate())
+				{
+					PostDataUpdateView.Set(value);
+					update.Save();
+				}
+			}
+
+			public void UpdateAsPostDataUpdateView(ref ViewValues.PostDataUpdateView value)
+			{
+				using (var update = CreateUpdate())
+				{
+					PostDataUpdateView.Set(ref value);
+					update.Save();
+				}
+			}
+
+			public void UpdateAsPostDataUpdateView(ViewValues.PostDataUpdateView value, out byte[] bookmark)
+			{
+				using (var update = CreateUpdate())
+				{
+					PostDataUpdateView.Set(value);
+					SaveUpdateWithBookmark(update, out bookmark);
+				}
+			}
+
+			public void UpdateAsPostDataUpdateView(ref ViewValues.PostDataUpdateView value, out byte[] bookmark)
+			{
+				using (var update = CreateUpdate())
+				{
+					PostDataUpdateView.Set(ref value);
 					SaveUpdateWithBookmark(update, out bookmark);
 				}
 			}
