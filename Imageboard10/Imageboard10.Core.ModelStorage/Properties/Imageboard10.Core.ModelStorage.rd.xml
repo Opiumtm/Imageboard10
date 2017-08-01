@@ -29,5 +29,28 @@
 
   	<!-- add directives for your library here -->
 
+    <Type Name="Imageboard10.Core.ModelStorage.Blobs.BlobsTable" Activate="Excluded" Browse="Excluded" Dynamic="Excluded" >
+      <Subtypes Activate="Excluded" Browse="Excluded" Dynamic="Excluded" />
+    </Type>
+
+    <Type Name="Imageboard10.Core.ModelStorage.Blobs.ReferencesTable" Activate="Excluded" Browse="Excluded" Dynamic="Excluded" >
+      <Subtypes Activate="Excluded" Browse="Excluded" Dynamic="Excluded" />
+    </Type>
+
+    <Type Name="Imageboard10.Core.ModelStorage.Boards.BoardReferenceTable" Activate="Excluded" Browse="Excluded" Dynamic="Excluded" >
+      <Subtypes Activate="Excluded" Browse="Excluded" Dynamic="Excluded" />
+    </Type>
+
+    <Type Name="Imageboard10.Core.ModelStorage.Posts.AccessLogTable" Activate="Excluded" Browse="Excluded" Dynamic="Excluded" >
+      <Subtypes Activate="Excluded" Browse="Excluded" Dynamic="Excluded" />
+    </Type>
+
+    <Type Name="Imageboard10.Core.ModelStorage.Posts.MediaFilesTable" Activate="Excluded" Browse="Excluded" Dynamic="Excluded" >
+      <Subtypes Activate="Excluded" Browse="Excluded" Dynamic="Excluded" />
+    </Type>
+
+    <Type Name="Imageboard10.Core.ModelStorage.Posts.PostsTable" Activate="Excluded" Browse="Excluded" Dynamic="Excluded" >
+      <Subtypes Activate="Excluded" Browse="Excluded" Dynamic="Excluded" />
+    </Type>
   </Library>
 </Directives>
