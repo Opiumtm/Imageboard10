@@ -264,16 +264,23 @@ namespace <#= table.Namespace #>
                     Api.RetrieveColumns(_table.Session, _table.Table, r);
                     return r;
                 }
-				set => SetValues(value);            
+				set => SetValues(value, false);
 			}
 
-			public void SetValues(T[] value)
+			public void SetValues(T[] value, bool isInsert)
 			{
 				if (value == null)
 				{
 					throw new ArgumentNullException();
 				}
-				Clear();
+				if (!isInsert)
+				{
+					Clear();
+				}
+				if (value.Length == 0)
+				{
+					return;
+				}
                 for (var i = 0; i < value.Length; i++)
                 {
 					value[i].ItagSequence = i + 1;
@@ -311,7 +318,7 @@ namespace <#= table.Namespace #>
 				if (column.Grbit.HasFlag(EsentColumndefGrbit.MultiValued))
 				{
 #>
-				__mv_<#= column.Name #> = new Multivalue<<#= column.GetColumnValueType() #>>(table, table.ColumnDictionary[<#= table.Name #>.Column.<#= column.Name #>]);
+				__mv_<#= column.Name #> = new Multivalue<<#= column.GetColumnValueType() #>>(table, table.GetColumnid(<#= table.Name #>.Column.<#= column.Name #>));
 <#+
 				}
 				}
@@ -326,10 +333,10 @@ namespace <#= table.Namespace #>
 		    // ReSharper disable once ConvertToAutoProperty
 			public Multivalue<<#= column.GetColumnValueType() #>> <#= column.Name #> => __mv_<#= column.Name #>;
 			
-			public void Set<#= column.Name #>ValueArr(<#= column.GetColumnValueType() #>[] v)
+			public void Set<#= column.Name #>ValueArr(<#= column.GetColumnValueType() #>[] v, bool isInsert)
 			{
 			    // ReSharper disable once ImpureMethodCallOnReadonlyValueField
-				__mv_<#= column.Name #>.SetValues(v);
+				__mv_<#= column.Name #>.SetValues(v, isInsert);
 			}
 <#+
 			} else {
@@ -389,10 +396,9 @@ namespace <#= table.Namespace #>
 
 	    public IEnumerable<object> EnumerateToEnd()
 	    {
-	        while (Api.TryMoveNext(Session, Table))
-	        {
+			do {
 	            yield return this;
-	        }
+			} while (Api.TryMoveNext(Session, Table));
 	    }
 
 	    public IEnumerable<object> EnumerateToEnd(int skip, int? maxCount)
@@ -403,27 +409,33 @@ namespace <#= table.Namespace #>
 				{
 					yield break;
 				}
-			}
-	        while (Api.TryMoveNext(Session, Table) && (maxCount > 0 || maxCount == null))
-	        {
+			}			
+			do {
 	            yield return this;
 				if (maxCount != null)
 				{
 					maxCount--;
+					if (maxCount <= 0)
+					{
+						break;
+					}
 				}
-	        }
+			} while (Api.TryMoveNext(Session, Table));
 	    }
 
 	    public IEnumerable<object> EnumerateToEnd(int? maxCount)
 	    {
-	        while (Api.TryMoveNext(Session, Table) && (maxCount > 0 || maxCount == null))
-	        {
+			do {
 	            yield return this;
 				if (maxCount != null)
 				{
 					maxCount--;
+					if (maxCount <= 0)
+					{
+						break;
+					}
 				}
-	        }
+			} while (Api.TryMoveNext(Session, Table));
 	    }
 
 	    public IEnumerable<object> Enumerate()
@@ -779,7 +791,7 @@ namespace <#= table.Namespace #>
 #>
 				}
 
-				public void Set(ViewValues.<#= view.Name #> value)
+				public void Set(ViewValues.<#= view.Name #> value, bool isInsert = false)
 				{
 <#+
 					if (nmFields.Length > 0) {
@@ -797,14 +809,14 @@ namespace <#= table.Namespace #>
 					for (var i = 0; i < mFields.Length; i++)
 					{
 #>
-					_table.Columns.Set<#= mFields[i].Name #>ValueArr(value.<#= mFields[i].Name #>);
+					_table.Columns.Set<#= mFields[i].Name #>ValueArr(value.<#= mFields[i].Name #>, isInsert);
 <#+
 					}
 				}
 #>
 				}
 
-				public void Set(ref ViewValues.<#= view.Name #> value)
+				public void Set(ref ViewValues.<#= view.Name #> value, bool isInsert = false)
 				{
 <#+
 					if (nmFields.Length > 0) {
@@ -822,7 +834,7 @@ namespace <#= table.Namespace #>
 					for (var i = 0; i < mFields.Length; i++)
 					{
 #>
-					_table.Columns.Set<#= mFields[i].Name #>ValueArr(value.<#= mFields[i].Name #>);
+					_table.Columns.Set<#= mFields[i].Name #>ValueArr(value.<#= mFields[i].Name #>, isInsert);
 <#+
 					}
 				}
@@ -889,7 +901,7 @@ namespace <#= table.Namespace #>
 			{
 				using (var update = CreateUpdate())
 				{
-					<#= view.Name #>.Set(value);
+					<#= view.Name #>.Set(value, true);
 					update.Save();
 				}
 			}
@@ -898,7 +910,7 @@ namespace <#= table.Namespace #>
 			{
 				using (var update = CreateUpdate())
 				{
-					<#= view.Name #>.Set(ref value);
+					<#= view.Name #>.Set(ref value, true);
 					update.Save();
 				}
 			}
@@ -907,7 +919,7 @@ namespace <#= table.Namespace #>
 			{
 				using (var update = CreateUpdate())
 				{
-					<#= view.Name #>.Set(value);
+					<#= view.Name #>.Set(value, true);
 					SaveUpdateWithBookmark(update, out bookmark);
 				}
 			}
@@ -916,7 +928,7 @@ namespace <#= table.Namespace #>
 			{
 				using (var update = CreateUpdate())
 				{
-					<#= view.Name #>.Set(ref value);
+					<#= view.Name #>.Set(ref value, true);
 					SaveUpdateWithBookmark(update, out bookmark);
 				}
 			}

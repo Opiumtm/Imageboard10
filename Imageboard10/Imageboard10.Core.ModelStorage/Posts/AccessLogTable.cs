@@ -167,10 +167,20 @@ namespace Imageboard10.Core.ModelStorage.Posts
 				{
                     _c[0] = value ?? throw new ArgumentNullException();
 					_c[0].ItagSequence = i + 1;
+					_c[0].Columnid = _columnid;
 				    // ReSharper disable once CoVariantArrayConversion
                     Api.SetColumns(_table.Session, _table.Table, _c);
 				}
             }
+
+			public void Add(T value)
+			{
+                _c[0] = value ?? throw new ArgumentNullException();
+				_c[0].ItagSequence = 0;
+				_c[0].Columnid = _columnid;
+				// ReSharper disable once CoVariantArrayConversion
+                Api.SetColumns(_table.Session, _table.Table, _c);
+			}
 
 			public IEnumerable<T> Enumerate()
 			{
@@ -218,19 +228,27 @@ namespace Imageboard10.Core.ModelStorage.Posts
                     Api.RetrieveColumns(_table.Session, _table.Table, r);
                     return r;
                 }
-				set => SetValues(value);            
+				set => SetValues(value, false);
 			}
 
-			public void SetValues(T[] value)
+			public void SetValues(T[] value, bool isInsert)
 			{
 				if (value == null)
 				{
 					throw new ArgumentNullException();
 				}
-				Clear();
+				if (!isInsert)
+				{
+					Clear();
+				}
+				if (value.Length == 0)
+				{
+					return;
+				}
                 for (var i = 0; i < value.Length; i++)
                 {
 					value[i].ItagSequence = i + 1;
+					value[i].Columnid = _columnid;
 				}
 				// ReSharper disable once CoVariantArrayConversion
                 Api.SetColumns(_table.Session, _table.Table, value);
@@ -282,10 +300,9 @@ namespace Imageboard10.Core.ModelStorage.Posts
 
 	    public IEnumerable<object> EnumerateToEnd()
 	    {
-	        while (Api.TryMoveNext(Session, Table))
-	        {
+			do {
 	            yield return this;
-	        }
+			} while (Api.TryMoveNext(Session, Table));
 	    }
 
 	    public IEnumerable<object> EnumerateToEnd(int skip, int? maxCount)
@@ -296,27 +313,33 @@ namespace Imageboard10.Core.ModelStorage.Posts
 				{
 					yield break;
 				}
-			}
-	        while (Api.TryMoveNext(Session, Table) && (maxCount > 0 || maxCount == null))
-	        {
+			}			
+			do {
 	            yield return this;
 				if (maxCount != null)
 				{
 					maxCount--;
+					if (maxCount <= 0)
+					{
+						break;
+					}
 				}
-	        }
+			} while (Api.TryMoveNext(Session, Table));
 	    }
 
 	    public IEnumerable<object> EnumerateToEnd(int? maxCount)
 	    {
-	        while (Api.TryMoveNext(Session, Table) && (maxCount > 0 || maxCount == null))
-	        {
+			do {
 	            yield return this;
 				if (maxCount != null)
 				{
 					maxCount--;
+					if (maxCount <= 0)
+					{
+						break;
+					}
 				}
-	        }
+			} while (Api.TryMoveNext(Session, Table));
 	    }
 
 	    public IEnumerable<object> Enumerate()
@@ -528,7 +551,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
 					};
 				}
 
-				public void Set(ViewValues.InsertAllColumnsView value)
+				public void Set(ViewValues.InsertAllColumnsView value, bool isInsert = false)
 				{
 					((GuidColumnValue)_c[0]).Value = value.Id;
 					((Int32ColumnValue)_c[1]).Value = value.EntityId;
@@ -536,7 +559,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
 					Api.SetColumns(_table.Session, _table, _c);
 				}
 
-				public void Set(ref ViewValues.InsertAllColumnsView value)
+				public void Set(ref ViewValues.InsertAllColumnsView value, bool isInsert = false)
 				{
 					((GuidColumnValue)_c[0]).Value = value.Id;
 					((Int32ColumnValue)_c[1]).Value = value.EntityId;
@@ -596,7 +619,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
 			{
 				using (var update = CreateUpdate())
 				{
-					InsertAllColumnsView.Set(value);
+					InsertAllColumnsView.Set(value, true);
 					update.Save();
 				}
 			}
@@ -605,7 +628,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
 			{
 				using (var update = CreateUpdate())
 				{
-					InsertAllColumnsView.Set(ref value);
+					InsertAllColumnsView.Set(ref value, true);
 					update.Save();
 				}
 			}
@@ -614,7 +637,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
 			{
 				using (var update = CreateUpdate())
 				{
-					InsertAllColumnsView.Set(value);
+					InsertAllColumnsView.Set(value, true);
 					SaveUpdateWithBookmark(update, out bookmark);
 				}
 			}
@@ -623,7 +646,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
 			{
 				using (var update = CreateUpdate())
 				{
-					InsertAllColumnsView.Set(ref value);
+					InsertAllColumnsView.Set(ref value, true);
 					SaveUpdateWithBookmark(update, out bookmark);
 				}
 			}

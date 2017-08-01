@@ -216,21 +216,21 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <Content Include="Blobs\BlobsTable.xml" />
-    <Content Include="Blobs\BlobsTable.tt">
+    <None Include="Blobs\BlobsTable.xml" />
+    <None Include="Blobs\BlobsTable.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>BlobsTable.cs</LastGenOutput>
-    </Content>
-    <Content Include="Blobs\ReferencesTable.tt">
+    </None>
+    <None Include="Blobs\ReferencesTable.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>ReferencesTable.cs</LastGenOutput>
-    </Content>
-    <Content Include="Blobs\ReferencesTable.xml" />
-    <Content Include="Boards\BoardReferenceTable.tt">
+    </None>
+    <None Include="Blobs\ReferencesTable.xml" />
+    <None Include="Boards\BoardReferenceTable.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>BoardReferenceTable.cs</LastGenOutput>
-    </Content>
-    <Content Include="Boards\BoardReferenceTable.xml" />
+    </None>
+    <None Include="Boards\BoardReferenceTable.xml" />
     <None Include="Posts\MediaFilesTable.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>MediaFilesTable.cs</LastGenOutput>

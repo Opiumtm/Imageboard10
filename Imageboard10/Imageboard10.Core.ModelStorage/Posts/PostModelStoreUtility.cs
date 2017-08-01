@@ -146,7 +146,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
             var index = table.Indexes.InThreadPostLinkIndex;
             index.SetAsCurrentIndex();
             var r = index.Find(index.CreateKey(directParent.Id, postId));
-            if (r)
+            if (!r)
             {
                 id = new PostStoreEntityId() { Id = -1 };
             }
@@ -165,7 +165,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
             var index = table.Indexes.TypeAndPostIdIndex;
             index.SetAsCurrentIndex();
             var r = index.Find(index.CreateKey((byte)entityType, boardId, sequenceId));
-            if (r)
+            if (!r)
             {
                 id = new PostStoreEntityId() { Id = -1 };
             }
@@ -507,7 +507,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
                         var index = table.Indexes.PrimaryIndex;
                         if (index.Find(index.CreateKey(id.Id)))
                         {
-                            table.Update.ChildrenLoadStageView.Set(new PostsTable.ViewValues.ChildrenLoadStageView() { ChildrenLoadStage = status });
+                            table.Update.UpdateAsChildrenLoadStageView(new PostsTable.ViewValues.ChildrenLoadStageView() { ChildrenLoadStage = status });
                         }
                     }
                     return true;

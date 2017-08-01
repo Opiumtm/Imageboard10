@@ -482,16 +482,23 @@ namespace Imageboard10.Core.ModelStorage.Posts
                     Api.RetrieveColumns(_table.Session, _table.Table, r);
                     return r;
                 }
-				set => SetValues(value);            
+				set => SetValues(value, false);
 			}
 
-			public void SetValues(T[] value)
+			public void SetValues(T[] value, bool isInsert)
 			{
 				if (value == null)
 				{
 					throw new ArgumentNullException();
 				}
-				Clear();
+				if (!isInsert)
+				{
+					Clear();
+				}
+				if (value.Length == 0)
+				{
+					return;
+				}
                 for (var i = 0; i < value.Length; i++)
                 {
 					value[i].ItagSequence = i + 1;
@@ -522,10 +529,10 @@ namespace Imageboard10.Core.ModelStorage.Posts
 			public DefaultView(PostsTable table)
 			{
 				_table = table;
-				__mv_ParentId = new Multivalue<Int32ColumnValue>(table, table.ColumnDictionary[PostsTable.Column.ParentId]);
-				__mv_Flags = new Multivalue<GuidColumnValue>(table, table.ColumnDictionary[PostsTable.Column.Flags]);
-				__mv_ThreadTags = new Multivalue<StringColumnValue>(table, table.ColumnDictionary[PostsTable.Column.ThreadTags]);
-				__mv_QuotedPosts = new Multivalue<Int32ColumnValue>(table, table.ColumnDictionary[PostsTable.Column.QuotedPosts]);
+				__mv_ParentId = new Multivalue<Int32ColumnValue>(table, table.GetColumnid(PostsTable.Column.ParentId));
+				__mv_Flags = new Multivalue<GuidColumnValue>(table, table.GetColumnid(PostsTable.Column.Flags));
+				__mv_ThreadTags = new Multivalue<StringColumnValue>(table, table.GetColumnid(PostsTable.Column.ThreadTags));
+				__mv_QuotedPosts = new Multivalue<Int32ColumnValue>(table, table.GetColumnid(PostsTable.Column.QuotedPosts));
 			}
 			public int Id
 			{
@@ -548,10 +555,10 @@ namespace Imageboard10.Core.ModelStorage.Posts
 		    // ReSharper disable once ConvertToAutoProperty
 			public Multivalue<Int32ColumnValue> ParentId => __mv_ParentId;
 			
-			public void SetParentIdValueArr(Int32ColumnValue[] v)
+			public void SetParentIdValueArr(Int32ColumnValue[] v, bool isInsert)
 			{
 			    // ReSharper disable once ImpureMethodCallOnReadonlyValueField
-				__mv_ParentId.SetValues(v);
+				__mv_ParentId.SetValues(v, isInsert);
 			}
 			public int? DirectParentId
 			{
@@ -688,19 +695,19 @@ namespace Imageboard10.Core.ModelStorage.Posts
 		    // ReSharper disable once ConvertToAutoProperty
 			public Multivalue<GuidColumnValue> Flags => __mv_Flags;
 			
-			public void SetFlagsValueArr(GuidColumnValue[] v)
+			public void SetFlagsValueArr(GuidColumnValue[] v, bool isInsert)
 			{
 			    // ReSharper disable once ImpureMethodCallOnReadonlyValueField
-				__mv_Flags.SetValues(v);
+				__mv_Flags.SetValues(v, isInsert);
 			}
 
 		    // ReSharper disable once ConvertToAutoProperty
 			public Multivalue<StringColumnValue> ThreadTags => __mv_ThreadTags;
 			
-			public void SetThreadTagsValueArr(StringColumnValue[] v)
+			public void SetThreadTagsValueArr(StringColumnValue[] v, bool isInsert)
 			{
 			    // ReSharper disable once ImpureMethodCallOnReadonlyValueField
-				__mv_ThreadTags.SetValues(v);
+				__mv_ThreadTags.SetValues(v, isInsert);
 			}
 			public int? Likes
 			{
@@ -750,10 +757,10 @@ namespace Imageboard10.Core.ModelStorage.Posts
 		    // ReSharper disable once ConvertToAutoProperty
 			public Multivalue<Int32ColumnValue> QuotedPosts => __mv_QuotedPosts;
 			
-			public void SetQuotedPostsValueArr(Int32ColumnValue[] v)
+			public void SetQuotedPostsValueArr(Int32ColumnValue[] v, bool isInsert)
 			{
 			    // ReSharper disable once ImpureMethodCallOnReadonlyValueField
-				__mv_QuotedPosts.SetValues(v);
+				__mv_QuotedPosts.SetValues(v, isInsert);
 			}
 			public DateTime? LoadedTime
 			{
@@ -903,10 +910,9 @@ namespace Imageboard10.Core.ModelStorage.Posts
 
 	    public IEnumerable<object> EnumerateToEnd()
 	    {
-	        while (Api.TryMoveNext(Session, Table))
-	        {
+			do {
 	            yield return this;
-	        }
+			} while (Api.TryMoveNext(Session, Table));
 	    }
 
 	    public IEnumerable<object> EnumerateToEnd(int skip, int? maxCount)
@@ -917,27 +923,33 @@ namespace Imageboard10.Core.ModelStorage.Posts
 				{
 					yield break;
 				}
-			}
-	        while (Api.TryMoveNext(Session, Table) && (maxCount > 0 || maxCount == null))
-	        {
+			}			
+			do {
 	            yield return this;
 				if (maxCount != null)
 				{
 					maxCount--;
+					if (maxCount <= 0)
+					{
+						break;
+					}
 				}
-	        }
+			} while (Api.TryMoveNext(Session, Table));
 	    }
 
 	    public IEnumerable<object> EnumerateToEnd(int? maxCount)
 	    {
-	        while (Api.TryMoveNext(Session, Table) && (maxCount > 0 || maxCount == null))
-	        {
+			do {
 	            yield return this;
 				if (maxCount != null)
 				{
 					maxCount--;
+					if (maxCount <= 0)
+					{
+						break;
+					}
 				}
-	        }
+			} while (Api.TryMoveNext(Session, Table));
 	    }
 
 	    public IEnumerable<object> Enumerate()
@@ -2274,13 +2286,13 @@ namespace Imageboard10.Core.ModelStorage.Posts
 					};
 				}
 
-				public void Set(ViewValues.ChildrenLoadStageView value)
+				public void Set(ViewValues.ChildrenLoadStageView value, bool isInsert = false)
 				{
 					((ByteColumnValue)_c[0]).Value = value.ChildrenLoadStage;
 					Api.SetColumns(_table.Session, _table, _c);
 				}
 
-				public void Set(ref ViewValues.ChildrenLoadStageView value)
+				public void Set(ref ViewValues.ChildrenLoadStageView value, bool isInsert = false)
 				{
 					((ByteColumnValue)_c[0]).Value = value.ChildrenLoadStage;
 					Api.SetColumns(_table.Session, _table, _c);
@@ -2302,13 +2314,13 @@ namespace Imageboard10.Core.ModelStorage.Posts
 					};
 				}
 
-				public void Set(ViewValues.NumberOfReadPostsUpdateView value)
+				public void Set(ViewValues.NumberOfReadPostsUpdateView value, bool isInsert = false)
 				{
 					((Int32ColumnValue)_c[0]).Value = value.NumberOfReadPosts;
 					Api.SetColumns(_table.Session, _table, _c);
 				}
 
-				public void Set(ref ViewValues.NumberOfReadPostsUpdateView value)
+				public void Set(ref ViewValues.NumberOfReadPostsUpdateView value, bool isInsert = false)
 				{
 					((Int32ColumnValue)_c[0]).Value = value.NumberOfReadPosts;
 					Api.SetColumns(_table.Session, _table, _c);
@@ -2354,7 +2366,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
 					};
 				}
 
-				public void Set(ViewValues.PostDataIdentityUpdateView value)
+				public void Set(ViewValues.PostDataIdentityUpdateView value, bool isInsert = false)
 				{
 					((Int32ColumnValue)_c[0]).Value = value.DirectParentId;
 					((ByteColumnValue)_c[1]).Value = value.EntityType;
@@ -2364,10 +2376,10 @@ namespace Imageboard10.Core.ModelStorage.Posts
 					((Int32ColumnValue)_c[5]).Value = value.ParentSequenceNumber;
 					((Int32ColumnValue)_c[6]).Value = value.SequenceNumber;
 					Api.SetColumns(_table.Session, _table, _c);
-					_table.Columns.SetParentIdValueArr(value.ParentId);
+					_table.Columns.SetParentIdValueArr(value.ParentId, isInsert);
 				}
 
-				public void Set(ref ViewValues.PostDataIdentityUpdateView value)
+				public void Set(ref ViewValues.PostDataIdentityUpdateView value, bool isInsert = false)
 				{
 					((Int32ColumnValue)_c[0]).Value = value.DirectParentId;
 					((ByteColumnValue)_c[1]).Value = value.EntityType;
@@ -2377,7 +2389,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
 					((Int32ColumnValue)_c[5]).Value = value.ParentSequenceNumber;
 					((Int32ColumnValue)_c[6]).Value = value.SequenceNumber;
 					Api.SetColumns(_table.Session, _table, _c);
-					_table.Columns.SetParentIdValueArr(value.ParentId);
+					_table.Columns.SetParentIdValueArr(value.ParentId, isInsert);
 				}
 			}			
 			public struct PostDataUpdateView
@@ -2436,7 +2448,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
 					};
 				}
 
-				public void Set(ViewValues.PostDataUpdateView value)
+				public void Set(ViewValues.PostDataUpdateView value, bool isInsert = false)
 				{
 					((StringColumnValue)_c[0]).Value = value.Subject;
 					((BytesColumnValue)_c[1]).Value = value.Thumbnail;
@@ -2450,12 +2462,12 @@ namespace Imageboard10.Core.ModelStorage.Posts
 					((Int32ColumnValue)_c[9]).Value = value.OnServerSequenceCounter;
 					((BytesColumnValue)_c[10]).Value = value.OtherDataBinary;
 					Api.SetColumns(_table.Session, _table, _c);
-					_table.Columns.SetFlagsValueArr(value.Flags);
-					_table.Columns.SetThreadTagsValueArr(value.ThreadTags);
-					_table.Columns.SetQuotedPostsValueArr(value.QuotedPosts);
+					_table.Columns.SetFlagsValueArr(value.Flags, isInsert);
+					_table.Columns.SetThreadTagsValueArr(value.ThreadTags, isInsert);
+					_table.Columns.SetQuotedPostsValueArr(value.QuotedPosts, isInsert);
 				}
 
-				public void Set(ref ViewValues.PostDataUpdateView value)
+				public void Set(ref ViewValues.PostDataUpdateView value, bool isInsert = false)
 				{
 					((StringColumnValue)_c[0]).Value = value.Subject;
 					((BytesColumnValue)_c[1]).Value = value.Thumbnail;
@@ -2469,9 +2481,9 @@ namespace Imageboard10.Core.ModelStorage.Posts
 					((Int32ColumnValue)_c[9]).Value = value.OnServerSequenceCounter;
 					((BytesColumnValue)_c[10]).Value = value.OtherDataBinary;
 					Api.SetColumns(_table.Session, _table, _c);
-					_table.Columns.SetFlagsValueArr(value.Flags);
-					_table.Columns.SetThreadTagsValueArr(value.ThreadTags);
-					_table.Columns.SetQuotedPostsValueArr(value.QuotedPosts);
+					_table.Columns.SetFlagsValueArr(value.Flags, isInsert);
+					_table.Columns.SetThreadTagsValueArr(value.ThreadTags, isInsert);
+					_table.Columns.SetQuotedPostsValueArr(value.QuotedPosts, isInsert);
 				}
 			}			
 		}
@@ -2526,7 +2538,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
 			{
 				using (var update = CreateUpdate())
 				{
-					PostDataIdentityUpdateView.Set(value);
+					PostDataIdentityUpdateView.Set(value, true);
 					update.Save();
 				}
 			}
@@ -2535,7 +2547,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
 			{
 				using (var update = CreateUpdate())
 				{
-					PostDataIdentityUpdateView.Set(ref value);
+					PostDataIdentityUpdateView.Set(ref value, true);
 					update.Save();
 				}
 			}
@@ -2544,7 +2556,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
 			{
 				using (var update = CreateUpdate())
 				{
-					PostDataIdentityUpdateView.Set(value);
+					PostDataIdentityUpdateView.Set(value, true);
 					SaveUpdateWithBookmark(update, out bookmark);
 				}
 			}
@@ -2553,7 +2565,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
 			{
 				using (var update = CreateUpdate())
 				{
-					PostDataIdentityUpdateView.Set(ref value);
+					PostDataIdentityUpdateView.Set(ref value, true);
 					SaveUpdateWithBookmark(update, out bookmark);
 				}
 			}
@@ -2577,7 +2589,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
 			{
 				using (var update = CreateUpdate())
 				{
-					PostDataUpdateView.Set(value);
+					PostDataUpdateView.Set(value, true);
 					update.Save();
 				}
 			}
@@ -2586,7 +2598,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
 			{
 				using (var update = CreateUpdate())
 				{
-					PostDataUpdateView.Set(ref value);
+					PostDataUpdateView.Set(ref value, true);
 					update.Save();
 				}
 			}
@@ -2595,7 +2607,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
 			{
 				using (var update = CreateUpdate())
 				{
-					PostDataUpdateView.Set(value);
+					PostDataUpdateView.Set(value, true);
 					SaveUpdateWithBookmark(update, out bookmark);
 				}
 			}
@@ -2604,7 +2616,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
 			{
 				using (var update = CreateUpdate())
 				{
-					PostDataUpdateView.Set(ref value);
+					PostDataUpdateView.Set(ref value, true);
 					SaveUpdateWithBookmark(update, out bookmark);
 				}
 			}

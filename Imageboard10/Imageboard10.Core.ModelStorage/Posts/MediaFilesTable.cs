@@ -176,10 +176,20 @@ namespace Imageboard10.Core.ModelStorage.Posts
 				{
                     _c[0] = value ?? throw new ArgumentNullException();
 					_c[0].ItagSequence = i + 1;
+					_c[0].Columnid = _columnid;
 				    // ReSharper disable once CoVariantArrayConversion
                     Api.SetColumns(_table.Session, _table.Table, _c);
 				}
             }
+
+			public void Add(T value)
+			{
+                _c[0] = value ?? throw new ArgumentNullException();
+				_c[0].ItagSequence = 0;
+				_c[0].Columnid = _columnid;
+				// ReSharper disable once CoVariantArrayConversion
+                Api.SetColumns(_table.Session, _table.Table, _c);
+			}
 
 			public IEnumerable<T> Enumerate()
 			{
@@ -227,16 +237,23 @@ namespace Imageboard10.Core.ModelStorage.Posts
                     Api.RetrieveColumns(_table.Session, _table.Table, r);
                     return r;
                 }
-				set => SetValues(value);            
+				set => SetValues(value, false);
 			}
 
-			public void SetValues(T[] value)
+			public void SetValues(T[] value, bool isInsert)
 			{
 				if (value == null)
 				{
 					throw new ArgumentNullException();
 				}
-				Clear();
+				if (!isInsert)
+				{
+					Clear();
+				}
+				if (value.Length == 0)
+				{
+					return;
+				}
                 for (var i = 0; i < value.Length; i++)
                 {
 					value[i].ItagSequence = i + 1;
@@ -258,7 +275,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
 			public DefaultView(MediaFilesTable table)
 			{
 				_table = table;
-				__mv_EntityReferences = new Multivalue<Int32ColumnValue>(table, table.ColumnDictionary[MediaFilesTable.Column.EntityReferences]);
+				__mv_EntityReferences = new Multivalue<Int32ColumnValue>(table, table.GetColumnid(MediaFilesTable.Column.EntityReferences));
 			}
 			public int Id
 			{
@@ -281,10 +298,10 @@ namespace Imageboard10.Core.ModelStorage.Posts
 		    // ReSharper disable once ConvertToAutoProperty
 			public Multivalue<Int32ColumnValue> EntityReferences => __mv_EntityReferences;
 			
-			public void SetEntityReferencesValueArr(Int32ColumnValue[] v)
+			public void SetEntityReferencesValueArr(Int32ColumnValue[] v, bool isInsert)
 			{
 			    // ReSharper disable once ImpureMethodCallOnReadonlyValueField
-				__mv_EntityReferences.SetValues(v);
+				__mv_EntityReferences.SetValues(v, isInsert);
 			}
 			public long SequenceNumber
 			{
@@ -312,10 +329,9 @@ namespace Imageboard10.Core.ModelStorage.Posts
 
 	    public IEnumerable<object> EnumerateToEnd()
 	    {
-	        while (Api.TryMoveNext(Session, Table))
-	        {
+			do {
 	            yield return this;
-	        }
+			} while (Api.TryMoveNext(Session, Table));
 	    }
 
 	    public IEnumerable<object> EnumerateToEnd(int skip, int? maxCount)
@@ -326,27 +342,33 @@ namespace Imageboard10.Core.ModelStorage.Posts
 				{
 					yield break;
 				}
-			}
-	        while (Api.TryMoveNext(Session, Table) && (maxCount > 0 || maxCount == null))
-	        {
+			}			
+			do {
 	            yield return this;
 				if (maxCount != null)
 				{
 					maxCount--;
+					if (maxCount <= 0)
+					{
+						break;
+					}
 				}
-	        }
+			} while (Api.TryMoveNext(Session, Table));
 	    }
 
 	    public IEnumerable<object> EnumerateToEnd(int? maxCount)
 	    {
-	        while (Api.TryMoveNext(Session, Table) && (maxCount > 0 || maxCount == null))
-	        {
+			do {
 	            yield return this;
 				if (maxCount != null)
 				{
 					maxCount--;
+					if (maxCount <= 0)
+					{
+						break;
+					}
 				}
-	        }
+			} while (Api.TryMoveNext(Session, Table));
 	    }
 
 	    public IEnumerable<object> Enumerate()
@@ -532,20 +554,20 @@ namespace Imageboard10.Core.ModelStorage.Posts
 					};
 				}
 
-				public void Set(ViewValues.InsertView value)
+				public void Set(ViewValues.InsertView value, bool isInsert = false)
 				{
 					((Int64ColumnValue)_c[0]).Value = value.SequenceNumber;
 					((BytesColumnValue)_c[1]).Value = value.MediaData;
 					Api.SetColumns(_table.Session, _table, _c);
-					_table.Columns.SetEntityReferencesValueArr(value.EntityReferences);
+					_table.Columns.SetEntityReferencesValueArr(value.EntityReferences, isInsert);
 				}
 
-				public void Set(ref ViewValues.InsertView value)
+				public void Set(ref ViewValues.InsertView value, bool isInsert = false)
 				{
 					((Int64ColumnValue)_c[0]).Value = value.SequenceNumber;
 					((BytesColumnValue)_c[1]).Value = value.MediaData;
 					Api.SetColumns(_table.Session, _table, _c);
-					_table.Columns.SetEntityReferencesValueArr(value.EntityReferences);
+					_table.Columns.SetEntityReferencesValueArr(value.EntityReferences, isInsert);
 				}
 			}			
 		}
@@ -600,7 +622,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
 			{
 				using (var update = CreateUpdate())
 				{
-					InsertView.Set(value);
+					InsertView.Set(value, true);
 					update.Save();
 				}
 			}
@@ -609,7 +631,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
 			{
 				using (var update = CreateUpdate())
 				{
-					InsertView.Set(ref value);
+					InsertView.Set(ref value, true);
 					update.Save();
 				}
 			}
@@ -618,7 +640,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
 			{
 				using (var update = CreateUpdate())
 				{
-					InsertView.Set(value);
+					InsertView.Set(value, true);
 					SaveUpdateWithBookmark(update, out bookmark);
 				}
 			}
@@ -627,7 +649,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
 			{
 				using (var update = CreateUpdate())
 				{
-					InsertView.Set(ref value);
+					InsertView.Set(ref value, true);
 					SaveUpdateWithBookmark(update, out bookmark);
 				}
 			}

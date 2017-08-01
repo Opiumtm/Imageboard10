@@ -103,7 +103,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
                             ParentSequenceNumber = threadId,
                             SequenceNumber = postId
                         };
-                        table.Insert.PostDataIdentityUpdateView.Set(ref idv);
+                        table.Insert.PostDataIdentityUpdateView.Set(ref idv, true);
                         newId = new PostStoreEntityId()
                         {
                             Id = table.Columns.Id_AutoincrementValue
@@ -162,7 +162,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
                     }
                     else
                     {
-                        table.Insert.PostDataUpdateView.Set(ref setData);
+                        table.Insert.PostDataUpdateView.Set(ref setData, true);
                     }
                     update.Save();
                 }
@@ -182,13 +182,18 @@ namespace Imageboard10.Core.ModelStorage.Posts
                 {
                     for (var i = 0; i < preSerialized.Media.Length; i++)
                     {
+                        var references = new Int32ColumnValue[1 + parents.Length];
+                        references[0] = new Int32ColumnValue()
+                        {
+                            Value = newId.Id,
+                        };
+                        for (var j = 0; j < parents.Length; j++)
+                        {
+                            references[j+1] = new Int32ColumnValue() { Value = parents[j].Id };
+                        }
                         mediaTable.Insert.InsertAsInsertView(new MediaFilesTable.ViewValues.InsertView()
                         {
-                            EntityReferences = parents.Select(p => new Int32ColumnValue()
-                            {
-                                Value = p.Id,
-                                SetGrbit = SetColumnGrbit.UniqueMultiValues
-                            }).ToArray(),
+                            EntityReferences = references,
                             SequenceNumber = CreateMediaSequenceId(postId, i),
                             MediaData = preSerialized.Media[i]
                         });
@@ -377,7 +382,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
                                 BoardId = boardId,
                                 SequenceNumber = sequenceId
                             };
-                            table.Insert.PostDataIdentityUpdateView.Set(ref identityData);
+                            table.Insert.PostDataIdentityUpdateView.Set(ref identityData, true);
                             newId = new PostStoreEntityId()
                             {
                                 Id = table.Columns.Id_AutoincrementValue
@@ -417,7 +422,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
                                     columns.ThreadTags.SetValues(firstPost.Tags.Tags.Distinct().Select(t => new StringColumnValue()
                                     {
                                         Value = t
-                                    }).ToArray());
+                                    }).ToArray(), !exists);
                                 }
                                 else
                                 {
@@ -456,7 +461,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
                         {
                             Value = f,
                             SetGrbit = SetColumnGrbit.UniqueMultiValues
-                        }).ToArray());
+                        }).ToArray(), !exists);
                         columns.OtherDataBinary = ObjectSerializationService.SerializeToBytes(collection2.Info);
 
                         if (collection2.EntityType == PostStoreEntityType.ThreadPreview && collection2 is IThreadPreviewPostCollection collection4)

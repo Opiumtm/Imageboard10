@@ -88,13 +88,13 @@ namespace Imageboard10.Core.ModelStorage.Posts
 
         private AccessLogTable OpenAccessLogTable(IEsentSession session, OpenTableGrbit grbit)
         {
-            var r = session.OpenTable(TableName, grbit);
+            var r = session.OpenTable(AccessLogTableName, grbit);
             return new AccessLogTable(r.Session, r.Table);
         }
 
         private MediaFilesTable OpenMediaFilesTable(IEsentSession session, OpenTableGrbit grbit)
         {
-            var r = session.OpenTable(TableName, grbit);
+            var r = session.OpenTable(MediaFilesTableName, grbit);
             return new MediaFilesTable(r.Session, r.Table);
         }
     }

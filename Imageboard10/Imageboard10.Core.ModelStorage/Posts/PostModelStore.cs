@@ -790,7 +790,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
                                             Value = id,
                                             SetGrbit = SetColumnGrbit.UniqueMultiValues
 
-                                        }).ToArray());
+                                        }).ToArray(), false);
                                         update.Save();
                                     }
                                 }

@@ -230,10 +230,20 @@ namespace Imageboard10.Core.ModelStorage.Boards
 				{
                     _c[0] = value ?? throw new ArgumentNullException();
 					_c[0].ItagSequence = i + 1;
+					_c[0].Columnid = _columnid;
 				    // ReSharper disable once CoVariantArrayConversion
                     Api.SetColumns(_table.Session, _table.Table, _c);
 				}
             }
+
+			public void Add(T value)
+			{
+                _c[0] = value ?? throw new ArgumentNullException();
+				_c[0].ItagSequence = 0;
+				_c[0].Columnid = _columnid;
+				// ReSharper disable once CoVariantArrayConversion
+                Api.SetColumns(_table.Session, _table.Table, _c);
+			}
 
 			public IEnumerable<T> Enumerate()
 			{
@@ -281,19 +291,27 @@ namespace Imageboard10.Core.ModelStorage.Boards
                     Api.RetrieveColumns(_table.Session, _table.Table, r);
                     return r;
                 }
-				set => SetValues(value);            
+				set => SetValues(value, false);
 			}
 
-			public void SetValues(T[] value)
+			public void SetValues(T[] value, bool isInsert)
 			{
 				if (value == null)
 				{
 					throw new ArgumentNullException();
 				}
-				Clear();
+				if (!isInsert)
+				{
+					Clear();
+				}
+				if (value.Length == 0)
+				{
+					return;
+				}
                 for (var i = 0; i < value.Length; i++)
                 {
 					value[i].ItagSequence = i + 1;
+					value[i].Columnid = _columnid;
 				}
 				// ReSharper disable once CoVariantArrayConversion
                 Api.SetColumns(_table.Session, _table.Table, value);
@@ -419,10 +437,46 @@ namespace Imageboard10.Core.ModelStorage.Boards
 
 	    public IEnumerable<object> EnumerateToEnd()
 	    {
-	        while (Api.TryMoveNext(Session, Table))
-	        {
+			do {
 	            yield return this;
-	        }
+			} while (Api.TryMoveNext(Session, Table));
+	    }
+
+	    public IEnumerable<object> EnumerateToEnd(int skip, int? maxCount)
+	    {
+			if (skip > 0)
+			{
+				if (!TryMove(skip))
+				{
+					yield break;
+				}
+			}			
+			do {
+	            yield return this;
+				if (maxCount != null)
+				{
+					maxCount--;
+					if (maxCount <= 0)
+					{
+						break;
+					}
+				}
+			} while (Api.TryMoveNext(Session, Table));
+	    }
+
+	    public IEnumerable<object> EnumerateToEnd(int? maxCount)
+	    {
+			do {
+	            yield return this;
+				if (maxCount != null)
+				{
+					maxCount--;
+					if (maxCount <= 0)
+					{
+						break;
+					}
+				}
+			} while (Api.TryMoveNext(Session, Table));
 	    }
 
 	    public IEnumerable<object> Enumerate()
@@ -473,6 +527,12 @@ namespace Imageboard10.Core.ModelStorage.Boards
 	    public bool TryMovePrevious()
 	    {
 	        return Api.TryMovePrevious(Session, Table);
+	    }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+	    public bool TryMove(int delta)
+	    {
+	        return Api.TryMove(Session, Table, (JET_Move)delta, MoveGrbit.None);
 	    }
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -860,7 +920,7 @@ namespace Imageboard10.Core.ModelStorage.Boards
 					};
 				}
 
-				public void Set(ViewValues.FullRowView value)
+				public void Set(ViewValues.FullRowView value, bool isInsert = false)
 				{
 					((StringColumnValue)_c[0]).Value = value.Id;
 					((StringColumnValue)_c[1]).Value = value.Category;
@@ -874,7 +934,7 @@ namespace Imageboard10.Core.ModelStorage.Boards
 					Api.SetColumns(_table.Session, _table, _c);
 				}
 
-				public void Set(ref ViewValues.FullRowView value)
+				public void Set(ref ViewValues.FullRowView value, bool isInsert = false)
 				{
 					((StringColumnValue)_c[0]).Value = value.Id;
 					((StringColumnValue)_c[1]).Value = value.Category;
@@ -940,7 +1000,7 @@ namespace Imageboard10.Core.ModelStorage.Boards
 			{
 				using (var update = CreateUpdate())
 				{
-					FullRowView.Set(value);
+					FullRowView.Set(value, true);
 					update.Save();
 				}
 			}
@@ -949,7 +1009,7 @@ namespace Imageboard10.Core.ModelStorage.Boards
 			{
 				using (var update = CreateUpdate())
 				{
-					FullRowView.Set(ref value);
+					FullRowView.Set(ref value, true);
 					update.Save();
 				}
 			}
@@ -958,7 +1018,7 @@ namespace Imageboard10.Core.ModelStorage.Boards
 			{
 				using (var update = CreateUpdate())
 				{
-					FullRowView.Set(value);
+					FullRowView.Set(value, true);
 					SaveUpdateWithBookmark(update, out bookmark);
 				}
 			}
@@ -967,7 +1027,7 @@ namespace Imageboard10.Core.ModelStorage.Boards
 			{
 				using (var update = CreateUpdate())
 				{
-					FullRowView.Set(ref value);
+					FullRowView.Set(ref value, true);
 					SaveUpdateWithBookmark(update, out bookmark);
 				}
 			}
