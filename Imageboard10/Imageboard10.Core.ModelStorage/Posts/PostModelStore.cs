@@ -5,10 +5,12 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Windows.Foundation;
+using Imageboard10.Core.Database;
 using Imageboard10.Core.ModelInterface.Links;
 using Imageboard10.Core.ModelInterface.Posts;
 using Imageboard10.Core.ModelInterface.Posts.Store;
 using Imageboard10.Core.Models.Links;
+using Imageboard10.Core.Models.Links.LinkTypes;
 using Imageboard10.Core.Models.Posts;
 using Imageboard10.Core.Modules;
 using Imageboard10.Core.Tasks;
@@ -672,14 +674,116 @@ namespace Imageboard10.Core.ModelStorage.Posts
             return Do().AsAsyncAction();
         }
 
+        /// <summary>
+        /// Обновить информацию о коллекции.
+        /// </summary>
+        /// <param name="updateInfo">Информация об обновлении.</param>
         public IAsyncAction SetCollectionUpdateInfo(IBoardPostCollectionUpdateInfo updateInfo)
         {
-            throw new NotImplementedException();
+            async Task Do()
+            {
+                CheckModuleReady();
+                if (updateInfo == null) throw new ArgumentNullException(nameof(updateInfo));
+                await WaitForTablesInitialize();
+
+                await OpenSessionAsync(async session =>
+                {
+                    await session.RunInTransaction(() =>
+                    {
+                        using (var table = OpenPostsTable(session, OpenTableGrbit.Updatable))
+                        {
+                            if (!GotoEntityId(table, updateInfo.Id))
+                            {
+                                throw new InvalidOperationException($"Не найдена сущность с идентификатором {updateInfo.Id.Id}");
+                            }
+                            var entityType = (PostStoreEntityType) table.Columns.EntityType;
+                            if (entityType != PostStoreEntityType.Thread)
+                            {
+                                throw new InvalidOperationException($"Нельзя устанавливать информацию об обновлениях на сервера для сущности типа {entityType}");
+                            }
+
+                            int? lastPost = null;
+                            if (updateInfo.LastPost is PostLink pl)
+                            {
+                                var li = table.Views.LinkInfoView.Fetch();
+                                if (pl.Engine == EngineId && pl.Board == li.BoardId && pl.OpPostNum == li.SequenceNumber)
+                                {
+                                    lastPost = pl.PostNum;
+                                }
+                            }
+                            table.Update.UpdateAsPostCollectionUpdateInfoView(new PostsTable.ViewValues.PostCollectionUpdateInfoView()
+                            {
+                                LastPostLinkOnServer = lastPost,
+                                LastServerUpdate = updateInfo.LastUpdate.UtcDateTime,
+                                NumberOfPostsOnServer = updateInfo.NumberOfPosts
+                            });
+                        }
+
+                        return true;
+                    }, 1);
+                    return Nothing.Value;
+                });
+            }
+
+            return Do().AsAsyncAction();
         }
 
-        public IAsyncAction SetReadPostsCount(PostStoreEntityId id, int readPosts)
+        /// <summary>
+        /// Обновить количество прочитанных постов.
+        /// </summary>
+        /// <param name="id">Идентификатор.</param>
+        /// <param name="readPosts">Прочитано постов.</param>
+        /// <param name="keepMax">Держать максимальное значение.</param>
+        public IAsyncAction SetReadPostsCount(PostStoreEntityId id, int readPosts, bool keepMax)
         {
-            throw new NotImplementedException();
+            async Task Do()
+            {
+                CheckModuleReady();
+                await WaitForTablesInitialize();
+
+                await OpenSessionAsync(async session =>
+                {
+                    await session.RunInTransaction(() =>
+                    {
+                        using (var table = OpenPostsTable(session, OpenTableGrbit.Updatable))
+                        {
+                            if (!GotoEntityId(table, id))
+                            {
+                                throw new InvalidOperationException($"Не найдена сущность с идентификатором {id.Id}");
+                            }
+
+                            var entityType = (PostStoreEntityType)table.Columns.EntityType;
+                            var genType = ToGenericEntityType(entityType);
+                            if (genType != GenericPostStoreEntityType.Thread && genType != GenericPostStoreEntityType.BoardPage && genType != GenericPostStoreEntityType.Catalog)
+                            {
+                                throw new InvalidOperationException($"Нельзя устанавливать информацию о прочитанных постах для сущности типа {entityType}");
+                            }
+                            if (!keepMax)
+                            {
+                                table.Update.UpdateAsNumberOfReadPostsUpdateView(new PostsTable.ViewValues.NumberOfReadPostsUpdateView()
+                                {
+                                    NumberOfReadPosts = readPosts
+                                });
+                            }
+                            else
+                            {
+                                var v = table.Views.NumberOfReadPostsUpdateView.Fetch();
+                                if (v.NumberOfReadPosts == null || readPosts > v.NumberOfReadPosts)
+                                {
+                                    v.NumberOfReadPosts = readPosts;
+                                    table.Update.UpdateAsNumberOfReadPostsUpdateView(v);
+                                }
+                            }
+                        }
+
+                        return true;
+                    }, 1);
+
+                    return Nothing.Value;
+                });
+            }
+
+            return Do().AsAsyncAction();
         }
 
         /// <summary>
@@ -730,9 +834,52 @@ namespace Imageboard10.Core.ModelStorage.Posts
             return Do().AsAsyncOperation();
         }
 
+        /// <summary>
+        /// Обновить лайки.
+        /// </summary>
+        /// <param name="likes">Лайки.</param>
         public IAsyncAction UpdateLikes(IList<IBoardPostLikesStoreInfo> likes)
         {
-            throw new NotImplementedException();
+            async ValueTask<Nothing> DoProcess(IEsentSession session, IList<IBoardPostLikesStoreInfo[]> data)
+            {
+                foreach (var likes2 in data)
+                {
+                    await session.RunInTransaction(() =>
+                    {
+                        using (var table = OpenPostsTable(session, OpenTableGrbit.Updatable))
+                        {
+                            foreach (var l in likes2)
+                            {
+                                if (l != null)
+                                {
+                                    if (GotoEntityId(table, l.Id))
+                                    {
+                                        table.Update.LikesUpdateView.Set(new PostsTable.ViewValues.LikesUpdateView()
+                                        {
+                                            Likes = l.Likes?.Likes,
+                                            Dislikes = l.Likes?.Dislikes
+                                        });
+                                    }
+                                }
+                            }
+                        }
+                        return true;
+                    }, 1.5);
+                }
+                return Nothing.Value;
+            }
+
+            async Task Do()
+            {
+                CheckModuleReady();
+                if (likes == null) throw new ArgumentNullException(nameof(likes));
+                await WaitForTablesInitialize();
+
+                var toProcess = likes.SplitSet(25).Select(s => s.ToArray()).DistributeToProcess(3);
+                await ParallelizeOnSessions(toProcess, DoProcess);
+            }
+
+            return Do().AsAsyncAction();
         }
 
         public IAsyncOperation<IList<IBoardPostLikes>> LoadLikes(IList<PostStoreEntityId> ids)

@@ -50,18 +50,9 @@
         <Field Name="EntityType" Sort="Asc"/>
       </Fields>
     </Index>
-    <!--
-    <Index Name="TypeAndIdIndex" Grbit="None">
-      <Fields>
-        <Field Name="EntityType" Sort="Asc"/>
-        <Field Name="Id" Sort="Asc"/>
-      </Fields>
-    </Index>
-    -->
     <Index Name="ChildrenLoadStageIndex" Grbit="None">
       <Fields>
         <Field Name="ChildrenLoadStage" Sort="Asc"/>
-        <!-- <Field Name="Id" Sort="Asc"/> -->
       </Fields>
       <Views>
         <ViewName>RetrieveIdFromIndexView</ViewName>
@@ -244,7 +235,7 @@
       <Field FetchFlags="FromPrimaryBookmark">Id</Field>
       <Field>ParentId</Field>
     </View>
-    <View Name="NumberOfReadPostsUpdateView" Role="Update">
+    <View Name="NumberOfReadPostsUpdateView" Role="Update Fetch">
       <Field>NumberOfReadPosts</Field>
     </View>
     <View Name="DirectParentAndSequenceNumberView" Role="Fetch">
@@ -276,6 +267,15 @@
       <Field>PosterName</Field>      
       <Field>OnServerSequenceCounter</Field>      
       <Field>OtherDataBinary</Field>      
+    </View>
+    <View Name="PostCollectionUpdateInfoView" Role="Update">
+      <Field>LastServerUpdate</Field>
+      <Field>NumberOfPostsOnServer</Field>
+      <Field>LastPostLinkOnServer</Field>
+    </View>
+    <View Name="LikesUpdateView" Role="Update Fetch">
+      <Field>Likes</Field>
+      <Field>Dislikes</Field>
     </View>
   </Views>
 </Table>

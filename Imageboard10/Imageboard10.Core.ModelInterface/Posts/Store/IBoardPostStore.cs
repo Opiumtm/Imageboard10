@@ -162,7 +162,8 @@ namespace Imageboard10.Core.ModelInterface.Posts.Store
         /// </summary>
         /// <param name="id">Идентификатор.</param>
         /// <param name="readPosts">Прочитано постов.</param>
-        IAsyncAction SetReadPostsCount(PostStoreEntityId id, int readPosts);
+        /// <param name="keepMax">Держать максимальное значение.</param>
+        IAsyncAction SetReadPostsCount(PostStoreEntityId id, int readPosts, bool keepMax);
 
         /// <summary>
         /// Сохранить коллекцию.

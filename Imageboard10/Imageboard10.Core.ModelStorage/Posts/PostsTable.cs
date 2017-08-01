@@ -1434,6 +1434,21 @@ namespace Imageboard10.Core.ModelStorage.Posts
 				public int? OnServerSequenceCounter;
 				public byte[] OtherDataBinary;
 			}
+
+			// ReSharper disable once InconsistentNaming
+			public struct PostCollectionUpdateInfoView
+			{
+				public DateTime? LastServerUpdate;
+				public int? NumberOfPostsOnServer;
+				public int? LastPostLinkOnServer;
+			}
+
+			// ReSharper disable once InconsistentNaming
+			public struct LikesUpdateView
+			{
+				public int? Likes;
+				public int? Dislikes;
+			}
 		}
 
 		public static class FetchViews {
@@ -2070,6 +2085,32 @@ namespace Imageboard10.Core.ModelStorage.Posts
 			}
 
 			// ReSharper disable once InconsistentNaming
+			public struct NumberOfReadPostsUpdateView
+			{
+				private readonly PostsTable _table;
+				private readonly ColumnValue[] _c;
+
+				public NumberOfReadPostsUpdateView(PostsTable table)
+				{
+					_table = table;
+
+					_c = new ColumnValue[1];
+					_c[0] = new Int32ColumnValue() {
+						Columnid = _table.ColumnDictionary[PostsTable.Column.NumberOfReadPosts],
+						RetrieveGrbit = RetrieveColumnGrbit.None
+					};
+				}
+
+				public ViewValues.NumberOfReadPostsUpdateView Fetch()
+				{
+					var r = new ViewValues.NumberOfReadPostsUpdateView();
+					Api.RetrieveColumns(_table.Session, _table, _c);
+					r.NumberOfReadPosts = ((Int32ColumnValue)_c[0]).Value;
+					return r;
+				}
+			}
+
+			// ReSharper disable once InconsistentNaming
 			public struct DirectParentAndSequenceNumberView
 			{
 				private readonly PostsTable _table;
@@ -2097,6 +2138,37 @@ namespace Imageboard10.Core.ModelStorage.Posts
 					r.DirectParentId = ((Int32ColumnValue)_c[0]).Value;
 				    // ReSharper disable once PossibleInvalidOperationException
 					r.SequenceNumber = ((Int32ColumnValue)_c[1]).Value.Value;
+					return r;
+				}
+			}
+
+			// ReSharper disable once InconsistentNaming
+			public struct LikesUpdateView
+			{
+				private readonly PostsTable _table;
+				private readonly ColumnValue[] _c;
+
+				public LikesUpdateView(PostsTable table)
+				{
+					_table = table;
+
+					_c = new ColumnValue[2];
+					_c[0] = new Int32ColumnValue() {
+						Columnid = _table.ColumnDictionary[PostsTable.Column.Likes],
+						RetrieveGrbit = RetrieveColumnGrbit.None
+					};
+					_c[1] = new Int32ColumnValue() {
+						Columnid = _table.ColumnDictionary[PostsTable.Column.Dislikes],
+						RetrieveGrbit = RetrieveColumnGrbit.None
+					};
+				}
+
+				public ViewValues.LikesUpdateView Fetch()
+				{
+					var r = new ViewValues.LikesUpdateView();
+					Api.RetrieveColumns(_table.Session, _table, _c);
+					r.Likes = ((Int32ColumnValue)_c[0]).Value;
+					r.Dislikes = ((Int32ColumnValue)_c[1]).Value;
 					return r;
 				}
 			}
@@ -2239,6 +2311,20 @@ namespace Imageboard10.Core.ModelStorage.Posts
 			}
 
 		    // ReSharper disable once InconsistentNaming
+			private FetchViews.NumberOfReadPostsUpdateView? __fv_NumberOfReadPostsUpdateView;
+			public FetchViews.NumberOfReadPostsUpdateView NumberOfReadPostsUpdateView
+			{
+				get
+				{
+					if (__fv_NumberOfReadPostsUpdateView == null)
+					{
+						__fv_NumberOfReadPostsUpdateView = new FetchViews.NumberOfReadPostsUpdateView(_table);
+					}
+					return __fv_NumberOfReadPostsUpdateView.Value;
+				}
+			}
+
+		    // ReSharper disable once InconsistentNaming
 			private FetchViews.DirectParentAndSequenceNumberView? __fv_DirectParentAndSequenceNumberView;
 			public FetchViews.DirectParentAndSequenceNumberView DirectParentAndSequenceNumberView
 			{
@@ -2249,6 +2335,20 @@ namespace Imageboard10.Core.ModelStorage.Posts
 						__fv_DirectParentAndSequenceNumberView = new FetchViews.DirectParentAndSequenceNumberView(_table);
 					}
 					return __fv_DirectParentAndSequenceNumberView.Value;
+				}
+			}
+
+		    // ReSharper disable once InconsistentNaming
+			private FetchViews.LikesUpdateView? __fv_LikesUpdateView;
+			public FetchViews.LikesUpdateView LikesUpdateView
+			{
+				get
+				{
+					if (__fv_LikesUpdateView == null)
+					{
+						__fv_LikesUpdateView = new FetchViews.LikesUpdateView(_table);
+					}
+					return __fv_LikesUpdateView.Value;
 				}
 			}
 		}
@@ -2484,6 +2584,80 @@ namespace Imageboard10.Core.ModelStorage.Posts
 					_table.Columns.SetFlagsValueArr(value.Flags, isInsert);
 					_table.Columns.SetThreadTagsValueArr(value.ThreadTags, isInsert);
 					_table.Columns.SetQuotedPostsValueArr(value.QuotedPosts, isInsert);
+				}
+			}			
+			public struct PostCollectionUpdateInfoView
+			{
+				private readonly PostsTable _table;
+				private readonly ColumnValue[] _c;
+
+				public PostCollectionUpdateInfoView(PostsTable table)
+				{
+					_table = table;
+
+					_c = new ColumnValue[3];
+					_c[0] = new DateTimeColumnValue() {
+						Columnid = _table.ColumnDictionary[PostsTable.Column.LastServerUpdate],
+						SetGrbit = SetColumnGrbit.None
+					};
+					_c[1] = new Int32ColumnValue() {
+						Columnid = _table.ColumnDictionary[PostsTable.Column.NumberOfPostsOnServer],
+						SetGrbit = SetColumnGrbit.None
+					};
+					_c[2] = new Int32ColumnValue() {
+						Columnid = _table.ColumnDictionary[PostsTable.Column.LastPostLinkOnServer],
+						SetGrbit = SetColumnGrbit.None
+					};
+				}
+
+				public void Set(ViewValues.PostCollectionUpdateInfoView value, bool isInsert = false)
+				{
+					((DateTimeColumnValue)_c[0]).Value = value.LastServerUpdate;
+					((Int32ColumnValue)_c[1]).Value = value.NumberOfPostsOnServer;
+					((Int32ColumnValue)_c[2]).Value = value.LastPostLinkOnServer;
+					Api.SetColumns(_table.Session, _table, _c);
+				}
+
+				public void Set(ref ViewValues.PostCollectionUpdateInfoView value, bool isInsert = false)
+				{
+					((DateTimeColumnValue)_c[0]).Value = value.LastServerUpdate;
+					((Int32ColumnValue)_c[1]).Value = value.NumberOfPostsOnServer;
+					((Int32ColumnValue)_c[2]).Value = value.LastPostLinkOnServer;
+					Api.SetColumns(_table.Session, _table, _c);
+				}
+			}			
+			public struct LikesUpdateView
+			{
+				private readonly PostsTable _table;
+				private readonly ColumnValue[] _c;
+
+				public LikesUpdateView(PostsTable table)
+				{
+					_table = table;
+
+					_c = new ColumnValue[2];
+					_c[0] = new Int32ColumnValue() {
+						Columnid = _table.ColumnDictionary[PostsTable.Column.Likes],
+						SetGrbit = SetColumnGrbit.None
+					};
+					_c[1] = new Int32ColumnValue() {
+						Columnid = _table.ColumnDictionary[PostsTable.Column.Dislikes],
+						SetGrbit = SetColumnGrbit.None
+					};
+				}
+
+				public void Set(ViewValues.LikesUpdateView value, bool isInsert = false)
+				{
+					((Int32ColumnValue)_c[0]).Value = value.Likes;
+					((Int32ColumnValue)_c[1]).Value = value.Dislikes;
+					Api.SetColumns(_table.Session, _table, _c);
+				}
+
+				public void Set(ref ViewValues.LikesUpdateView value, bool isInsert = false)
+				{
+					((Int32ColumnValue)_c[0]).Value = value.Likes;
+					((Int32ColumnValue)_c[1]).Value = value.Dislikes;
+					Api.SetColumns(_table.Session, _table, _c);
 				}
 			}			
 		}
@@ -2816,6 +2990,108 @@ namespace Imageboard10.Core.ModelStorage.Posts
 				using (var update = CreateUpdate())
 				{
 					PostDataUpdateView.Set(ref value);
+					SaveUpdateWithBookmark(update, out bookmark);
+				}
+			}
+
+		    // ReSharper disable once InconsistentNaming
+			private InsertOrUpdateViews.PostCollectionUpdateInfoView? __iuv_PostCollectionUpdateInfoView;
+
+			public InsertOrUpdateViews.PostCollectionUpdateInfoView PostCollectionUpdateInfoView
+			{
+				get
+				{
+					if (__iuv_PostCollectionUpdateInfoView == null)
+					{
+						__iuv_PostCollectionUpdateInfoView = new InsertOrUpdateViews.PostCollectionUpdateInfoView(_table);
+					}
+					return __iuv_PostCollectionUpdateInfoView.Value;
+				}
+			}
+
+			public void UpdateAsPostCollectionUpdateInfoView(ViewValues.PostCollectionUpdateInfoView value)
+			{
+				using (var update = CreateUpdate())
+				{
+					PostCollectionUpdateInfoView.Set(value);
+					update.Save();
+				}
+			}
+
+			public void UpdateAsPostCollectionUpdateInfoView(ref ViewValues.PostCollectionUpdateInfoView value)
+			{
+				using (var update = CreateUpdate())
+				{
+					PostCollectionUpdateInfoView.Set(ref value);
+					update.Save();
+				}
+			}
+
+			public void UpdateAsPostCollectionUpdateInfoView(ViewValues.PostCollectionUpdateInfoView value, out byte[] bookmark)
+			{
+				using (var update = CreateUpdate())
+				{
+					PostCollectionUpdateInfoView.Set(value);
+					SaveUpdateWithBookmark(update, out bookmark);
+				}
+			}
+
+			public void UpdateAsPostCollectionUpdateInfoView(ref ViewValues.PostCollectionUpdateInfoView value, out byte[] bookmark)
+			{
+				using (var update = CreateUpdate())
+				{
+					PostCollectionUpdateInfoView.Set(ref value);
+					SaveUpdateWithBookmark(update, out bookmark);
+				}
+			}
+
+		    // ReSharper disable once InconsistentNaming
+			private InsertOrUpdateViews.LikesUpdateView? __iuv_LikesUpdateView;
+
+			public InsertOrUpdateViews.LikesUpdateView LikesUpdateView
+			{
+				get
+				{
+					if (__iuv_LikesUpdateView == null)
+					{
+						__iuv_LikesUpdateView = new InsertOrUpdateViews.LikesUpdateView(_table);
+					}
+					return __iuv_LikesUpdateView.Value;
+				}
+			}
+
+			public void UpdateAsLikesUpdateView(ViewValues.LikesUpdateView value)
+			{
+				using (var update = CreateUpdate())
+				{
+					LikesUpdateView.Set(value);
+					update.Save();
+				}
+			}
+
+			public void UpdateAsLikesUpdateView(ref ViewValues.LikesUpdateView value)
+			{
+				using (var update = CreateUpdate())
+				{
+					LikesUpdateView.Set(ref value);
+					update.Save();
+				}
+			}
+
+			public void UpdateAsLikesUpdateView(ViewValues.LikesUpdateView value, out byte[] bookmark)
+			{
+				using (var update = CreateUpdate())
+				{
+					LikesUpdateView.Set(value);
+					SaveUpdateWithBookmark(update, out bookmark);
+				}
+			}
+
+			public void UpdateAsLikesUpdateView(ref ViewValues.LikesUpdateView value, out byte[] bookmark)
+			{
+				using (var update = CreateUpdate())
+				{
+					LikesUpdateView.Set(ref value);
 					SaveUpdateWithBookmark(update, out bookmark);
 				}
 			}

@@ -11,7 +11,7 @@ namespace Imageboard10.Core.ModelInterface.Posts
         /// <summary>
         /// Идентификатор.
         /// </summary>
-        Guid Id { get; }
+        PostStoreEntityId Id { get; }
 
         /// <summary>
         /// Последний пост.
