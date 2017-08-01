@@ -1,0 +1,18 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<Table Name="ReferencesTable" Visibility="internal" Namespace="Imageboard10.Core.ModelStorage.Blobs">
+  <Columns>
+    <Column Name="ReferenceId" Grbit="NotNULL" Type="Guid" />
+  </Columns>
+  <Indexes>
+    <Index Name="PrimaryIndex" Grbit="Primary Unique">
+      <Fields>
+        <Field Name="ReferenceId" Sort="Asc"/>
+      </Fields>
+    </Index>
+  </Indexes>
+  <Views>
+    <View Name="ReferenceView" Role="Update Insert Fetch">
+      <Field>ReferenceId</Field>
+    </View>
+  </Views>
+</Table>

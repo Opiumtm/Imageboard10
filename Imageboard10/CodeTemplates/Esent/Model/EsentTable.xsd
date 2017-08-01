@@ -1,0 +1,224 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xs:schema elementFormDefault="qualified" xmlns:xs="http://www.w3.org/2001/XMLSchema">
+  <xs:element name="EsentCodepage" type="EsentCodepage" />
+  <xs:simpleType name="EsentCodepage">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="None" />
+      <xs:enumeration value="Ascii" />
+      <xs:enumeration value="Unicode" />
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:element name="EsentColtyp" type="EsentColtyp" />
+  <xs:simpleType name="EsentColtyp">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="Byte" />
+      <xs:enumeration value="Boolean" />
+      <xs:enumeration value="SignedInt16" />
+      <xs:enumeration value="UnsignedInt16" />
+      <xs:enumeration value="SignedInt32" />
+      <xs:enumeration value="UnsignedInt32" />
+      <xs:enumeration value="SignedInt64" />
+      <xs:enumeration value="UnsignedInt64" />
+      <xs:enumeration value="Float" />
+      <xs:enumeration value="Double" />
+      <xs:enumeration value="DateTime" />
+      <xs:enumeration value="Binary" />
+      <xs:enumeration value="Text" />
+      <xs:enumeration value="LongBinary" />
+      <xs:enumeration value="LongText" />
+      <xs:enumeration value="Guid" />
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:element name="EsentColumndef" nillable="true" type="EsentColumndef" />
+  <xs:complexType name="EsentColumndef">
+    <xs:sequence>
+      <xs:element minOccurs="0" maxOccurs="1" default="" name="DefaultValue" type="xs:string" />
+    </xs:sequence>
+    <xs:attribute name="Name" type="xs:string" />
+    <xs:attribute name="Type" type="EsentColtyp" use="required" />
+    <xs:attribute default="None" name="Codepage" type="EsentCodepage" />
+    <xs:attribute default="0" name="Size" type="xs:int" />
+    <xs:attribute default="None" name="Grbit" type="EsentColumndefGrbit" />
+  </xs:complexType>
+  <xs:simpleType name="EsentColumndefGrbit">
+    <xs:list>
+      <xs:simpleType>
+        <xs:restriction base="xs:string">
+          <xs:enumeration value="None" />
+          <xs:enumeration value="Fixed" />
+          <xs:enumeration value="Tagged" />
+          <xs:enumeration value="NotNULL" />
+          <xs:enumeration value="Version" />
+          <xs:enumeration value="Autoincrement" />
+          <xs:enumeration value="MultiValued" />
+          <xs:enumeration value="EscrowUpdate" />
+          <xs:enumeration value="Unversioned" />
+          <xs:enumeration value="MaybeNull" />
+          <xs:enumeration value="UserDefinedDefault" />
+          <xs:enumeration value="TTKey" />
+          <xs:enumeration value="TTDescending" />
+        </xs:restriction>
+      </xs:simpleType>
+    </xs:list>
+  </xs:simpleType>
+  <xs:element name="EsentColumndefGrbit" type="EsentColumndefGrbit" />
+  <xs:element name="EsentIndex" nillable="true" type="EsentIndex" />
+  <xs:complexType name="EsentIndex">
+    <xs:sequence>
+      <xs:element minOccurs="0" maxOccurs="1" name="Fields" type="ArrayOfEsentIndexField" />
+      <xs:element minOccurs="0" maxOccurs="1" name="Views" type="ArrayOfString" />
+    </xs:sequence>
+    <xs:attribute name="Name" type="xs:string" />
+    <xs:attribute default="None" name="Grbit" type="EsentIndexGrbit" />
+  </xs:complexType>
+  <xs:complexType name="ArrayOfEsentIndexField">
+    <xs:sequence>
+      <xs:element minOccurs="0" maxOccurs="unbounded" name="Field" nillable="true" type="EsentIndexField" />
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="EsentIndexField">
+    <xs:attribute name="Name" type="xs:string" />
+    <xs:attribute default="Asc" name="Sort" type="EsentIndexSort" />
+  </xs:complexType>
+  <xs:simpleType name="EsentIndexSort">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="Asc" />
+      <xs:enumeration value="Desc" />
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:complexType name="ArrayOfString">
+    <xs:sequence>
+      <xs:element minOccurs="0" maxOccurs="unbounded" name="ViewName" nillable="true" type="xs:string" />
+    </xs:sequence>
+  </xs:complexType>
+  <xs:simpleType name="EsentIndexGrbit">
+    <xs:list>
+      <xs:simpleType>
+        <xs:restriction base="xs:string">
+          <xs:enumeration value="None" />
+          <xs:enumeration value="Unique" />
+          <xs:enumeration value="Primary" />
+          <xs:enumeration value="DisallowNull" />
+          <xs:enumeration value="IgnoreNull" />
+          <xs:enumeration value="IgnoreAnyNull" />
+          <xs:enumeration value="IgnoreFirstNull" />
+          <xs:enumeration value="LazyFlush" />
+          <xs:enumeration value="Empty" />
+          <xs:enumeration value="Unversioned" />
+          <xs:enumeration value="SortNullsHigh" />
+        </xs:restriction>
+      </xs:simpleType>
+    </xs:list>
+  </xs:simpleType>
+  <xs:element name="EsentIndexField" nillable="true" type="EsentIndexField" />
+  <xs:element name="EsentIndexGrbit" type="EsentIndexGrbit" />
+  <xs:element name="EsentIndexSort" type="EsentIndexSort" />
+  <xs:element name="EsentMakeKeyGrbit" type="EsentMakeKeyGrbit" />
+  <xs:simpleType name="EsentMakeKeyGrbit">
+    <xs:list>
+      <xs:simpleType>
+        <xs:restriction base="xs:string">
+          <xs:enumeration value="NormalizedKey" />
+          <xs:enumeration value="KeyDataZeroLength" />
+          <xs:enumeration value="StrLimit" />
+          <xs:enumeration value="SubStrLimit" />
+          <xs:enumeration value="FullColumnStartLimit" />
+          <xs:enumeration value="FullColumnEndLimit" />
+          <xs:enumeration value="PartialColumnStartLimit" />
+          <xs:enumeration value="PartialColumnEndLimit" />
+        </xs:restriction>
+      </xs:simpleType>
+    </xs:list>
+  </xs:simpleType>
+  <xs:element name="EsentSeekGrbit" type="EsentSeekGrbit" />
+  <xs:simpleType name="EsentSeekGrbit">
+    <xs:list>
+      <xs:simpleType>
+        <xs:restriction base="xs:string">
+          <xs:enumeration value="SeekEQ" />
+          <xs:enumeration value="SeekLT" />
+          <xs:enumeration value="SeekLE" />
+          <xs:enumeration value="SeekGE" />
+          <xs:enumeration value="SeekGT" />
+          <xs:enumeration value="SetIndexRange" />
+        </xs:restriction>
+      </xs:simpleType>
+    </xs:list>
+  </xs:simpleType>
+  <xs:element name="EsentSetIndexRangeGrbit" type="EsentSetIndexRangeGrbit" />
+  <xs:simpleType name="EsentSetIndexRangeGrbit">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="Inclusive" />
+      <xs:enumeration value="UpperLimit" />
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:element name="Table" nillable="true" type="EsentTable" />
+  <xs:complexType name="EsentTable">
+    <xs:sequence>
+      <xs:element minOccurs="0" maxOccurs="1" name="Columns" type="ArrayOfEsentColumndef" />
+      <xs:element minOccurs="0" maxOccurs="1" name="Indexes" type="ArrayOfEsentIndex" />
+      <xs:element minOccurs="0" maxOccurs="1" name="Views" type="ArrayOfEsentView" />
+    </xs:sequence>
+    <xs:attribute name="Name" type="xs:string" />
+    <xs:attribute name="Namespace" type="xs:string" />
+    <xs:attribute default="internal" name="Visibility" type="xs:string" />
+  </xs:complexType>
+  <xs:complexType name="ArrayOfEsentColumndef">
+    <xs:sequence>
+      <xs:element minOccurs="0" maxOccurs="unbounded" name="Column" nillable="true" type="EsentColumndef" />
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="ArrayOfEsentIndex">
+    <xs:sequence>
+      <xs:element minOccurs="0" maxOccurs="unbounded" name="Index" nillable="true" type="EsentIndex" />
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="ArrayOfEsentView">
+    <xs:sequence>
+      <xs:element minOccurs="0" maxOccurs="unbounded" name="View" nillable="true" type="EsentView" />
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="EsentView">
+    <xs:sequence>
+      <xs:element minOccurs="0" maxOccurs="unbounded" name="Field" type="EsentViewField" />
+      <xs:element minOccurs="0" maxOccurs="1" name="AssignableTo" type="ArrayOfString" />
+    </xs:sequence>
+    <xs:attribute name="Name" type="xs:string" />
+    <xs:attribute default="None" name="Role" type="EsentViewRole" />
+  </xs:complexType>
+  <xs:complexType name="EsentViewField">
+    <xs:simpleContent>
+      <xs:extension base="xs:string">
+        <xs:attribute default="Default" name="FetchFlags" type="EsentViewFieldFetchFlags" />
+      </xs:extension>
+    </xs:simpleContent>
+  </xs:complexType>
+  <xs:simpleType name="EsentViewFieldFetchFlags">
+    <xs:list>
+      <xs:simpleType>
+        <xs:restriction base="xs:string">
+          <xs:enumeration value="Default" />
+          <xs:enumeration value="FromIndex" />
+          <xs:enumeration value="FromPrimaryBookmark" />
+        </xs:restriction>
+      </xs:simpleType>
+    </xs:list>
+  </xs:simpleType>
+  <xs:simpleType name="EsentViewRole">
+    <xs:list>
+      <xs:simpleType>
+        <xs:restriction base="xs:string">
+          <xs:enumeration value="None" />
+          <xs:enumeration value="Fetch" />
+          <xs:enumeration value="Insert" />
+          <xs:enumeration value="Update" />
+          <xs:enumeration value="IndexFetch" />
+        </xs:restriction>
+      </xs:simpleType>
+    </xs:list>
+  </xs:simpleType>
+  <xs:element name="EsentView" nillable="true" type="EsentView" />
+  <xs:element name="EsentViewField" nillable="true" type="EsentViewField" />
+  <xs:element name="EsentViewFieldFetchFlags" type="EsentViewFieldFetchFlags" />
+  <xs:element name="EsentViewRole" type="EsentViewRole" />
+</xs:schema>

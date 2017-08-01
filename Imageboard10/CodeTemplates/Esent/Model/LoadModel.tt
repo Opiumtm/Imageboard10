@@ -1,0 +1,18 @@
+﻿<#@ assembly name="System.Core" #>
+<#@ assembly name="System.Xml" #>
+<#@ assembly name="$(SolutionDir)\CodeTemplates\Libs\CodeTemplates.dll" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.IO" #>
+<#@ import namespace="System.Text" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ import namespace="System.Xml.Serialization" #>
+<#@ import namespace="CodeTemplates.Esent.Model" #>
+<#+
+private EsentTable LoadEsentTableXml(string fullPath) {
+    var serializer = new XmlSerializer(typeof(EsentTable));
+	using (var str = File.OpenRead(fullPath))
+	{
+		return (EsentTable)serializer.Deserialize(str);
+	}
+}
+#>

@@ -9,6 +9,7 @@ using Imageboard10.Core.Database;
 using Imageboard10.Core.ModelInterface;
 using Imageboard10.Core.ModelInterface.Links;
 using Imageboard10.Core.Models.Serialization;
+using Imageboard10.Core.ModelStorage.Boards;
 using Imageboard10.Core.ModelStorage.UnitTests;
 using Imageboard10.Core.Modules;
 using Imageboard10.Core.Tasks;
@@ -616,18 +617,15 @@ namespace Imageboard10.Core.ModelStorage
         /// Удалить все записи в таблице.
         /// </summary>
         /// <param name="table">Таблица.</param>
-        protected void DeleteAllRows(EsentTable table)
+        protected void DeleteAllRows(BoardReferenceTable table)
         {
-            Api.JetSetCurrentIndex(table.Session, table.Table, null);
+            table.Indexes.PrimaryIndex.SetAsCurrentIndex();
             Api.JetSetTableSequential(table.Session, table.Table, SetTableSequentialGrbit.None);
             try
             {
-                if (Api.TryMoveFirst(table.Session, table.Table))
+                foreach (var _ in table.Enumerate())
                 {
-                    do
-                    {
-                        Api.JetDelete(table.Session, table.Table);
-                    } while (Api.TryMoveNext(table.Session, table.Table));
+                    table.DeleteCurrentRow();
                 }
             }
             finally

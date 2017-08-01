@@ -17,7 +17,7 @@ namespace Imageboard10.Core.ModelStorage.Blobs
 
         private readonly Transaction _transaction;
 
-        private EsentTable _table;
+        private BlobsTable _table;
 
         private readonly IDisposable _usage;
 
@@ -39,7 +39,8 @@ namespace Imageboard10.Core.ModelStorage.Blobs
                 _transaction = new Transaction(session.Session);
                 try
                 {
-                    _table = session.OpenTable(BlobTableInfo.BlobsTable, OpenTableGrbit.ReadOnly);
+                    var tbl = session.OpenTable(BlobTableInfo.BlobsTableName, OpenTableGrbit.ReadOnly);
+                    _table = new BlobsTable(tbl.Session, tbl);
                     try
                     {
                         Api.MakeKey(sid, _table, blobId.Id, MakeKeyGrbit.NewKey);
@@ -47,7 +48,7 @@ namespace Imageboard10.Core.ModelStorage.Blobs
                         {
                             throw new BlobNotFoundException(blobId);
                         }
-                        _inlinedStream = new ColumnStream(sid, _table, Api.GetTableColumnid(sid, _table, BlobTableInfo.BlobsTableColumns.Data));
+                        _inlinedStream = new ColumnStream(sid, _table, _table.GetColumnid(BlobsTable.Column.Data));
                         Length = _inlinedStream.Length;
                     }
                     catch

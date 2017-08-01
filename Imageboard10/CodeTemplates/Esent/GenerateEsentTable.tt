@@ -1,0 +1,1563 @@
+﻿<#@ assembly name="System.Core" #>
+<#@ assembly name="$(SolutionDir)\CodeTemplates\Libs\CodeTemplates.dll" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Text" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ import namespace="CodeTemplates.Esent.Model" #>
+<#+
+private void GenerateEsentTable(EsentTable table)
+{
+	var columnDic = new __ColumnDic()
+	{
+		Data = new Dictionary<string, EsentColumndef>()
+	};
+	foreach (var column in table.Columns)
+	{
+		columnDic.Data[column.Name] = column;
+	}
+#>
+// ReSharper disable RedundantUsingDirective
+using System;
+using System.Collections.Generic;
+using Microsoft.Isam.Esent.Interop;
+using Microsoft.Isam.Esent.Interop.Vista;
+using Microsoft.Isam.Esent.Interop.Windows10;
+using System.Runtime.CompilerServices;
+using System.Text;
+// ReSharper enable RedundantUsingDirective
+
+// ReSharper disable RedundantNameQualifier
+// ReSharper disable once CheckNamespace
+namespace <#= table.Namespace #>
+{
+	<#= table.Visibility #> sealed class <#= table.Name #> : IDisposable
+	{
+        public readonly Session Session;
+        public readonly JET_TABLEID Table;
+
+		public <#= table.Name #>(Session session, JET_TABLEID table)
+        {
+            Session = session;
+            Table = table;
+			_columnDic = null;
+			Columns = new DefaultView(this);
+        }
+
+	    public <#= table.Name #>(Session session, JET_DBID dbid, string tableName, OpenTableGrbit grbit)
+	    {
+	        Session = session;
+	        JET_TABLEID tableid;
+	        Api.OpenTable(session, dbid, tableName, grbit, out tableid);
+	        Table = tableid;
+	        _columnDic = null;
+	        Columns = new DefaultView(this);
+	    }
+
+        public void Dispose()
+        {
+            Api.JetCloseTable(Session, Table);
+        }
+
+        public static implicit operator JET_TABLEID(<#= table.Name #> src)
+        {
+            return src.Table;
+        }
+
+		public enum Column
+		{
+<#+
+			foreach (var column in table.Columns) {
+#>
+			<#= column.Name #>,
+<#+
+			}
+#>
+		}
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public JET_COLUMNID GetColumnid(Column columnName)
+        {
+			switch (columnName)
+			{
+<#+
+				foreach (var column in table.Columns) {
+#>
+				case Column.<#= column.Name #>:
+					return Api.GetTableColumnid(Session, Table, "<#= column.Name #>");
+<#+
+				}
+#>
+				default:
+					throw new ArgumentOutOfRangeException();
+			}
+        }
+
+		private IDictionary<Column, JET_COLUMNID> _columnDic;
+
+        public IDictionary<Column, JET_COLUMNID> ColumnDictionary
+        {
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			get {
+				if (_columnDic == null) {
+					_columnDic = new Dictionary<Column, JET_COLUMNID>()
+					{
+<#+
+						foreach (var column in table.Columns) {
+#>
+						{ Column.<#= column.Name #>, Api.GetTableColumnid(Session, Table, "<#= column.Name #>") },
+<#+
+						}
+#>
+					};
+				}
+				return _columnDic;
+			}
+        }
+
+		public static void CreateColumnsAndIndexes(Session sid, JET_TABLEID tableid)
+		{
+			JET_COLUMNID tempcolid;
+<#+
+			foreach (var column in table.Columns) {
+#>
+            Api.JetAddColumn(sid, tableid, "<#= column.Name #>", new JET_COLUMNDEF()
+            {
+<#+
+				foreach (var s in column.GenerateCreateColumnLines()) {
+#>
+				<#= s #>
+<#+
+				}
+#>
+            }, null, 0, out tempcolid);			
+<#+
+			}
+#>
+
+<#+
+			if (table.Indexes != null)
+			{
+				int idxCnt = 0;
+				foreach (var i in table.Indexes)
+				{
+					idxCnt++;
+#>
+			var idxDef<#= idxCnt #> = "<#= i.GetIndexDefString() #>";
+			Api.JetCreateIndex(sid, tableid, "<#= i.Name #>", <#= i.GetJetIndexGrbitsString() #>, idxDef<#= idxCnt #>, idxDef<#= idxCnt #>.Length, 100);
+<#+
+				}
+			}
+#>
+		}
+
+		public struct Multivalue<T> where T : ColumnValue, new()
+        {
+            private readonly <#= table.Name #> _table;
+            private readonly JET_RETRIEVECOLUMN[] _r;
+            private readonly T[] _c;
+            private readonly JET_COLUMNID _columnid;
+
+            public Multivalue(<#= table.Name #> table, JET_COLUMNID columnid)
+            {
+                _table = table;
+                _r = new [] { new JET_RETRIEVECOLUMN() { columnid = columnid } };
+                _c = new T[1];
+                _columnid = columnid;
+            }
+
+            public void Clear()
+            {
+                var si = new JET_SETINFO() { itagSequence = 1 };
+                for (var i = 0; i < Count; i++)
+                {
+                    Api.JetSetColumn(_table.Session, _table.Table, _columnid, null, 0, SetColumnGrbit.None, si);
+                }
+            }
+
+            public int Count
+            {
+                get
+                {
+                    _r[0].itagSequence = 0;
+                    Api.JetRetrieveColumns(_table.Session, _table, _r, 1);
+                    return _r[0].itagSequence;
+                }
+            }
+
+            public T this[int i]
+            {
+                get
+                {
+                    var col = new T
+                    {
+                        ItagSequence = i + 1,
+                        Columnid = _columnid,
+                        RetrieveGrbit = RetrieveColumnGrbit.None
+                    };
+                    _c[0] = col;
+				    // ReSharper disable once CoVariantArrayConversion
+                    Api.RetrieveColumns(_table.Session, _table.Table, _c);
+                    return _c[0];
+                }
+				set
+				{
+                    _c[0] = value ?? throw new ArgumentNullException();
+					_c[0].ItagSequence = i + 1;
+					_c[0].Columnid = _columnid;
+				    // ReSharper disable once CoVariantArrayConversion
+                    Api.SetColumns(_table.Session, _table.Table, _c);
+				}
+            }
+
+			public void Add(T value)
+			{
+                _c[0] = value ?? throw new ArgumentNullException();
+				_c[0].ItagSequence = 0;
+				_c[0].Columnid = _columnid;
+				// ReSharper disable once CoVariantArrayConversion
+                Api.SetColumns(_table.Session, _table.Table, _c);
+			}
+
+			public IEnumerable<T> Enumerate()
+			{
+                var cnt = Count;
+				if (cnt == 0)
+				{
+					yield break;
+				}
+                for (var i = 0; i < cnt; i++)
+                {
+                    var col = new T
+                    {
+                        ItagSequence = i + 1,
+                        Columnid = _columnid,
+                        RetrieveGrbit = RetrieveColumnGrbit.None
+                    };
+                    _c[0] = col;
+				    // ReSharper disable once CoVariantArrayConversion
+                    Api.RetrieveColumns(_table.Session, _table.Table, _c);
+					yield return _c[0];
+                }
+			}
+
+            public T[] Values
+            {
+                get
+                {
+                    var cnt = Count;
+					if (cnt == 0)
+					{
+						return new T[0];
+					}
+                    var r = new T[cnt];
+                    for (var i = 0; i < cnt; i++)
+                    {
+                        var col = new T
+                        {
+                            ItagSequence = i + 1,
+                            Columnid = _columnid,
+                            RetrieveGrbit = RetrieveColumnGrbit.None
+                        };
+                        r[i] = col;
+                    }
+                    // ReSharper disable once CoVariantArrayConversion
+                    Api.RetrieveColumns(_table.Session, _table.Table, r);
+                    return r;
+                }
+				set => SetValues(value, false);
+			}
+
+			public void SetValues(T[] value, bool isInsert)
+			{
+				if (value == null)
+				{
+					throw new ArgumentNullException();
+				}
+				if (!isInsert)
+				{
+					Clear();
+				}
+				if (value.Length == 0)
+				{
+					return;
+				}
+                for (var i = 0; i < value.Length; i++)
+                {
+					value[i].ItagSequence = i + 1;
+					value[i].Columnid = _columnid;
+				}
+				// ReSharper disable once CoVariantArrayConversion
+                Api.SetColumns(_table.Session, _table.Table, value);
+			}
+        }
+
+
+		public struct DefaultView
+		{
+			private readonly <#= table.Name #> _table;
+<#+
+			foreach (var column in table.Columns) 
+			{
+			if (column.Grbit.HasFlag(EsentColumndefGrbit.MultiValued))
+			{
+#>
+
+		    // ReSharper disable once InconsistentNaming
+			private readonly Multivalue<<#= column.GetColumnValueType() #>> __mv_<#= column.Name #>;
+<#+
+			}
+			}
+#>
+
+			public DefaultView(<#= table.Name #> table)
+			{
+				_table = table;
+<#+
+				foreach (var column in table.Columns) 
+				{
+				if (column.Grbit.HasFlag(EsentColumndefGrbit.MultiValued))
+				{
+#>
+				__mv_<#= column.Name #> = new Multivalue<<#= column.GetColumnValueType() #>>(table, table.GetColumnid(<#= table.Name #>.Column.<#= column.Name #>));
+<#+
+				}
+				}
+#>
+			}
+<#+
+			foreach (var column in table.Columns) {
+			if (column.Grbit.HasFlag(EsentColumndefGrbit.MultiValued))
+			{
+#>
+
+		    // ReSharper disable once ConvertToAutoProperty
+			public Multivalue<<#= column.GetColumnValueType() #>> <#= column.Name #> => __mv_<#= column.Name #>;
+			
+			public void Set<#= column.Name #>ValueArr(<#= column.GetColumnValueType() #>[] v, bool isInsert)
+			{
+			    // ReSharper disable once ImpureMethodCallOnReadonlyValueField
+				__mv_<#= column.Name #>.SetValues(v, isInsert);
+			}
+<#+
+			} else {
+#>
+			public <#= column.GetNetType() #> <#= column.Name #>
+			{
+			    // ReSharper disable once PossibleInvalidOperationException
+                [MethodImpl(MethodImplOptions.AggressiveInlining)]
+				get => <#= __GenerateEsentTableRetrieveColumnExpr(columnDic, column.Name, "_table", null, table.Name) #>;
+<#+
+				if (column.IsNullable() && !column.IsReferenceType())
+				{
+#>
+                [MethodImpl(MethodImplOptions.AggressiveInlining)]
+				set {
+					if (value != null)
+					{
+						Api.SetColumn(_table.Session, _table, _table.ColumnDictionary[<#= table.Name #>.Column.<#= column.Name #>], value.Value);
+					} else
+					{
+						Api.SetColumn(_table.Session, _table, _table.ColumnDictionary[<#= table.Name #>.Column.<#= column.Name #>], null);
+					}
+				}
+<#+
+				} else
+				{
+#>
+                [MethodImpl(MethodImplOptions.AggressiveInlining)]
+				set => Api.SetColumn(_table.Session, _table, _table.ColumnDictionary[<#= table.Name #>.Column.<#= column.Name #>], value<#= column.GetNetEncoding() != null ? ", " + column.GetNetEncoding() : "" #>);
+
+<#+
+				}
+#>
+			}
+
+<#+
+			if (column.IsAutoincrement())
+			{
+#>
+		    // ReSharper disable once InconsistentNaming
+			public <#= column.GetNetType() #> <#= column.Name #>_AutoincrementValue
+			{
+				// ReSharper disable once PossibleInvalidOperationException
+                [MethodImpl(MethodImplOptions.AggressiveInlining)]
+				get => <#= __GenerateEsentTableRetrieveColumnExprOriginal(columnDic, column.Name, "_table", null, table.Name) #>;
+			}
+<#+
+			}
+#>
+<#+
+			}
+			}
+#>
+		}
+
+		public DefaultView Columns { get; }
+
+	    public IEnumerable<object> EnumerateToEnd()
+	    {
+			do {
+	            yield return this;
+			} while (Api.TryMoveNext(Session, Table));
+	    }
+
+	    public IEnumerable<object> EnumerateToEnd(int skip, int? maxCount)
+	    {
+			if (skip > 0)
+			{
+				if (!TryMove(skip))
+				{
+					yield break;
+				}
+			}			
+			do {
+	            yield return this;
+				if (maxCount != null)
+				{
+					maxCount--;
+					if (maxCount <= 0)
+					{
+						break;
+					}
+				}
+			} while (Api.TryMoveNext(Session, Table));
+	    }
+
+	    public IEnumerable<object> EnumerateToEnd(int? maxCount)
+	    {
+			do {
+	            yield return this;
+				if (maxCount != null)
+				{
+					maxCount--;
+					if (maxCount <= 0)
+					{
+						break;
+					}
+				}
+			} while (Api.TryMoveNext(Session, Table));
+	    }
+
+	    public IEnumerable<object> Enumerate()
+	    {
+			if (Api.TryMoveFirst(Session, Table))
+			{
+				do {
+					yield return this;
+				} while (Api.TryMoveNext(Session, Table));
+			}
+	    }
+
+	    public IEnumerable<object> EnumerateUnique()
+	    {
+			if (Api.TryMoveFirst(Session, Table))
+			{
+				do {
+					yield return this;
+				} while (Api.TryMove(Session, Table, JET_Move.Next, MoveGrbit.MoveKeyNE));
+			}
+	    }
+
+	    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+	    public void MoveBeforeFirst()
+	    {
+	        Api.MoveBeforeFirst(Session, Table);
+	    }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+	    public bool TryMoveFirst()
+	    {
+	        return Api.TryMoveFirst(Session, Table);
+	    }
+
+	    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+	    public bool TryMoveNext()
+	    {
+	        return Api.TryMoveNext(Session, Table);
+	    }
+
+	    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+	    public bool TryMoveNextUniqueKey()
+	    {
+	        return Api.TryMove(Session, Table, JET_Move.Next, MoveGrbit.MoveKeyNE);
+	    }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+	    public bool TryMovePrevious()
+	    {
+	        return Api.TryMovePrevious(Session, Table);
+	    }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+	    public bool TryMove(int delta)
+	    {
+	        return Api.TryMove(Session, Table, (JET_Move)delta, MoveGrbit.None);
+	    }
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool TryGotoBookmark(byte[] bookmark)
+		{
+			if (bookmark == null)
+			{
+				throw new ArgumentNullException(nameof(bookmark));
+			}
+			return Api.TryGotoBookmark(Session, Table, bookmark, bookmark.Length);
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool TryGotoBookmark(byte[] bookmark, int bookmarkSize)
+		{
+			if (bookmark == null)
+			{
+				throw new ArgumentNullException(nameof(bookmark));
+			}
+			return Api.TryGotoBookmark(Session, Table, bookmark, bookmarkSize);
+		}
+		
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+	    public void DeleteCurrentRow()
+	    {
+	        Api.JetDelete(Session, Table);
+	    }
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public byte[] GetBookmark()
+		{
+			return Api.GetBookmark(Session, Table);
+		}
+
+		public static class ViewValues
+		{
+<#+
+			foreach (var view in table.Views)
+			{
+#>
+
+			// ReSharper disable once InconsistentNaming
+			public struct <#= view.Name #>
+			{
+<#+
+				foreach (var field in view.Fields)
+				{
+					var columndef = columnDic.Data[field.Name];
+					if (!columndef.IsMultivalue())
+					{
+#>
+				public <#= columndef.GetNetType() #> <#= columndef.Name #>;
+<#+
+					} else {
+#>
+				public <#= columndef.GetColumnValueType() #>[] <#= columndef.Name #>;
+<#+
+					}
+				}
+#>
+
+<#+
+				if (view.AssignableTo != null)
+				{
+					foreach (var v in view.AssignableTo)
+					{
+						var vn = v;
+						var av = table.Views.FirstOrDefault(vv => vv.Name.Equals(vn, StringComparison.InvariantCultureIgnoreCase));
+						if (av != null)
+						{
+#>
+				public static implicit operator ViewValues.<#= av.Name #>(ViewValues.<#= view.Name #> src)
+				{
+					return new ViewValues.<#= av.Name #>()
+					{
+<#+
+						foreach (var fn in av.Fields)
+						{
+#>
+						<#= fn.Name #> = src.<#= fn.Name #>,
+<#+
+						}
+#>
+					};
+				}
+<#+
+						}
+					}
+				}
+#>
+			}
+<#+
+		}
+#>
+		}
+
+		public static class FetchViews {
+<#+
+			List<EsentView> globalFetchViews = new List<EsentView>();
+			foreach (var view in table.Views)
+			{
+				if (view.Role.HasFlag(EsentViewRole.Fetch))
+				{
+					globalFetchViews.Add(view);
+				}
+				if (view.Role.HasFlag(EsentViewRole.Fetch) || view.Role.HasFlag(EsentViewRole.IndexFetch))
+				{
+					var nmFields = view.Fields.Select(f => new { f, c = columnDic.Data[f.Name] }).Where(c => !c.c.IsMultivalue()).Select(c => c.f).ToArray();
+					var mFields = view.Fields.Select(f => new { f, c = columnDic.Data[f.Name] }).Where(c => c.c.IsMultivalue()).Select(c => c.f).ToArray();
+#>
+
+			// ReSharper disable once InconsistentNaming
+			public struct <#= view.Name #>
+			{
+				private readonly <#= table.Name #> _table;
+<#+
+				if (nmFields.Length > 0) {
+#>
+				private readonly ColumnValue[] _c;
+<#+
+				}
+#>
+
+				public <#= view.Name #>(<#= table.Name #> table)
+				{
+					_table = table;
+<#+
+					if (nmFields.Length > 0) {
+#>
+
+					_c = new ColumnValue[<#= nmFields.Length #>];
+<#+
+					for (var i = 0; i < nmFields.Length; i++)
+					{
+						var field = nmFields[i];
+						var columndef = columnDic.Data[field.Name];
+#>
+					_c[<#= i #>] = new <#= columndef.GetColumnValueType() #>() {
+						Columnid = _table.ColumnDictionary[<#= table.Name #>.Column.<#= columndef.Name #>],
+						RetrieveGrbit = <#= field.GetRetrieveFlagsString() #>
+					};
+<#+
+						}
+#>
+<#+
+					}
+#>
+				}
+
+				public ViewValues.<#= view.Name #> Fetch()
+				{
+					var r = new ViewValues.<#= view.Name #>();
+<#+
+					if (nmFields.Length > 0) {
+#>
+					Api.RetrieveColumns(_table.Session, _table, _c);
+<#+
+					for (var i = 0; i < nmFields.Length; i++)
+					{
+						var field = nmFields[i];
+						var columndef = columnDic.Data[field.Name];
+#>
+<#+
+						if (!columndef.IsNullable() && !columndef.IsReferenceType())
+						{
+#>
+				    // ReSharper disable once PossibleInvalidOperationException
+					r.<#= columndef.Name #> = ((<#= columndef.GetColumnValueType() #>)_c[<#= i #>]).Value.Value;
+<#+
+						} else {
+#>
+					r.<#= columndef.Name #> = ((<#= columndef.GetColumnValueType() #>)_c[<#= i #>]).Value;
+<#+
+						}
+					}
+#>
+<#+
+					}
+#>
+<#+
+					for (var i = 0; i < mFields.Length; i++)
+					{
+#>
+					r.<#= mFields[i].Name #> = _table.Columns.<#= mFields[i].Name #>.Values;
+<#+
+					}
+#>
+					return r;
+				}
+			}
+<#+
+			}
+		}
+#>	
+		}
+
+		public class TableFetchViews
+		{
+			private readonly <#= table.Name #> _table;
+
+			public TableFetchViews(<#= table.Name #> table)
+			{
+				_table = table;
+			}
+<#+
+		foreach (var view in globalFetchViews)
+		{
+#>
+
+		    // ReSharper disable once InconsistentNaming
+			private FetchViews.<#= view.Name #>? __fv_<#= view.Name #>;
+			public FetchViews.<#= view.Name #> <#= view.Name #>
+			{
+				get
+				{
+					if (__fv_<#= view.Name #> == null)
+					{
+						__fv_<#= view.Name #> = new FetchViews.<#= view.Name #>(_table);
+					}
+					return __fv_<#= view.Name #>.Value;
+				}
+			}
+<#+
+		}
+#>
+		}
+
+		// ReSharper disable once InconsistentNaming
+		private TableFetchViews __views;
+
+		public TableFetchViews Views
+		{
+			get
+			{
+				if (__views == null)
+				{
+					__views = new TableFetchViews(this);
+				}
+				return __views;
+			}
+		}
+
+		public static class InsertOrUpdateViews
+		{
+<#+
+			var globalInsertViews = new List<EsentView>();
+			var globalUpdateViews = new List<EsentView>();
+			foreach (var view in table.Views)
+			{
+				if (view.Role.HasFlag(EsentViewRole.Insert))
+				{
+					globalInsertViews.Add(view);
+				}
+				if (view.Role.HasFlag(EsentViewRole.Update))
+				{
+					globalUpdateViews.Add(view);
+				}
+				if (view.Role.HasFlag(EsentViewRole.Insert) || view.Role.HasFlag(EsentViewRole.Update))
+				{
+					var nmFields = view.Fields.Select(f => new { f, c = columnDic.Data[f.Name] }).Where(c => !c.c.IsMultivalue()).Select(c => c.f).ToArray();
+					var mFields = view.Fields.Select(f => new { f, c = columnDic.Data[f.Name] }).Where(c => c.c.IsMultivalue()).Select(c => c.f).ToArray();
+#>
+			public struct <#= view.Name #>
+			{
+				private readonly <#= table.Name #> _table;
+<#+
+				if (nmFields.Length > 0) {
+#>
+				private readonly ColumnValue[] _c;
+<#+
+				}
+#>
+
+				public <#= view.Name #>(<#= table.Name #> table)
+				{
+					_table = table;
+<#+
+					if (nmFields.Length > 0) {
+#>
+
+					_c = new ColumnValue[<#= nmFields.Length #>];
+<#+
+					for (var i = 0; i < nmFields.Length; i++)
+					{
+						var field = nmFields[i];
+						var columndef = columnDic.Data[field.Name];
+#>
+					_c[<#= i #>] = new <#= columndef.GetColumnValueType() #>() {
+						Columnid = _table.ColumnDictionary[<#= table.Name #>.Column.<#= columndef.Name #>],
+						SetGrbit = SetColumnGrbit.None
+					};
+<#+
+						}
+#>
+<#+
+					}
+#>
+				}
+
+				public void Set(ViewValues.<#= view.Name #> value, bool isInsert = false)
+				{
+<#+
+					if (nmFields.Length > 0) {
+					for (var i = 0; i < nmFields.Length; i++)
+					{
+						var field = nmFields[i];
+						var columndef = columnDic.Data[field.Name];
+#>
+					((<#= columndef.GetColumnValueType() #>)_c[<#= i #>]).Value = value.<#= columndef.Name #>;
+<#+
+					}
+#>
+					Api.SetColumns(_table.Session, _table, _c);
+<#+
+					for (var i = 0; i < mFields.Length; i++)
+					{
+#>
+					_table.Columns.Set<#= mFields[i].Name #>ValueArr(value.<#= mFields[i].Name #>, isInsert);
+<#+
+					}
+				}
+#>
+				}
+
+				public void Set(ref ViewValues.<#= view.Name #> value, bool isInsert = false)
+				{
+<#+
+					if (nmFields.Length > 0) {
+					for (var i = 0; i < nmFields.Length; i++)
+					{
+						var field = nmFields[i];
+						var columndef = columnDic.Data[field.Name];
+#>
+					((<#= columndef.GetColumnValueType() #>)_c[<#= i #>]).Value = value.<#= columndef.Name #>;
+<#+
+					}
+#>
+					Api.SetColumns(_table.Session, _table, _c);
+<#+
+					for (var i = 0; i < mFields.Length; i++)
+					{
+#>
+					_table.Columns.Set<#= mFields[i].Name #>ValueArr(value.<#= mFields[i].Name #>, isInsert);
+<#+
+					}
+				}
+#>
+				}
+			}			
+<#+
+			}
+		}
+#>
+		}
+
+		public class TableInsertViews
+		{
+			private readonly <#= table.Name #> _table;
+
+			public TableInsertViews(<#= table.Name #> table)
+			{
+				_table = table;
+			}
+
+			public Update CreateUpdate() => new Update(_table.Session, _table, JET_prep.Insert);
+
+			private byte[] _bookmarkBuffer;
+
+			private void EnsureBookmarkBuffer()
+			{
+				if (_bookmarkBuffer == null)
+				{
+					_bookmarkBuffer = new byte[SystemParameters.BookmarkMost];
+				}
+			}
+
+			public void SaveUpdateWithBookmark(Update update, out byte[] bookmark)
+			{
+				EnsureBookmarkBuffer();
+				int bsize;
+				update.Save(_bookmarkBuffer, _bookmarkBuffer.Length, out bsize);
+				bookmark = new byte[bsize];
+				Array.Copy(_bookmarkBuffer, bookmark, bsize);
+			}
+
+<#+
+		foreach (var view in globalInsertViews)
+		{
+#>
+
+		    // ReSharper disable once InconsistentNaming
+			private InsertOrUpdateViews.<#= view.Name #>? __iuv_<#= view.Name #>;
+
+			public InsertOrUpdateViews.<#= view.Name #> <#= view.Name #>
+			{
+				get
+				{
+					if (__iuv_<#= view.Name #> == null)
+					{
+						__iuv_<#= view.Name #> = new InsertOrUpdateViews.<#= view.Name #>(_table);
+					}
+					return __iuv_<#= view.Name #>.Value;
+				}
+			}
+
+			public void InsertAs<#= view.Name #>(ViewValues.<#= view.Name #> value)
+			{
+				using (var update = CreateUpdate())
+				{
+					<#= view.Name #>.Set(value, true);
+					update.Save();
+				}
+			}
+
+			public void InsertAs<#= view.Name #>(ref ViewValues.<#= view.Name #> value)
+			{
+				using (var update = CreateUpdate())
+				{
+					<#= view.Name #>.Set(ref value, true);
+					update.Save();
+				}
+			}
+
+			public void InsertAs<#= view.Name #>(ViewValues.<#= view.Name #> value, out byte[] bookmark)
+			{
+				using (var update = CreateUpdate())
+				{
+					<#= view.Name #>.Set(value, true);
+					SaveUpdateWithBookmark(update, out bookmark);
+				}
+			}
+
+			public void InsertAs<#= view.Name #>(ref ViewValues.<#= view.Name #> value, out byte[] bookmark)
+			{
+				using (var update = CreateUpdate())
+				{
+					<#= view.Name #>.Set(ref value, true);
+					SaveUpdateWithBookmark(update, out bookmark);
+				}
+			}
+<#+
+		}
+#>
+		}
+
+		// ReSharper disable once InconsistentNaming
+		private TableInsertViews __insert;
+
+		public TableInsertViews Insert
+		{
+			get
+			{
+				if (__insert == null)
+				{
+					__insert = new TableInsertViews(this);
+				}
+				return __insert;
+			}
+		}
+
+		public class TableUpdateViews
+		{
+			private readonly <#= table.Name #> _table;
+
+			public TableUpdateViews(<#= table.Name #> table)
+			{
+				_table = table;
+			}
+
+			public Update CreateUpdate() => new Update(_table.Session, _table, JET_prep.Replace);
+
+			private byte[] _bookmarkBuffer;
+
+			private void EnsureBookmarkBuffer()
+			{
+				if (_bookmarkBuffer == null)
+				{
+					_bookmarkBuffer = new byte[SystemParameters.BookmarkMost];
+				}
+			}
+
+			public void SaveUpdateWithBookmark(Update update, out byte[] bookmark)
+			{
+				EnsureBookmarkBuffer();
+				int bsize;
+				update.Save(_bookmarkBuffer, _bookmarkBuffer.Length, out bsize);
+				bookmark = new byte[bsize];
+				Array.Copy(_bookmarkBuffer, bookmark, bsize);
+			}
+<#+
+		foreach (var view in globalUpdateViews)
+		{
+#>
+
+		    // ReSharper disable once InconsistentNaming
+			private InsertOrUpdateViews.<#= view.Name #>? __iuv_<#= view.Name #>;
+
+			public InsertOrUpdateViews.<#= view.Name #> <#= view.Name #>
+			{
+				get
+				{
+					if (__iuv_<#= view.Name #> == null)
+					{
+						__iuv_<#= view.Name #> = new InsertOrUpdateViews.<#= view.Name #>(_table);
+					}
+					return __iuv_<#= view.Name #>.Value;
+				}
+			}
+
+			public void UpdateAs<#= view.Name #>(ViewValues.<#= view.Name #> value)
+			{
+				using (var update = CreateUpdate())
+				{
+					<#= view.Name #>.Set(value);
+					update.Save();
+				}
+			}
+
+			public void UpdateAs<#= view.Name #>(ref ViewValues.<#= view.Name #> value)
+			{
+				using (var update = CreateUpdate())
+				{
+					<#= view.Name #>.Set(ref value);
+					update.Save();
+				}
+			}
+
+			public void UpdateAs<#= view.Name #>(ViewValues.<#= view.Name #> value, out byte[] bookmark)
+			{
+				using (var update = CreateUpdate())
+				{
+					<#= view.Name #>.Set(value);
+					SaveUpdateWithBookmark(update, out bookmark);
+				}
+			}
+
+			public void UpdateAs<#= view.Name #>(ref ViewValues.<#= view.Name #> value, out byte[] bookmark)
+			{
+				using (var update = CreateUpdate())
+				{
+					<#= view.Name #>.Set(ref value);
+					SaveUpdateWithBookmark(update, out bookmark);
+				}
+			}
+<#+
+		}
+#>
+		}
+
+		// ReSharper disable once InconsistentNaming
+		private TableUpdateViews __update;
+
+		public TableUpdateViews Update
+		{
+			get
+			{
+				if (__update == null)
+				{
+					__update = new TableUpdateViews(this);
+				}
+				return __update;
+			}
+		}
+
+		public static class IndexDefinitions
+		{
+<#+
+		foreach (var index in table.Indexes)
+		{
+			EsentView[] fetchViews = new EsentView[0];
+			if (index.Views != null && index.Views.Length > 0)
+			{
+				var viewSet = new HashSet<string>();
+				foreach (var v in index.Views)
+				{
+					viewSet.Add(v);
+				}
+				fetchViews = table.Views.Where(v => v.Role.HasFlag(EsentViewRole.IndexFetch) && viewSet.Contains(v.Name)).ToArray();
+			}
+#>
+
+			public struct <#= index.Name #>
+			{
+				private readonly <#= table.Name #> _table;
+
+				public <#= index.Name #>(<#= table.Name #> table)
+				{
+					_table = table;
+<#+
+				if (fetchViews.Length > 0)
+				{
+#>
+					_views = new IndexFetchViews(_table);
+<#+
+				}
+#>
+				}
+
+				public void SetAsCurrentIndex()
+				{
+					Api.JetSetCurrentIndex(_table.Session, _table, "<#= index.Name #>");
+				}
+
+				public struct <#= index.Name #>Key
+				{
+<#+
+					for (var i = 0; i < index.Fields.Length; i++)
+					{
+						var field = index.Fields[i];
+						var columndef = columnDic.Data[field.Name];
+#>
+					public <#= columndef.GetNetType() #> <#= columndef.Name #>;
+<#+
+					}
+#>
+				}
+
+			    // ReSharper disable InconsistentNaming
+				public <#= index.Name #>Key CreateKey(
+<#+
+					for (var i = 0; i < index.Fields.Length; i++)
+					{
+						var field = index.Fields[i];
+						var columndef = columnDic.Data[field.Name];
+#>
+						<#= i == 0 ? "" : "," #><#= columndef.GetNetType() #> <#= columndef.Name #>
+<#+
+					}
+#>
+				)
+			    // ReSharper enable InconsistentNaming
+				{
+					return new <#= index.Name #>Key() {
+<#+
+					for (var i = 0; i < index.Fields.Length; i++)
+					{
+						var field = index.Fields[i];
+						var columndef = columnDic.Data[field.Name];
+#>
+						<#= columndef.Name #> = <#= columndef.Name #>,
+<#+
+					}
+#>					
+					};
+				}
+
+				public void SetKey(<#= index.Name #>Key key)
+				{
+<#+
+					for (var i = 0; i < index.Fields.Length; i++)
+					{
+						var field = index.Fields[i];
+						var columndef = columnDic.Data[field.Name];
+#>
+<#+
+						if (columndef.IsNullable() && !columndef.IsReferenceType())
+						{
+#>
+					if (key.<#= index.Fields[i].Name #> == null)
+					{
+						Api.MakeKey(_table.Session, _table, null, <#= i == 0 ? "MakeKeyGrbit.NewKey" : "MakeKeyGrbit.None" #>);
+					} else
+					{
+						Api.MakeKey(_table.Session, _table, key.<#= index.Fields[i].Name #>.Value, <#= i == 0 ? "MakeKeyGrbit.NewKey" : "MakeKeyGrbit.None" #>);
+					}
+<#+
+						} else {
+#>
+					Api.MakeKey(_table.Session, _table, key.<#= index.Fields[i].Name #>, <#= columndef.GetNetEncoding() != null ? columndef.GetNetEncoding() + "," : "" #> <#= i == 0 ? "MakeKeyGrbit.NewKey" : "MakeKeyGrbit.None" #>);
+<#+
+						}
+#>
+<#+
+					}
+#>
+				}
+
+				public bool Find(<#= index.Name #>Key key)
+				{
+					SetKey(key);
+					return Api.TrySeek(_table.Session, _table, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange);
+				}
+
+				public IEnumerable<object> Enumerate(<#= index.Name #>Key key)
+				{
+					SetKey(key);
+					if (Api.TrySeek(_table.Session, _table, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange))
+					{
+						do {
+							yield return _table;
+						} while (Api.TryMoveNext(_table.Session, _table));
+					}
+				}
+
+				public IEnumerable<object> EnumerateUnique(<#= index.Name #>Key key)
+				{
+					SetKey(key);
+					if (Api.TrySeek(_table.Session, _table, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange))
+					{
+						do {
+							yield return _table;
+						} while (Api.TryMove(_table.Session, _table, JET_Move.Next, MoveGrbit.MoveKeyNE));
+					}
+				}
+
+			    public int GetIndexRecordCount()
+			    {
+			        int r;
+			        Api.JetIndexRecordCount(_table.Session, _table, out r, int.MaxValue);
+			        return r;
+			    }
+
+			    public int GetIndexRecordCount(<#= index.Name #>Key key)
+			    {
+			        if (!Find(key))
+					{
+						return 0;
+					}
+			        return GetIndexRecordCount();
+			    }
+<#+
+				int partialCnt = 0;
+				var partialKeys = new List<string>();
+				for (var lastIndexField = index.Fields.Length-2; lastIndexField >= 0; lastIndexField--)
+				{
+					partialCnt++;
+					partialKeys.Add(index.Name + "PartialKey" + partialCnt.ToString());
+#>
+
+				public struct <#= index.Name #>PartialKey<#= partialCnt #>
+				{
+<#+
+					for (var i = 0; i <= lastIndexField; i++)
+					{
+						var field = index.Fields[i];
+						var columndef = columnDic.Data[field.Name];
+#>
+					public <#= columndef.GetNetType() #> <#= columndef.Name #>;
+<#+
+					}
+#>
+				}
+
+			    // ReSharper disable InconsistentNaming
+				public <#= index.Name #>PartialKey<#= partialCnt #> CreateKey(
+<#+
+					for (var i = 0; i <= lastIndexField; i++)
+					{
+						var field = index.Fields[i];
+						var columndef = columnDic.Data[field.Name];
+#>
+						<#= i == 0 ? "" : "," #><#= columndef.GetNetType() #> <#= columndef.Name #>
+<#+
+					}
+#>
+				)
+			    // ReSharper enable InconsistentNaming
+				{
+					return new <#= index.Name #>PartialKey<#= partialCnt #>() {
+<#+
+					for (var i = 0; i <= lastIndexField; i++)
+					{
+						var field = index.Fields[i];
+						var columndef = columnDic.Data[field.Name];
+#>
+						<#= columndef.Name #> = <#= columndef.Name #>,
+<#+
+					}
+#>					
+					};
+				}
+
+				public void SetKey(<#= index.Name #>PartialKey<#= partialCnt #> key, bool startRange)
+				{
+					var rangeFlag = startRange ? MakeKeyGrbit.FullColumnStartLimit : MakeKeyGrbit.FullColumnEndLimit;
+<#+
+					for (var i = 0; i <= lastIndexField; i++)
+					{
+						string keyFlags;
+						if (i == 0 && i == lastIndexField)
+						{
+							keyFlags = "MakeKeyGrbit.NewKey | rangeFlag";
+						} else if (i == lastIndexField)
+						{
+							keyFlags = "rangeFlag";
+						} else if (i == 0)
+						{
+							keyFlags = "MakeKeyGrbit.NewKey";
+						} else
+						{
+							keyFlags = "MakeKeyGrbit.None";
+						}
+						var field = index.Fields[i];
+						var columndef = columnDic.Data[field.Name];
+#>
+<#+
+						if (columndef.IsNullable() && !columndef.IsReferenceType())
+						{
+#>
+					if (key.<#= index.Fields[i].Name #> == null)
+					{
+						Api.MakeKey(_table.Session, _table, null, <#= keyFlags #>);
+					} else
+					{
+						Api.MakeKey(_table.Session, _table, key.<#= index.Fields[i].Name #>.Value, <#= keyFlags #>);
+					}
+<#+
+						} else {
+#>
+					Api.MakeKey(_table.Session, _table, key.<#= index.Fields[i].Name #>, <#= columndef.GetNetEncoding() != null ? columndef.GetNetEncoding() + "," : "" #> <#= keyFlags #>);
+<#+
+						}
+#>
+<#+
+					}
+#>
+				}
+
+				public bool Find(<#= index.Name #>PartialKey<#= partialCnt #> key)
+				{
+					SetKey(key, true);
+					return Api.TrySeek(_table.Session, _table, SeekGrbit.SeekGE);
+				}
+
+				public bool SetPartialUpperRange(<#= index.Name #>PartialKey<#= partialCnt #> key)
+				{
+					SetKey(key, false);
+					return Api.TrySetIndexRange(_table.Session, _table, SetIndexRangeGrbit.RangeUpperLimit);
+				}
+
+				public bool SeekPartial(<#= index.Name #>PartialKey<#= partialCnt #> key)
+				{
+					if (Find(key))
+					{
+						if (SetPartialUpperRange(key))
+						{
+							return true;
+						}
+					}
+					return false;
+				}
+
+				public IEnumerable<object> Enumerate(<#= index.Name #>PartialKey<#= partialCnt #> key)
+				{
+					SetKey(key, true);
+					if (Api.TrySeek(_table.Session, _table, SeekGrbit.SeekGE))
+					{
+						SetKey(key, false);
+						if (Api.TrySetIndexRange(_table.Session, _table, SetIndexRangeGrbit.RangeUpperLimit))
+						{
+							do {
+								yield return _table;
+							} while (Api.TryMoveNext(_table.Session, _table));
+						}
+					}
+				}
+
+				public int GetIndexRecordCount(<#= index.Name #>PartialKey<#= partialCnt #> key)
+			    {
+					if (!SeekPartial(key))
+					{
+						return 0;
+					}
+			        return GetIndexRecordCount();
+			    }
+
+<#+
+				}
+#>
+
+<#+
+				if (fetchViews.Length > 0)
+				{
+#>
+				public class IndexFetchViews
+				{
+					private readonly <#= table.Name #> _table;
+
+					public IndexFetchViews(<#= table.Name #> table)
+					{
+						_table = table;
+					}
+<#+
+					foreach (var view in fetchViews)
+					{
+#>
+
+					// ReSharper disable once InconsistentNaming
+					private FetchViews.<#= view.Name #>? __fv_<#= view.Name #>;
+					public FetchViews.<#= view.Name #> <#= view.Name #>
+					{
+						get
+						{
+							if (__fv_<#= view.Name #> == null)
+							{
+								__fv_<#= view.Name #> = new FetchViews.<#= view.Name #>(_table);
+							}
+							return __fv_<#= view.Name #>.Value;
+						}
+					}
+<#+
+					}
+#>
+				}
+
+				private readonly IndexFetchViews _views;
+			    // ReSharper disable once ConvertToAutoProperty
+				public IndexFetchViews Views => _views;
+
+<#+
+				foreach (var view in fetchViews)
+				{
+#>
+				public IEnumerable<ViewValues.<#= view.Name #>> EnumerateAs<#= view.Name #>()
+				{
+					if (Api.TryMoveFirst(_table.Session, _table))
+					{
+						do {
+							yield return Views.<#= view.Name #>.Fetch();
+						} while (Api.TryMoveNext(_table.Session, _table));
+					}
+				}
+
+				public IEnumerable<ViewValues.<#= view.Name #>> EnumerateAs<#= view.Name #>(<#= index.Name #>Key key)
+				{
+					SetKey(key);
+					if (Api.TrySeek(_table.Session, _table, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange))
+					{
+						do {
+							yield return Views.<#= view.Name #>.Fetch();
+						} while (Api.TryMoveNext(_table.Session, _table));
+					}
+				}
+
+				public IEnumerable<ViewValues.<#= view.Name #>> EnumerateUniqueAs<#= view.Name #>()
+				{
+					if (Api.TryMoveFirst(_table.Session, _table))
+					{
+						do {
+							yield return Views.<#= view.Name #>.Fetch();
+						} while (Api.TryMove(_table.Session, _table, JET_Move.Next, MoveGrbit.MoveKeyNE));
+					}
+				}
+
+				public IEnumerable<ViewValues.<#= view.Name #>> EnumerateUniqueAs<#= view.Name #>(<#= index.Name #>Key key)
+				{
+					SetKey(key);
+					if (Api.TrySeek(_table.Session, _table, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange))
+					{
+						do {
+							yield return Views.<#= view.Name #>.Fetch();
+						} while (Api.TryMove(_table.Session, _table, JET_Move.Next, MoveGrbit.MoveKeyNE));
+					}
+				}
+<#+
+				foreach (var pk in partialKeys)
+				{
+#>
+
+				public IEnumerable<ViewValues.<#= view.Name #>> EnumerateAs<#= view.Name #>(<#= pk #> key)
+				{
+					SetKey(key, true);
+					if (Api.TrySeek(_table.Session, _table, SeekGrbit.SeekGE))
+					{
+						SetKey(key, false);
+						if (Api.TrySetIndexRange(_table.Session, _table, SetIndexRangeGrbit.RangeUpperLimit))
+						{
+							do {
+								yield return Views.<#= view.Name #>.Fetch();
+							} while (Api.TryMoveNext(_table.Session, _table));
+						}
+					}
+				}
+								
+<#+
+				}
+#>
+<#+
+				}
+#>
+<#+
+				}
+#>				
+			}
+<#+
+		}
+#>
+		}
+
+		public class TableIndexes
+		{
+			private readonly <#= table.Name #> _table;
+
+			public TableIndexes(<#= table.Name #> table)
+			{
+				_table = table;
+			}
+<#+
+			foreach (var index in table.Indexes)
+			{
+#>
+
+		    // ReSharper disable once InconsistentNaming
+			private IndexDefinitions.<#= index.Name #>? __ti_<#= index.Name #>;
+
+			public IndexDefinitions.<#= index.Name #> <#= index.Name #>
+			{
+				get
+				{
+					if (__ti_<#= index.Name #> == null)
+					{
+						__ti_<#= index.Name #> = new IndexDefinitions.<#= index.Name #>(_table);
+					}
+					return __ti_<#= index.Name #>.Value;
+				}
+			}
+<#+
+			}
+#>
+		}
+
+		// ReSharper disable once InconsistentNaming
+		private TableIndexes __indexes;
+
+		public TableIndexes Indexes
+		{
+			get
+			{
+				if (__indexes == null)
+				{
+					__indexes = new TableIndexes(this);
+				}
+				return __indexes;
+			}
+		}
+	}
+}
+// ReSharper enable RedundantNameQualifier
+<#+
+}
+
+private struct __ColumnDic
+{
+	public Dictionary<string, EsentColumndef> Data;
+}
+
+private string __GenerateEsentTableRetrieveColumnExpr(__ColumnDic columns, string name, string tableArg, bool? forceNullable, string tableName)
+{
+	var cd = columns.Data[name];
+	var funcName = cd.GetRetrieveFuncName();
+	if ((forceNullable ?? cd.IsNullable()) || cd.IsReferenceType())
+	{
+		return string.Format("{2}({0}.Session, {0}, {0}.ColumnDictionary[{3}.Column.{1}])", tableArg, name, funcName, tableName);
+	}
+	return string.Format("{2}({0}.Session, {0}, {0}.ColumnDictionary[{3}.Column.{1}]).Value", tableArg, name, funcName, tableName);
+}
+
+private string __GenerateEsentTableRetrieveColumnExprOriginal(__ColumnDic columns, string name, string tableArg, bool? forceNullable, string tableName)
+{
+	var cd = columns.Data[name];
+	var funcName = cd.GetRetrieveFuncName();
+	if ((forceNullable ?? cd.IsNullable()) || cd.IsReferenceType())
+	{
+		return string.Format("{2}({0}.Session, {0}, {0}.ColumnDictionary[{3}.Column.{1}], RetrieveColumnGrbit.RetrieveCopy)", tableArg, name, funcName, tableName);
+	}
+	return string.Format("{2}({0}.Session, {0}, {0}.ColumnDictionary[{3}.Column.{1}], RetrieveColumnGrbit.RetrieveCopy).Value", tableArg, name, funcName, tableName);
+}
+
+#>

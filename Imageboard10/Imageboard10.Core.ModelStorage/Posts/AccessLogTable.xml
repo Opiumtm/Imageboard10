@@ -1,0 +1,40 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<Table Name="AccessLogTable" Namespace="Imageboard10.Core.ModelStorage.Posts" Visibility="internal">
+  <Columns>
+    <Column Name="Id" Type="Guid" Grbit="NotNULL" />
+    <Column Name="EntityId" Type="SignedInt32" Grbit="NotNULL" />
+    <Column Name="AccessTime" Type="DateTime" Grbit="NotNULL" />
+  </Columns>
+  <Indexes>
+    <Index Name="PrimaryIndex" Grbit="Unique Primary">
+      <Fields>
+        <Field Name="Id" Sort="Asc"/>
+      </Fields>
+    </Index>
+    <Index Name="EntityIdIndex" Grbit="None">
+      <Fields>
+        <Field Name="EntityId" Sort="Asc"/>
+      </Fields>      
+    </Index>
+    <Index Name="EntityIdAndAccessTimeIndex" Grbit="None">
+      <Fields>
+        <Field Name="EntityId" Sort="Asc"/>
+        <Field Name="AccessTime" Sort="Asc"/>
+      </Fields>
+      <Views>
+        <ViewName>AccessTimeAndId</ViewName>
+      </Views>
+    </Index>    
+  </Indexes>
+  <Views>
+    <View Name="AccessTimeAndId" Role="Fetch IndexFetch">
+      <Field>Id</Field>
+      <Field>AccessTime</Field>
+    </View>
+    <View Name="InsertAllColumnsView" Role="Insert">
+      <Field>Id</Field>
+      <Field>EntityId</Field>
+      <Field>AccessTime</Field>
+    </View>
+  </Views>
+</Table>

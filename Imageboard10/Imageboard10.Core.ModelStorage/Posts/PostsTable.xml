@@ -1,0 +1,281 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<Table Name="PostsTable" Namespace="Imageboard10.Core.ModelStorage.Posts" Visibility="internal">
+  <Columns>
+    <Column Name="Id" Type="SignedInt32" Grbit="Autoincrement NotNULL" />
+    <Column Name="ParentId" Type="SignedInt32" Grbit="MultiValued Tagged" />
+    <Column Name="DirectParentId" Type="SignedInt32" Grbit="None" />
+    <Column Name="EntityType" Type="Byte" Grbit="NotNULL" />
+    <Column Name="DataLoaded" Type="Boolean" Grbit="NotNULL" />
+    <Column Name="ChildrenLoadStage" Type="Byte" Grbit="NotNULL" />
+    <Column Name="BoardId" Type="Text" Codepage="Unicode" Size="50" Grbit="NotNULL" />
+    <Column Name="SequenceNumber" Type="SignedInt32" Grbit="NotNULL" />
+    <Column Name="ParentSequenceNumber" Type="SignedInt32" Grbit="None" />
+    <Column Name="Subject" Type="LongText" Grbit="Tagged" Codepage="Unicode" />
+    <Column Name="Thumbnail" Type="LongBinary" Grbit="Tagged" />
+    <Column Name="Date" Type="DateTime" Grbit="Tagged" />
+    <Column Name="BoardSpecificDate" Type="LongText" Grbit="Tagged" Codepage="Unicode" />
+    <Column Name="Flags" Type="Guid" Grbit="Tagged MultiValued" />
+    <Column Name="ThreadTags" Type="LongText" Grbit="Tagged MultiValued" Codepage="Unicode" />
+    <Column Name="Likes" Type="SignedInt32" Grbit="Tagged" />
+    <Column Name="Dislikes" Type="SignedInt32" Grbit="Tagged" />
+    <Column Name="Document" Type="LongBinary" Grbit="Tagged" />
+    <Column Name="QuotedPosts" Type="SignedInt32" Grbit="Tagged MultiValued"/>
+    <Column Name="LoadedTime" Type="DateTime" Grbit="None" />
+    <Column Name="Etag" Type="Text" Grbit="Tagged" Codepage="Unicode" Size="100" />
+    <Column Name="PosterName" Type="LongText" Grbit="Tagged" Codepage="Unicode" />    
+    <Column Name="OtherDataBinary" Type="LongBinary" Grbit="Tagged" />
+    <Column Name="PreviewCounts" Type="LongBinary" Grbit="Tagged" />    
+    <Column Name="LastServerUpdate" Type="DateTime" Grbit="Tagged" />    
+    <Column Name="NumberOfPostsOnServer" Type="SignedInt32" Grbit="Tagged" />
+    <Column Name="NumberOfReadPosts" Type="SignedInt32" Grbit="Tagged" />    
+    <Column Name="LastPostLinkOnServer" Type="SignedInt32" Grbit="Tagged" />    
+    <Column Name="OnServerSequenceCounter" Type="SignedInt32" Grbit="Tagged" />    
+  </Columns>
+  <Indexes>
+    <Index Name="PrimaryIndex" Grbit="Primary Unique">
+      <Fields>
+        <Field Name="Id" Sort="Asc"/>
+      </Fields>
+    </Index>
+    <Index Name="ParentIdIndex" Grbit="IgnoreAnyNull">
+      <Fields>
+        <Field Name="ParentId" Sort="Asc"/>
+      </Fields>
+      <Views>
+        <ViewName>RetrieveIdFromIndexView</ViewName>
+      </Views>
+    </Index>
+    <Index Name="TypeIndex" Grbit="None">
+      <Fields>
+        <Field Name="EntityType" Sort="Asc"/>
+      </Fields>
+    </Index>
+    <!--
+    <Index Name="TypeAndIdIndex" Grbit="None">
+      <Fields>
+        <Field Name="EntityType" Sort="Asc"/>
+        <Field Name="Id" Sort="Asc"/>
+      </Fields>
+    </Index>
+    -->
+    <Index Name="ChildrenLoadStageIndex" Grbit="None">
+      <Fields>
+        <Field Name="ChildrenLoadStage" Sort="Asc"/>
+        <!-- <Field Name="Id" Sort="Asc"/> -->
+      </Fields>
+      <Views>
+        <ViewName>RetrieveIdFromIndexView</ViewName>
+      </Views>
+    </Index>
+    <Index Name="TypeAndPostIdIndex" Grbit="None">
+      <Fields>
+        <Field Name="EntityType" Sort="Asc"/>
+        <Field Name="BoardId" Sort="Asc"/>
+        <Field Name="SequenceNumber" Sort="Asc"/>
+      </Fields>
+      <Views>
+        <ViewName>RetrieveIdFromIndexView</ViewName>
+        <ViewName>ParentsAndIdViewForIndex</ViewName>
+      </Views>
+    </Index>
+    <Index Name="FlagsIndex" Grbit="None">
+      <Fields>
+        <Field Name="Flags" Sort="Asc"/>
+      </Fields>
+    </Index>
+    <Index Name="DirectParentFlagsIndex" Grbit="IgnoreAnyNull">
+      <Fields>
+        <Field Name="DirectParentId" Sort="Asc"/>
+        <Field Name="Flags" Sort="Asc"/>
+      </Fields>
+    </Index>
+    <Index Name="QuotedPostsIndex" Grbit="IgnoreAnyNull">
+      <Fields>
+        <Field Name="DirectParentId" Sort="Asc"/>
+        <Field Name="QuotedPosts" Sort="Asc"/>
+      </Fields>
+      <Views>
+        <ViewName>RetrieveIdFromIndexView</ViewName>
+        <ViewName>SequenceNumberView</ViewName>
+      </Views>
+    </Index>
+    <Index Name="InThreadPostLinkIndex" Grbit="IgnoreAnyNull">
+      <Fields>
+        <Field Name="DirectParentId" Sort="Asc"/>
+        <Field Name="SequenceNumber" Sort="Asc"/>
+      </Fields>
+      <Views>
+        <ViewName>RetrieveIdFromIndexView</ViewName>
+        <ViewName>SequenceNumberView</ViewName>
+      </Views>
+    </Index>
+  </Indexes>
+  <Views>
+    <View Name="ChildrenLoadStageView" Role="Update">
+      <Field>ChildrenLoadStage</Field>
+    </View>
+    <View Name="RetrieveIdFromIndexView" Role="IndexFetch">
+      <Field FetchFlags="FromPrimaryBookmark">Id</Field>
+    </View>
+    <View Name="SequenceNumberView" Role="Fetch IndexFetch">
+      <Field>SequenceNumber</Field>
+    </View>
+    <View Name="LinkInfoView" Role="Fetch">
+      <Field>BoardId</Field>
+      <Field>SequenceNumber</Field>
+      <Field>ParentSequenceNumber</Field>
+    </View>
+    <View Name="LastLinkInfoView" Role="Fetch">
+      <Field>BoardId</Field>
+      <Field>SequenceNumber</Field>
+      <Field>LastPostLinkOnServer</Field>
+    </View>
+    <View Name="BasicLoadInfoView" Role="Fetch">
+      <Field>Id</Field>
+      <Field>EntityType</Field>
+      <Field>BoardId</Field>
+      <Field>SequenceNumber</Field>
+      <Field>ParentSequenceNumber</Field>
+      <Field>DirectParentId</Field>
+      <AssignableTo>
+        <ViewName>LinkInfoView</ViewName>
+      </AssignableTo>
+    </View>
+    <View Name="BareEntityLoadInfoView" Role="Fetch">
+      <Field>Id</Field>
+      <Field>EntityType</Field>
+      <Field>BoardId</Field>
+      <Field>SequenceNumber</Field>
+      <Field>ParentSequenceNumber</Field>
+      <Field>DirectParentId</Field>
+      <Field>Subject</Field>
+      <Field>Thumbnail</Field>
+      <AssignableTo>
+        <ViewName>LinkInfoView</ViewName>
+        <ViewName>BasicLoadInfoView</ViewName>
+      </AssignableTo>
+    </View>
+    <View Name="PostLightLoadView" Role="Fetch">
+      <Field>Id</Field>
+      <Field>EntityType</Field>
+      <Field>BoardId</Field>
+      <Field>SequenceNumber</Field>
+      <Field>ParentSequenceNumber</Field>
+      <Field>DirectParentId</Field>
+      <Field>Subject</Field>
+      <Field>Thumbnail</Field>
+      <Field>BoardSpecificDate</Field>
+      <Field>Date</Field>
+      <Field>Flags</Field>
+      <Field>ThreadTags</Field>
+      <Field>Likes</Field>
+      <Field>Dislikes</Field>
+      <AssignableTo>
+        <ViewName>LinkInfoView</ViewName>
+        <ViewName>BasicLoadInfoView</ViewName>
+        <ViewName>BareEntityLoadInfoView</ViewName>
+      </AssignableTo>
+    </View>
+    <View Name="PostFullLoadView" Role="Fetch">
+      <Field>Id</Field>
+      <Field>EntityType</Field>
+      <Field>BoardId</Field>
+      <Field>SequenceNumber</Field>
+      <Field>ParentSequenceNumber</Field>
+      <Field>DirectParentId</Field>
+      <Field>Subject</Field>
+      <Field>Thumbnail</Field>
+      <Field>BoardSpecificDate</Field>
+      <Field>Date</Field>
+      <Field>Flags</Field>
+      <Field>ThreadTags</Field>
+      <Field>Likes</Field>
+      <Field>Dislikes</Field>
+      <Field>PosterName</Field>
+      <Field>OtherDataBinary</Field>
+      <Field>Document</Field>
+      <Field>LoadedTime</Field>
+      <AssignableTo>
+        <ViewName>LinkInfoView</ViewName>
+        <ViewName>BasicLoadInfoView</ViewName>
+        <ViewName>BareEntityLoadInfoView</ViewName>
+        <ViewName>PostLightLoadView</ViewName>
+      </AssignableTo>
+    </View>
+    <View Name="PostCollectionLoadInfoView" Role="Fetch">
+      <Field>Id</Field>
+      <Field>EntityType</Field>
+      <Field>BoardId</Field>
+      <Field>SequenceNumber</Field>
+      <Field>ParentSequenceNumber</Field>
+      <Field>DirectParentId</Field>
+      <Field>Subject</Field>
+      <Field>Thumbnail</Field>
+      <Field>Etag</Field>
+      <Field>OtherDataBinary</Field>
+      <Field>ChildrenLoadStage</Field>
+      <AssignableTo>
+        <ViewName>LinkInfoView</ViewName>
+        <ViewName>BasicLoadInfoView</ViewName>
+        <ViewName>BareEntityLoadInfoView</ViewName>
+      </AssignableTo>
+    </View>
+    <View Name="ThreadPreviewLoadInfoView" Role="Fetch">
+      <Field>Id</Field>
+      <Field>EntityType</Field>
+      <Field>BoardId</Field>
+      <Field>SequenceNumber</Field>
+      <Field>ParentSequenceNumber</Field>
+      <Field>DirectParentId</Field>
+      <Field>Subject</Field>
+      <Field>Thumbnail</Field>
+      <Field>Etag</Field>
+      <Field>OtherDataBinary</Field>
+      <Field>ChildrenLoadStage</Field>
+      <Field>PreviewCounts</Field>
+      <AssignableTo>
+        <ViewName>LinkInfoView</ViewName>
+        <ViewName>BasicLoadInfoView</ViewName>
+        <ViewName>BareEntityLoadInfoView</ViewName>
+        <ViewName>PostCollectionLoadInfoView</ViewName>
+      </AssignableTo>
+    </View>
+    <View Name="ParentsAndIdViewForIndex" Role="IndexFetch">
+      <Field FetchFlags="FromPrimaryBookmark">Id</Field>
+      <Field>ParentId</Field>
+    </View>
+    <View Name="NumberOfReadPostsUpdateView" Role="Update">
+      <Field>NumberOfReadPosts</Field>
+    </View>
+    <View Name="DirectParentAndSequenceNumberView" Role="Fetch">
+      <Field>DirectParentId</Field>
+      <Field>SequenceNumber</Field>
+    </View>
+    <View Name="PostDataIdentityUpdateView" Role="Insert">
+      <Field>ParentId</Field>
+      <Field>DirectParentId</Field>
+      <Field>EntityType</Field>
+      <Field>DataLoaded</Field>
+      <Field>ChildrenLoadStage</Field>
+      <Field>BoardId</Field>
+      <Field>ParentSequenceNumber</Field>
+      <Field>SequenceNumber</Field>
+    </View>
+    <View Name="PostDataUpdateView" Role="Insert Update">
+      <Field>Subject</Field>      
+      <Field>Thumbnail</Field>      
+      <Field>Date</Field>      
+      <Field>BoardSpecificDate</Field>      
+      <Field>Flags</Field>      
+      <Field>ThreadTags</Field>      
+      <Field>Likes</Field>      
+      <Field>Dislikes</Field>      
+      <Field>Document</Field>      
+      <Field>QuotedPosts</Field>      
+      <Field>LoadedTime</Field>      
+      <Field>PosterName</Field>      
+      <Field>OnServerSequenceCounter</Field>      
+      <Field>OtherDataBinary</Field>      
+    </View>
+  </Views>
+</Table>

@@ -269,7 +269,7 @@ namespace Imageboard10UnitTests
             Assert.AreEqual(lastPost.Link.GetLinkHash(), accessInfo.LastLoadedPost?.GetLinkHash(), "accessInfo.LastLoadedPost");
             Assert.AreEqual(lastPost.Link.GetLinkHash(), accessInfo.LastPost?.GetLinkHash(), "accessInfo.LastLoadedPost");
             Assert.IsNotNull(accessInfo.LastUpdate, "accessInfo.LastUpdate");
-            var updateTimeDiff = lastPost.LoadedTime - accessInfo.LastUpdate.Value;
+            var updateTimeDiff = lastPost.Date - accessInfo.LastUpdate.Value;
             Assert.IsTrue(Math.Abs(updateTimeDiff.TotalSeconds) < 1.5, "accessInfo.LastUpdate");
             Assert.AreEqual(collection.Posts.Count, accessInfo.NumberOfLoadedPosts, "accessInfo.NumberOfLoadedPosts");
 
