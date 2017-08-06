@@ -277,5 +277,17 @@
       <Field>Likes</Field>
       <Field>Dislikes</Field>
     </View>
+    <View Name="PostDataBareEntityInsertView" Role="Insert">
+      <Field>ParentId</Field>
+      <Field>DirectParentId</Field>
+      <Field>EntityType</Field>
+      <Field>DataLoaded</Field>
+      <Field>ChildrenLoadStage</Field>
+      <Field>BoardId</Field>
+      <Field>ParentSequenceNumber</Field>
+      <Field>SequenceNumber</Field>
+      <Field>Subject</Field>
+      <Field>Thumbnail</Field>
+    </View>    
   </Views>
 </Table>

@@ -1274,9 +1274,19 @@ namespace Imageboard10.Core.ModelStorage.Posts
             return Do().AsAsyncAction();
         }
 
+        /// <summary>
+        /// Загрузить лог последнего доступа.
+        /// </summary>
+        /// <param name="query">Запрос.</param>
+        /// <returns>Лог доступа.</returns>
         public IAsyncOperation<IList<IBoardPostStoreAccessLogItem>> GetAccessLog(PostStoreAccessLogQuery query)
         {
-            throw new NotImplementedException();
+            async Task<IList<IBoardPostStoreAccessLogItem>> Do()
+            {
+                
+            }
+
+            return Do().AsAsyncOperation();
         }
 
         /// <summary>
@@ -1445,9 +1455,59 @@ namespace Imageboard10.Core.ModelStorage.Posts
             return Do().AsAsyncAction();
         }
 
+        /// <summary>
+        /// Синхронизировать лог доступа между устройствами.
+        /// </summary>
+        /// <param name="accessLog">Лог доступа из внешнего источника.</param>
         public IAsyncAction SyncAccessLog(IList<IBoardPostStoreAccessLogItem> accessLog)
         {
-            throw new NotImplementedException();
+            async Task Do()
+            {
+                CheckModuleReady();
+                if (accessLog == null) throw new ArgumentNullException(nameof(accessLog));
+                await WaitForTablesInitialize();
+
+                var entities = accessLog.Select(e => e.Entity).Where(e => e?.Link != null).Deduplicate(e => e.Link, BoardLinkEqualityComparer.Instance);
+
+                var savedEntities = (await UploadBareEntities(entities)).ToDictionary(e => e.Key, e => e.Value, BoardLinkEqualityComparer.Instance);
+
+                async ValueTask<Nothing> DoSave(IEsentSession session, IList<IBoardPostStoreAccessLogItem[]> items)
+                {
+                    foreach (var arr in items)
+                    {
+                        var arr1 = arr;
+                        await session.RunInTransaction(() =>
+                        {
+                            using (var table = OpenAccessLogTable(session, OpenTableGrbit.None))
+                            {
+                                foreach (var item in arr1)
+                                {
+                                    if (item?.Entity?.Link != null && savedEntities.ContainsKey(item.Entity.Link))
+                                    {
+                                        if (item.LogEntryId == null || !table.Indexes.PrimaryIndex.Find(table.Indexes.PrimaryIndex.CreateKey(item.LogEntryId.Value)))
+                                        {
+                                            table.Insert.InsertAsInsertAllColumnsView(new AccessLogTable.ViewValues.InsertAllColumnsView()
+                                            {
+                                                Id = item.LogEntryId ?? Guid.NewGuid(),
+                                                AccessTime = (item.AccessTime ?? DateTimeOffset.Now).UtcDateTime,
+                                                EntityId = savedEntities[item.Entity.Link].Id
+                                            });
+                                        }
+                                    }
+                                }
+                            }
+                            return true;
+                        }, 2);
+                    }
+                    return Nothing.Value;
+                }
+
+                var toProcess = accessLog.SplitSet(100).Select(a => a.ToArray()).DistributeToProcess(3);
+
+                await ParallelizeOnSessions(toProcess, DoSave);
+            }
+
+            return Do().AsAsyncAction();
         }
 
         private async Task DoClearUnfinishedData()

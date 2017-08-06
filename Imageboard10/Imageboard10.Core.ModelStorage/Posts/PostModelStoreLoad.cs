@@ -559,6 +559,14 @@ namespace Imageboard10.Core.ModelStorage.Posts
         private IBoardPostEntity LoadBoardEntity(IEsentSession session, ref LoadPostDataContext loadContext, PostStoreLoadMode loadMode)
         {
             var entityType = (PostStoreEntityType) loadContext.table.Columns.EntityType;
+            var dl = loadContext.table.Columns.DataLoaded;
+            if (loadMode.EntityLoadMode != PostStoreEntityLoadMode.EntityOnly &&
+                loadMode.EntityLoadMode != PostStoreEntityLoadMode.LinkOnly && dl == false)
+            {
+                var loadMode1 = loadMode.Clone();
+                loadMode1.EntityLoadMode = PostStoreEntityLoadMode.EntityOnly;
+                loadMode = loadMode1;
+            }
             switch (entityType)
             {
                 case PostStoreEntityType.Post:

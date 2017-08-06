@@ -13,6 +13,7 @@ using Imageboard10.Core.Database;
 using Imageboard10.Core.ModelInterface.Links;
 using Imageboard10.Core.ModelInterface.Posts;
 using Imageboard10.Core.ModelInterface.Posts.Store;
+using Imageboard10.Core.Models.Links;
 using Imageboard10.Core.Models.Links.LinkTypes;
 using Imageboard10.Core.Models.Posts;
 using Imageboard10.Core.ModelStorage.UnitTests;
@@ -949,6 +950,89 @@ namespace Imageboard10.Core.ModelStorage.Posts
             return AsyncInfo.Run(fdo);
         }
 
+        private async Task<IList<KeyValuePair<ILink, PostStoreEntityId>>> UploadBareEntities(IEnumerable<IBoardPostEntity> list)
+        {
+            async ValueTask<IList<KeyValuePair<ILink, PostStoreEntityId>>> Do(IEsentSession session, IList<IBoardPostEntity[]> arr)
+            {
+                var result = new List<KeyValuePair<ILink, PostStoreEntityId>>();
+                foreach(var toUpdate in arr)
+                {
+                    var arr2 = toUpdate;
+                    var ta = await session.RunInTransaction(() =>
+                    {
+                        var result2 = new List<KeyValuePair<ILink, PostStoreEntityId>>();
+
+                        using (var table = OpenPostsTable(session, OpenTableGrbit.None))
+                        {
+                            var index = table.Indexes.TypeAndPostIdIndex;
+                            index.SetAsCurrentIndex();
+                            foreach (var entity in arr2)
+                            {
+                                string boardId;
+                                int sequenceId;
+                                if (entity.EntityType == PostStoreEntityType.Thread || entity.EntityType == PostStoreEntityType.Catalog)
+                                {
+                                    (boardId, sequenceId) = ExtractCatalogOrThreadLinkData(entity.Link);
+                                } else if (entity.EntityType == PostStoreEntityType.BoardPage)
+                                {
+                                    (boardId, sequenceId) = ExtractBoardPageLinkData(entity.Link);
+                                }
+                                else
+                                {
+                                    throw new ArgumentException($"Неправильный тип сущности для добавления в минимальном виде {entity.EntityType}");
+                                }
+                                if (entity.StoreId == null && !index.Find(index.CreateKey((byte) entity.EntityType, boardId, sequenceId)))
+                                {
+                                    int id;
+                                    using (var update = table.Insert.CreateUpdate())
+                                    {
+                                        table.Insert.PostDataBareEntityInsertView.Set(
+                                            new PostsTable.ViewValues.PostDataBareEntityInsertView()
+                                            {
+                                                BoardId = boardId,
+                                                ChildrenLoadStage = ChildrenLoadStageId.NotStarted,
+                                                DataLoaded = false,
+                                                EntityType = (byte) entity.EntityType,
+                                                Thumbnail =
+                                                    ObjectSerializationService.SerializeToBytes(entity.Thumbnail),
+                                                SequenceNumber = sequenceId,
+                                                DirectParentId = null,
+                                                ParentId = new Int32ColumnValue[0],
+                                                Subject = entity.Subject,
+                                                ParentSequenceNumber = null
+
+                                            }, true);
+                                        id = table.Columns.Id_AutoincrementValue;
+                                        update.Save();
+                                    }
+                                    result2.Add(new KeyValuePair<ILink, PostStoreEntityId>(entity.Link, new PostStoreEntityId() { Id = id }));
+                                }
+                                else if (entity.StoreId == null)
+                                {
+                                    result2.Add(new KeyValuePair<ILink, PostStoreEntityId>(entity.Link, new PostStoreEntityId()
+                                    {
+                                        Id = index.Views.RetrieveIdFromIndexView.Fetch().Id
+                                    }));
+                                }
+                                else
+                                {
+                                    result2.Add(new KeyValuePair<ILink, PostStoreEntityId>(entity.Link, entity.StoreId.Value));
+                                }
+                            }
+                        }
+
+                        return (true, result2);
+                    }, 2);
+                    result.AddRange(ta);
+                }
+                return result;
+            }
+
+            var r = await ParallelizeOnSessions(
+                list.SplitSet(30).Select(s => s.ToArray()).DistributeToProcess(UploadParallelism), Do);
+
+            return r.SelectMany(s => s).Where(s => s.Key != null).Deduplicate(s => s.Key, BoardLinkEqualityComparer.Instance).ToList();
+        }
     }
 
     internal struct PreSerializedPostData
