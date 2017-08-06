@@ -882,9 +882,50 @@ namespace Imageboard10.Core.ModelStorage.Posts
             return Do().AsAsyncAction();
         }
 
-        public IAsyncOperation<IList<IBoardPostLikes>> LoadLikes(IList<PostStoreEntityId> ids)
+        /// <summary>
+        /// Загрузить информацию о лайках.
+        /// </summary>
+        /// <param name="ids">Идентификаторы.</param>
+        /// <returns>Лайки.</returns>
+        public IAsyncOperation<IList<IBoardPostLikesInfo>> LoadLikes(IList<PostStoreEntityId> ids)
         {
-            throw new NotImplementedException();
+            async Task<IList<IBoardPostLikesInfo>> Do()
+            {
+                CheckModuleReady();
+                if (ids == null) throw new ArgumentNullException(nameof(ids));
+                await WaitForTablesInitialize();
+                return await OpenSession(session =>
+                {
+                    var result = new List<IBoardPostLikesInfo>();
+                    using (var table = OpenPostsTable(session, OpenTableGrbit.ReadOnly))
+                    {
+                        foreach (var id in ids)
+                        {
+                            if (GotoEntityId(table, id))
+                            {
+                                var likes = table.Views.LikesUpdateView.Fetch();
+                                if (likes.Likes != null || likes.Dislikes != null)
+                                {
+                                    result.Add(new LikesInfo()
+                                    {
+                                        StoreId = id,
+                                        Likes = new BoardPostLikes() { Likes = likes.Likes ?? 0, Dislikes = likes.Dislikes ?? 0 }
+                                    });
+                                }
+                            }
+                        }
+                    }
+                    return result;
+                });
+            }
+
+            return Do().AsAsyncOperation();
+        }
+
+        private class LikesInfo : IBoardPostLikesInfo
+        {
+            public PostStoreEntityId StoreId { get; set; }
+            public IBoardPostLikes Likes { get; set; }
         }
 
         /// <summary>
@@ -1238,14 +1279,170 @@ namespace Imageboard10.Core.ModelStorage.Posts
             throw new NotImplementedException();
         }
 
+        /// <summary>
+        /// Запросить по флагам.
+        /// </summary>
+        /// <param name="type">Тип сущности.</param>
+        /// <param name="parentId">Идентификатор родительской сущности.</param>
+        /// <param name="havingFlags">Должен иметь флаги.</param>
+        /// <param name="notHavingFlags">Не должен иметь флаги.</param>
+        /// <returns>Результат.</returns>
         public IAsyncOperation<IList<PostStoreEntityId>> QueryByFlags(PostStoreEntityType type, PostStoreEntityId? parentId, IList<Guid> havingFlags, IList<Guid> notHavingFlags)
         {
-            throw new NotImplementedException();
+            async Task<IList<PostStoreEntityId>> Do()
+            {
+                CheckModuleReady();
+                if (havingFlags == null) throw new ArgumentNullException(nameof(havingFlags));
+                if (havingFlags.Count < 1)
+                {
+                    throw new ArgumentOutOfRangeException(nameof(havingFlags), "Нужно указать как минимум 1 флаг для проверки");
+                }
+                await WaitForTablesInitialize();
+                return await OpenSessionAsync(async session =>
+                {
+                    var bookmarks = await session.Run(() =>
+                    {
+                        using (var toDispose = new CompositeDisposable(null))
+                        {
+                            List<PostsTable> tables = new List<PostsTable>();
+
+                            var mainTable = OpenPostsTable(session, OpenTableGrbit.ReadOnly);
+                            toDispose.AddDisposable(mainTable);
+                            tables.Add(mainTable);
+
+                            if (parentId != null)
+                            {
+                                var index = mainTable.Indexes.ParentIdIndex;
+                                index.SetAsCurrentIndex();
+                                if (!index.Find(index.CreateKey(parentId.Value.Id)))
+                                {
+                                    goto CancelLabel;
+                                }
+                            }
+                            else
+                            {
+                                var index = mainTable.Indexes.TypeIndex;
+                                index.SetAsCurrentIndex();
+                                if (!index.Find(index.CreateKey((byte) type)))
+                                {
+                                    goto CancelLabel;
+                                }
+                            }
+
+                            foreach (var f in havingFlags)
+                            {
+                                var table = OpenPostsTable(session, OpenTableGrbit.ReadOnly);
+                                toDispose.AddDisposable(table);
+                                tables.Add(table);
+                                var index = table.Indexes.FlagsIndex;
+                                index.SetAsCurrentIndex();
+                                if (!index.Find(index.CreateKey(f)))
+                                {
+                                    goto CancelLabel;
+                                }
+                            }
+
+                            return Api.IntersectIndexes(session.Session, tables.Select(t => t.Table).ToArray()).ToArray();
+
+                            CancelLabel:
+                            return null;
+                        }
+                    });
+
+                    if (bookmarks == null || bookmarks.Length == 0)
+                    {
+                        return new List<PostStoreEntityId>();
+                    }
+
+                    return await session.Run(() =>
+                    {
+                        var result = new List<PostStoreEntityId>();
+
+                        var nhs = notHavingFlags != null ? new HashSet<Guid>(notHavingFlags) : new HashSet<Guid>();
+
+                        using (var table = OpenPostsTable(session, OpenTableGrbit.ReadOnly))
+                        {
+                            foreach (var bm in bookmarks)
+                            {
+                                if (table.TryGotoBookmark(bm))
+                                {
+                                    if (nhs.Count > 0)
+                                    {
+                                        if (table.Columns.Flags.Values.All(v => v?.Value == null || !nhs.Contains(v?.Value ?? Guid.Empty)))
+                                        {
+                                            result.Add(new PostStoreEntityId() { Id = table.Columns.Id });
+                                        }
+                                    }
+                                    else
+                                    {
+                                        result.Add(new PostStoreEntityId() { Id = table.Columns.Id });
+                                    }
+                                }
+                            }
+                        }
+                        return result;
+                    });
+                });
+            }
+
+            return Do().AsAsyncOperation();
         }
 
+        /// <summary>
+        /// Очистить лог доступа.
+        /// </summary>
+        /// <param name="maxAgeSec">Максимальное время нахождения записи в логе в секундах.</param>
         public IAsyncAction ClearAccessLog(double maxAgeSec)
         {
-            throw new NotImplementedException();
+            async Task Do()
+            {
+                CheckModuleReady();
+                await WaitForTablesInitialize();
+
+                await OpenSessionAsync(async session =>
+                {
+                    var toDelete = await session.Run(() =>
+                    {
+                        var td = new List<Guid>();
+                        using (var table = OpenAccessLogTable(session, OpenTableGrbit.ReadOnly))
+                        {
+                            var index = table.Indexes.AccessTimeDescIndex;
+                            index.SetAsCurrentIndex();
+                            var maxAge = DateTime.Now.AddSeconds(-1 * maxAgeSec).ToUniversalTime();
+                            index.SetKey(index.CreateKey(maxAge));
+                            if (table.TrySeek(SeekGrbit.SeekLT))
+                            {
+                                do
+                                {
+                                    td.Add(index.Views.IdForIndex.Fetch().Id);
+                                } while (table.TryMoveNext());
+                            }
+                            return td;
+                        }
+                    });
+                    foreach (var toDelete2 in toDelete.SplitSet(100))
+                    {
+                        var td = toDelete2.ToArray();
+                        await session.RunInTransaction(() =>
+                        {
+                            using (var table = OpenAccessLogTable(session, OpenTableGrbit.None))
+                            {
+                                foreach (var id in td)
+                                {
+                                    if (table.Indexes.PrimaryIndex.Find(table.Indexes.PrimaryIndex.CreateKey(id)))
+                                    {
+                                        table.DeleteCurrentRow();
+                                    }
+                                }
+                            }
+                            return true;
+                        }, 1.5);
+                    }
+                    return Nothing.Value;
+                });
+            }
+
+            return Do().AsAsyncAction();
         }
 
         public IAsyncAction SyncAccessLog(IList<IBoardPostStoreAccessLogItem> accessLog)

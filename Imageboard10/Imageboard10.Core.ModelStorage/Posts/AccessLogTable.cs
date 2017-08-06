@@ -112,6 +112,8 @@ namespace Imageboard10.Core.ModelStorage.Posts
 			Api.JetCreateIndex(sid, tableid, "EntityIdIndex", CreateIndexGrbit.None, idxDef2, idxDef2.Length, 100);
 			var idxDef3 = "+EntityId\0+AccessTime\0\0";
 			Api.JetCreateIndex(sid, tableid, "EntityIdAndAccessTimeIndex", CreateIndexGrbit.None, idxDef3, idxDef3.Length, 100);
+			var idxDef4 = "-AccessTime\0\0";
+			Api.JetCreateIndex(sid, tableid, "AccessTimeDescIndex", CreateIndexGrbit.None, idxDef4, idxDef4.Length, 100);
 		}
 
 		public struct Multivalue<T> where T : ColumnValue, new()
@@ -430,6 +432,12 @@ namespace Imageboard10.Core.ModelStorage.Posts
 			return Api.GetBookmark(Session, Table);
 		}
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool TrySeek(SeekGrbit grbit)
+		{
+			return Api.TrySeek(Session, Table, grbit);
+		}
+
 		public static class ViewValues
 		{
 
@@ -446,6 +454,12 @@ namespace Imageboard10.Core.ModelStorage.Posts
 				public Guid Id;
 				public int EntityId;
 				public DateTime AccessTime;
+			}
+
+			// ReSharper disable once InconsistentNaming
+			public struct IdForIndex
+			{
+				public Guid Id;
 			}
 		}
 
@@ -480,6 +494,33 @@ namespace Imageboard10.Core.ModelStorage.Posts
 					r.Id = ((GuidColumnValue)_c[0]).Value.Value;
 				    // ReSharper disable once PossibleInvalidOperationException
 					r.AccessTime = ((DateTimeColumnValue)_c[1]).Value.Value;
+					return r;
+				}
+			}
+
+			// ReSharper disable once InconsistentNaming
+			public struct IdForIndex
+			{
+				private readonly AccessLogTable _table;
+				private readonly ColumnValue[] _c;
+
+				public IdForIndex(AccessLogTable table)
+				{
+					_table = table;
+
+					_c = new ColumnValue[1];
+					_c[0] = new GuidColumnValue() {
+						Columnid = _table.ColumnDictionary[AccessLogTable.Column.Id],
+						RetrieveGrbit = RetrieveColumnGrbit.RetrieveFromPrimaryBookmark
+					};
+				}
+
+				public ViewValues.IdForIndex Fetch()
+				{
+					var r = new ViewValues.IdForIndex();
+					Api.RetrieveColumns(_table.Session, _table, _c);
+				    // ReSharper disable once PossibleInvalidOperationException
+					r.Id = ((GuidColumnValue)_c[0]).Value.Value;
 					return r;
 				}
 			}
@@ -1123,6 +1164,158 @@ namespace Imageboard10.Core.ModelStorage.Posts
 								
 				
 			}
+
+			public struct AccessTimeDescIndex
+			{
+				private readonly AccessLogTable _table;
+
+				public AccessTimeDescIndex(AccessLogTable table)
+				{
+					_table = table;
+					_views = new IndexFetchViews(_table);
+				}
+
+				public void SetAsCurrentIndex()
+				{
+					Api.JetSetCurrentIndex(_table.Session, _table, "AccessTimeDescIndex");
+				}
+
+				public struct AccessTimeDescIndexKey
+				{
+					public DateTime AccessTime;
+				}
+
+			    // ReSharper disable InconsistentNaming
+				public AccessTimeDescIndexKey CreateKey(
+						DateTime AccessTime
+				)
+			    // ReSharper enable InconsistentNaming
+				{
+					return new AccessTimeDescIndexKey() {
+						AccessTime = AccessTime,
+					
+					};
+				}
+
+				public void SetKey(AccessTimeDescIndexKey key)
+				{
+					Api.MakeKey(_table.Session, _table, key.AccessTime,  MakeKeyGrbit.NewKey);
+				}
+
+				public bool Find(AccessTimeDescIndexKey key)
+				{
+					SetKey(key);
+					return Api.TrySeek(_table.Session, _table, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange);
+				}
+
+				public IEnumerable<object> Enumerate(AccessTimeDescIndexKey key)
+				{
+					SetKey(key);
+					if (Api.TrySeek(_table.Session, _table, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange))
+					{
+						do {
+							yield return _table;
+						} while (Api.TryMoveNext(_table.Session, _table));
+					}
+				}
+
+				public IEnumerable<object> EnumerateUnique(AccessTimeDescIndexKey key)
+				{
+					SetKey(key);
+					if (Api.TrySeek(_table.Session, _table, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange))
+					{
+						do {
+							yield return _table;
+						} while (Api.TryMove(_table.Session, _table, JET_Move.Next, MoveGrbit.MoveKeyNE));
+					}
+				}
+
+			    public int GetIndexRecordCount()
+			    {
+			        int r;
+			        Api.JetIndexRecordCount(_table.Session, _table, out r, int.MaxValue);
+			        return r;
+			    }
+
+			    public int GetIndexRecordCount(AccessTimeDescIndexKey key)
+			    {
+			        if (!Find(key))
+					{
+						return 0;
+					}
+			        return GetIndexRecordCount();
+			    }
+				public class IndexFetchViews
+				{
+					private readonly AccessLogTable _table;
+
+					public IndexFetchViews(AccessLogTable table)
+					{
+						_table = table;
+					}
+
+					// ReSharper disable once InconsistentNaming
+					private FetchViews.IdForIndex? __fv_IdForIndex;
+					public FetchViews.IdForIndex IdForIndex
+					{
+						get
+						{
+							if (__fv_IdForIndex == null)
+							{
+								__fv_IdForIndex = new FetchViews.IdForIndex(_table);
+							}
+							return __fv_IdForIndex.Value;
+						}
+					}
+				}
+
+				private readonly IndexFetchViews _views;
+			    // ReSharper disable once ConvertToAutoProperty
+				public IndexFetchViews Views => _views;
+
+				public IEnumerable<ViewValues.IdForIndex> EnumerateAsIdForIndex()
+				{
+					if (Api.TryMoveFirst(_table.Session, _table))
+					{
+						do {
+							yield return Views.IdForIndex.Fetch();
+						} while (Api.TryMoveNext(_table.Session, _table));
+					}
+				}
+
+				public IEnumerable<ViewValues.IdForIndex> EnumerateAsIdForIndex(AccessTimeDescIndexKey key)
+				{
+					SetKey(key);
+					if (Api.TrySeek(_table.Session, _table, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange))
+					{
+						do {
+							yield return Views.IdForIndex.Fetch();
+						} while (Api.TryMoveNext(_table.Session, _table));
+					}
+				}
+
+				public IEnumerable<ViewValues.IdForIndex> EnumerateUniqueAsIdForIndex()
+				{
+					if (Api.TryMoveFirst(_table.Session, _table))
+					{
+						do {
+							yield return Views.IdForIndex.Fetch();
+						} while (Api.TryMove(_table.Session, _table, JET_Move.Next, MoveGrbit.MoveKeyNE));
+					}
+				}
+
+				public IEnumerable<ViewValues.IdForIndex> EnumerateUniqueAsIdForIndex(AccessTimeDescIndexKey key)
+				{
+					SetKey(key);
+					if (Api.TrySeek(_table.Session, _table, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange))
+					{
+						do {
+							yield return Views.IdForIndex.Fetch();
+						} while (Api.TryMove(_table.Session, _table, JET_Move.Next, MoveGrbit.MoveKeyNE));
+					}
+				}
+				
+			}
 		}
 
 		public class TableIndexes
@@ -1176,6 +1369,21 @@ namespace Imageboard10.Core.ModelStorage.Posts
 						__ti_EntityIdAndAccessTimeIndex = new IndexDefinitions.EntityIdAndAccessTimeIndex(_table);
 					}
 					return __ti_EntityIdAndAccessTimeIndex.Value;
+				}
+			}
+
+		    // ReSharper disable once InconsistentNaming
+			private IndexDefinitions.AccessTimeDescIndex? __ti_AccessTimeDescIndex;
+
+			public IndexDefinitions.AccessTimeDescIndex AccessTimeDescIndex
+			{
+				get
+				{
+					if (__ti_AccessTimeDescIndex == null)
+					{
+						__ti_AccessTimeDescIndex = new IndexDefinitions.AccessTimeDescIndex(_table);
+					}
+					return __ti_AccessTimeDescIndex.Value;
 				}
 			}
 		}

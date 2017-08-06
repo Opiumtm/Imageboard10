@@ -1040,6 +1040,12 @@ namespace Imageboard10.Core.ModelStorage.Posts
 			return Api.GetBookmark(Session, Table);
 		}
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool TrySeek(SeekGrbit grbit)
+		{
+			return Api.TrySeek(Session, Table, grbit);
+		}
+
 		public static class ViewValues
 		{
 

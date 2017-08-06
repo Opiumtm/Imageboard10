@@ -24,7 +24,15 @@
       <Views>
         <ViewName>AccessTimeAndId</ViewName>
       </Views>
-    </Index>    
+    </Index>
+    <Index Name="AccessTimeDescIndex" Grbit="None">
+      <Fields>
+        <Field Name="AccessTime" Sort="Desc"/>
+      </Fields>
+      <Views>
+        <ViewName>IdForIndex</ViewName>
+      </Views>
+    </Index>
   </Indexes>
   <Views>
     <View Name="AccessTimeAndId" Role="Fetch IndexFetch">
@@ -35,6 +43,9 @@
       <Field>Id</Field>
       <Field>EntityId</Field>
       <Field>AccessTime</Field>
+    </View>
+    <View Name="IdForIndex" Role="IndexFetch">
+      <Field FetchFlags="FromPrimaryBookmark">Id</Field>
     </View>
   </Views>
 </Table>

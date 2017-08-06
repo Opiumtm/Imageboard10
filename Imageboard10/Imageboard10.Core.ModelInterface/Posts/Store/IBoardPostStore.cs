@@ -203,7 +203,7 @@ namespace Imageboard10.Core.ModelInterface.Posts.Store
         /// </summary>
         /// <param name="ids">Идентификаторы.</param>
         /// <returns>Лайки.</returns>
-        IAsyncOperation<IList<IBoardPostLikes>> LoadLikes(IList<PostStoreEntityId> ids);
+        IAsyncOperation<IList<IBoardPostLikesInfo>> LoadLikes(IList<PostStoreEntityId> ids);
 
         /// <summary>
         /// Обновить флаги сущности.
