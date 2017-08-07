@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Imageboard10.Core;
@@ -12,6 +13,7 @@ using Imageboard10.Core.Utility;
 using Microsoft.Isam.Esent.Interop;
 using Microsoft.Isam.Esent.Interop.Vista;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Microsoft.VisualStudio.TestTools.UnitTesting.Logging;
 
 // ReSharper disable AccessToDisposedClosure
 
@@ -874,6 +876,153 @@ namespace Imageboard10UnitTests
 
                 await AssertTestTable("test1", table1);
                 await AssertTestTable("test2", table2);
+            });
+        }
+
+        [TestMethod]
+        [TestCategory("ESENT")]
+        public async Task EsentNotEqualTest()
+        {
+            await RunEsentTest(async (provider, testData) =>
+            {
+                var session = provider.MainSession;
+                using (session.UseSession())
+                {
+                    async Task CreateTable()
+                    {
+                        await session.RunInTransaction(() =>
+                        {
+                            JET_TABLEID tableid;
+                            Api.JetCreateTable(session.Session, session.Database, "test", 0, 100, out tableid);
+
+                            JET_COLUMNID tempid;
+
+                            Api.JetAddColumn(session.Session, tableid, "Id", new JET_COLUMNDEF()
+                            {
+                                coltyp = JET_coltyp.Long,
+                                grbit = ColumndefGrbit.ColumnNotNULL
+                            }, null, 0, out tempid);
+
+                            Api.JetAddColumn(session.Session, tableid, "SingleFlag", new JET_COLUMNDEF()
+                            {
+                                coltyp = JET_coltyp.Long,
+                                grbit = ColumndefGrbit.ColumnTagged
+                            }, null, 0, out tempid);
+
+                            Api.JetAddColumn(session.Session, tableid, "MultiFlag", new JET_COLUMNDEF()
+                            {
+                                coltyp = JET_coltyp.Long,
+                                grbit = ColumndefGrbit.ColumnTagged | ColumndefGrbit.ColumnMultiValued
+                            }, null, 0, out tempid);
+
+                            var idx1 = "+Id\0\0";
+                            var idx2 = "+SingleFlag\0\0";
+                            var idx3 = "+MultiFlag\0\0";
+
+                            Api.JetCreateIndex(session.Session, tableid, "Primary", CreateIndexGrbit.IndexPrimary | CreateIndexGrbit.IndexUnique, idx1, idx1.Length, 100);
+                            Api.JetCreateIndex(session.Session, tableid, "Single", CreateIndexGrbit.None, idx2, idx2.Length, 100);
+                            Api.JetCreateIndex(session.Session, tableid, "Multi", CreateIndexGrbit.None, idx3, idx3.Length, 100);
+
+                            return true;
+                        });
+                    }
+
+                    var dataToFill = new Tuple<int, int?, int[]>[]
+                    {
+                        new Tuple<int, int?, int[]>(1, 1, new int[0]),
+                        new Tuple<int, int?, int[]>(2, 1, new int[0]),
+                        new Tuple<int, int?, int[]>(3, 2, new int[0]),
+                        new Tuple<int, int?, int[]>(4, null, new int[0]),
+
+                        new Tuple<int, int?, int[]>(5, 2, new int[] { 1, 2 }),
+                        new Tuple<int, int?, int[]>(6, 3, new int[] { 1 }),
+                        new Tuple<int, int?, int[]>(7, 3, new int[] { 2 }),
+                    };
+
+                    async Task FillTable()
+                    {
+                        await session.RunInTransaction(() =>
+                        {
+                            using (var table = session.OpenTable("test", OpenTableGrbit.None))
+                            {
+                                var ids = table.GetColumnDictionary();
+                                foreach (var dtf in dataToFill)
+                                {
+                                    var toInsert = new List<ColumnValue>();
+                                    toInsert.Add(new Int32ColumnValue()
+                                    {
+                                        Value = dtf.Item1,
+                                        Columnid = ids["Id"]
+                                    });
+
+                                    toInsert.Add(new Int32ColumnValue()
+                                    {
+                                        Value = dtf.Item2,
+                                        Columnid = ids["SingleFlag"]
+                                    });
+
+                                    foreach (var f in dtf.Item3)
+                                    {
+                                        toInsert.Add(new Int32ColumnValue()
+                                        {
+                                            Value = f,
+                                            Columnid = ids["MultiFlag"],
+                                            ItagSequence = 0
+                                        });
+                                    }
+
+                                    using (var insert = table.Update(JET_prep.Insert))
+                                    {
+                                        Api.SetColumns(table.Session, table, toInsert.ToArray());
+                                        insert.Save();
+                                    }
+                                }
+                            }
+                            return true;
+                        });
+                    }
+
+                    void Fetch(EsentTable table, List<int> r)
+                    {
+                        do
+                        {
+                            var id = Api.RetrieveColumnAsInt32(table.Session, table, table.GetColumnid("Id"));
+                            if (id != null)
+                            {
+                                r.Add(id.Value);
+                            }
+                        } while (Api.TryMoveNext(table.Session, table));
+                    }
+
+                    async Task AssertSingleFlag()
+                    {
+                        await session.Run(() =>
+                        {
+                            List<int> rids = new List<int>();
+                            using (var table = session.OpenTable("test", OpenTableGrbit.ReadOnly))
+                            {
+                                Api.JetSetCurrentIndex(table.Session, table, "Single");
+                                Api.MakeKey(table.Session, table, 1, MakeKeyGrbit.NewKey);
+                                if (Api.TrySeek(table.Session, table, SeekGrbit.SeekGT | SeekGrbit.SeekLT | SeekGrbit.SetIndexRange))
+                                {
+                                    Fetch(table, rids);
+                                }
+                            }
+                            Assert.IsTrue(rids.Count > 0, "rids.Count > 0");
+                            var rs = new StringBuilder();
+                            foreach (var id in rids)
+                            {
+                                rs.Append(" ");
+                                rs.Append(id);
+                            }
+                            Logger.LogMessage("rids:{0}", rs.ToString());
+                        });
+                    }
+
+                    await CreateTable();
+                    await FillTable();
+                    await AssertSingleFlag();
+                }
             });
         }
 

@@ -1281,12 +1281,21 @@ namespace Imageboard10.Core.ModelStorage.Posts
         /// <returns>Лог доступа.</returns>
         public IAsyncOperation<IList<IBoardPostStoreAccessLogItem>> GetAccessLog(PostStoreAccessLogQuery query)
         {
+            /*
             async Task<IList<IBoardPostStoreAccessLogItem>> Do()
             {
-                
+                CheckModuleReady();
+                if (query == null) throw new ArgumentNullException(nameof(query));
+                await WaitForTablesInitialize();
+                return await OpenSessionAsync(async session =>
+                {
+                    var bookmarks = await DoQueryByFlags(session, query.EntityType, null, query.WithFlags);
+                    return null;
+                });
             }
 
-            return Do().AsAsyncOperation();
+            return Do().AsAsyncOperation();*/
+            throw new NotImplementedException();
         }
 
         /// <summary>
@@ -1310,54 +1319,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
                 await WaitForTablesInitialize();
                 return await OpenSessionAsync(async session =>
                 {
-                    var bookmarks = await session.Run(() =>
-                    {
-                        using (var toDispose = new CompositeDisposable(null))
-                        {
-                            List<PostsTable> tables = new List<PostsTable>();
-
-                            var mainTable = OpenPostsTable(session, OpenTableGrbit.ReadOnly);
-                            toDispose.AddDisposable(mainTable);
-                            tables.Add(mainTable);
-
-                            if (parentId != null)
-                            {
-                                var index = mainTable.Indexes.ParentIdIndex;
-                                index.SetAsCurrentIndex();
-                                if (!index.Find(index.CreateKey(parentId.Value.Id)))
-                                {
-                                    goto CancelLabel;
-                                }
-                            }
-                            else
-                            {
-                                var index = mainTable.Indexes.TypeIndex;
-                                index.SetAsCurrentIndex();
-                                if (!index.Find(index.CreateKey((byte) type)))
-                                {
-                                    goto CancelLabel;
-                                }
-                            }
-
-                            foreach (var f in havingFlags)
-                            {
-                                var table = OpenPostsTable(session, OpenTableGrbit.ReadOnly);
-                                toDispose.AddDisposable(table);
-                                tables.Add(table);
-                                var index = table.Indexes.FlagsIndex;
-                                index.SetAsCurrentIndex();
-                                if (!index.Find(index.CreateKey(f)))
-                                {
-                                    goto CancelLabel;
-                                }
-                            }
-
-                            return Api.IntersectIndexes(session.Session, tables.Select(t => t.Table).ToArray()).ToArray();
-
-                            CancelLabel:
-                            return null;
-                        }
-                    });
+                    var bookmarks = await DoQueryByFlags(session, type, parentId, havingFlags);
 
                     if (bookmarks == null || bookmarks.Length == 0)
                     {

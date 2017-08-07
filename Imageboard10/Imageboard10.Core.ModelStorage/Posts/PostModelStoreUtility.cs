@@ -623,5 +623,74 @@ namespace Imageboard10.Core.ModelStorage.Posts
         {
             return table.Indexes.PrimaryIndex.Find(table.Indexes.PrimaryIndex.CreateKey(id.Id));
         }
+
+        private async ValueTask<byte[][]> DoQueryByFlags(IEsentSession session, PostStoreEntityType type, PostStoreEntityId? parentId, IList<Guid> havingFlags)
+        {
+            return await session.Run(() =>
+            {
+                using (var toDispose = new CompositeDisposable(null))
+                {
+                    List<PostsTable> tables = new List<PostsTable>();
+
+                    var mainTable = OpenPostsTable(session, OpenTableGrbit.ReadOnly);
+                    toDispose.AddDisposable(mainTable);
+                    tables.Add(mainTable);
+
+                    IEnumerable<byte[]> GetAllFromMainTable()
+                    {
+                        foreach (var _ in mainTable.EnumerateToEnd())
+                        {
+                            yield return mainTable.GetBookmark();
+                        }
+                    }
+
+                    if (parentId != null)
+                    {
+                        var index = mainTable.Indexes.ParentIdIndex;
+                        index.SetAsCurrentIndex();
+                        if (!index.Find(index.CreateKey(parentId.Value.Id)))
+                        {
+                            goto CancelLabel;
+                        }
+                    }
+                    else
+                    {
+                        var index = mainTable.Indexes.TypeIndex;
+                        index.SetAsCurrentIndex();
+                        if (!index.Find(index.CreateKey((byte)type)))
+                        {
+                            goto CancelLabel;
+                        }
+                    }
+
+                    if (havingFlags?.Count > 0)
+                    {
+                        foreach (var f in havingFlags)
+                        {
+                            var table = OpenPostsTable(session, OpenTableGrbit.ReadOnly);
+                            toDispose.AddDisposable(table);
+                            tables.Add(table);
+                            var index = table.Indexes.FlagsIndex;
+                            index.SetAsCurrentIndex();
+                            if (!index.Find(index.CreateKey(f)))
+                            {
+                                goto CancelLabel;
+                            }
+                        }
+
+                        return Api.IntersectIndexes(session.Session, tables.Select(t => t.Table).ToArray()).ToArray();
+                    }
+                    return GetAllFromMainTable().ToArray();
+
+                    CancelLabel:
+                    return null;
+                }
+            });
+        }
+
+        private async ValueTask<byte[][]> DoQueryByFlags(PostStoreEntityType type, PostStoreEntityId? parentId, IList<Guid> havingFlags)
+        {
+            return await OpenSessionAsync(async session => await DoQueryByFlags(session, type, parentId, havingFlags));
+        }
     }
 }
