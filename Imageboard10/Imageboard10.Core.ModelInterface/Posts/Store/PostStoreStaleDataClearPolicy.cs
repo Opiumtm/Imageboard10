@@ -21,11 +21,6 @@ namespace Imageboard10.Core.ModelInterface.Posts.Store
         public double? MaxAccessAgeSec { get; set; }
 
         /// <summary>
-        /// Максимальный размер лога доступа по типам сущностей (только для независимых сущностей, т.е. не имеющих родительской сущности).
-        /// </summary>
-        public IDictionary<PostStoreEntityType, int> MaxAccessLogSize { get; set; }
-
-        /// <summary>
         /// Минимальное время (в секундах) между запуском очистки. Если прошлый запуск не был ранее, чем указанное количество секунд, то операция не производится.
         /// Если null, то произвести очистку в любом случае.
         /// </summary>
@@ -35,6 +30,15 @@ namespace Imageboard10.Core.ModelInterface.Posts.Store
         /// Обратный вызов.
         /// </summary>
         public event PostStoreStaleDataClearFinishedCallback Callback;
+
+        /// <summary>
+        /// Вызвать обратный вызов.
+        /// </summary>
+        /// <param name="ex">Ошибка.</param>
+        public void TriggerCallback(Exception ex)
+        {
+            Callback?.Invoke(ex);
+        }
     }
 
     /// <summary>

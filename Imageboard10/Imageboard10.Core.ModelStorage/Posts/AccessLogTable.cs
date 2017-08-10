@@ -112,8 +112,10 @@ namespace Imageboard10.Core.ModelStorage.Posts
 			Api.JetCreateIndex(sid, tableid, "EntityIdIndex", CreateIndexGrbit.None, idxDef2, idxDef2.Length, 100);
 			var idxDef3 = "+EntityId\0+AccessTime\0\0";
 			Api.JetCreateIndex(sid, tableid, "EntityIdAndAccessTimeIndex", CreateIndexGrbit.None, idxDef3, idxDef3.Length, 100);
-			var idxDef4 = "-AccessTime\0\0";
-			Api.JetCreateIndex(sid, tableid, "AccessTimeDescIndex", CreateIndexGrbit.None, idxDef4, idxDef4.Length, 100);
+			var idxDef4 = "+EntityId\0-AccessTime\0\0";
+			Api.JetCreateIndex(sid, tableid, "EntityIdAndAccessTimeDescIndex", CreateIndexGrbit.None, idxDef4, idxDef4.Length, 100);
+			var idxDef5 = "-AccessTime\0\0";
+			Api.JetCreateIndex(sid, tableid, "AccessTimeDescIndex", CreateIndexGrbit.None, idxDef5, idxDef5.Length, 100);
 		}
 
 		public struct Multivalue<T> where T : ColumnValue, new()
@@ -1165,6 +1167,250 @@ namespace Imageboard10.Core.ModelStorage.Posts
 				
 			}
 
+			public struct EntityIdAndAccessTimeDescIndex
+			{
+				private readonly AccessLogTable _table;
+
+				public EntityIdAndAccessTimeDescIndex(AccessLogTable table)
+				{
+					_table = table;
+					_views = new IndexFetchViews(_table);
+				}
+
+				public void SetAsCurrentIndex()
+				{
+					Api.JetSetCurrentIndex(_table.Session, _table, "EntityIdAndAccessTimeDescIndex");
+				}
+
+				public struct EntityIdAndAccessTimeDescIndexKey
+				{
+					public int EntityId;
+					public DateTime AccessTime;
+				}
+
+			    // ReSharper disable InconsistentNaming
+				public EntityIdAndAccessTimeDescIndexKey CreateKey(
+						int EntityId
+						,DateTime AccessTime
+				)
+			    // ReSharper enable InconsistentNaming
+				{
+					return new EntityIdAndAccessTimeDescIndexKey() {
+						EntityId = EntityId,
+						AccessTime = AccessTime,
+					
+					};
+				}
+
+				public void SetKey(EntityIdAndAccessTimeDescIndexKey key)
+				{
+					Api.MakeKey(_table.Session, _table, key.EntityId,  MakeKeyGrbit.NewKey);
+					Api.MakeKey(_table.Session, _table, key.AccessTime,  MakeKeyGrbit.None);
+				}
+
+				public bool Find(EntityIdAndAccessTimeDescIndexKey key)
+				{
+					SetKey(key);
+					return Api.TrySeek(_table.Session, _table, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange);
+				}
+
+				public IEnumerable<object> Enumerate(EntityIdAndAccessTimeDescIndexKey key)
+				{
+					SetKey(key);
+					if (Api.TrySeek(_table.Session, _table, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange))
+					{
+						do {
+							yield return _table;
+						} while (Api.TryMoveNext(_table.Session, _table));
+					}
+				}
+
+				public IEnumerable<object> EnumerateUnique(EntityIdAndAccessTimeDescIndexKey key)
+				{
+					SetKey(key);
+					if (Api.TrySeek(_table.Session, _table, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange))
+					{
+						do {
+							yield return _table;
+						} while (Api.TryMove(_table.Session, _table, JET_Move.Next, MoveGrbit.MoveKeyNE));
+					}
+				}
+
+			    public int GetIndexRecordCount()
+			    {
+			        int r;
+			        Api.JetIndexRecordCount(_table.Session, _table, out r, int.MaxValue);
+			        return r;
+			    }
+
+			    public int GetIndexRecordCount(EntityIdAndAccessTimeDescIndexKey key)
+			    {
+			        if (!Find(key))
+					{
+						return 0;
+					}
+			        return GetIndexRecordCount();
+			    }
+
+				public struct EntityIdAndAccessTimeDescIndexPartialKey1
+				{
+					public int EntityId;
+				}
+
+			    // ReSharper disable InconsistentNaming
+				public EntityIdAndAccessTimeDescIndexPartialKey1 CreateKey(
+						int EntityId
+				)
+			    // ReSharper enable InconsistentNaming
+				{
+					return new EntityIdAndAccessTimeDescIndexPartialKey1() {
+						EntityId = EntityId,
+					
+					};
+				}
+
+				public void SetKey(EntityIdAndAccessTimeDescIndexPartialKey1 key, bool startRange)
+				{
+					var rangeFlag = startRange ? MakeKeyGrbit.FullColumnStartLimit : MakeKeyGrbit.FullColumnEndLimit;
+					Api.MakeKey(_table.Session, _table, key.EntityId,  MakeKeyGrbit.NewKey | rangeFlag);
+				}
+
+				public bool Find(EntityIdAndAccessTimeDescIndexPartialKey1 key)
+				{
+					SetKey(key, true);
+					return Api.TrySeek(_table.Session, _table, SeekGrbit.SeekGE);
+				}
+
+				public bool SetPartialUpperRange(EntityIdAndAccessTimeDescIndexPartialKey1 key)
+				{
+					SetKey(key, false);
+					return Api.TrySetIndexRange(_table.Session, _table, SetIndexRangeGrbit.RangeUpperLimit);
+				}
+
+				public bool SeekPartial(EntityIdAndAccessTimeDescIndexPartialKey1 key)
+				{
+					if (Find(key))
+					{
+						if (SetPartialUpperRange(key))
+						{
+							return true;
+						}
+					}
+					return false;
+				}
+
+				public IEnumerable<object> Enumerate(EntityIdAndAccessTimeDescIndexPartialKey1 key)
+				{
+					SetKey(key, true);
+					if (Api.TrySeek(_table.Session, _table, SeekGrbit.SeekGE))
+					{
+						SetKey(key, false);
+						if (Api.TrySetIndexRange(_table.Session, _table, SetIndexRangeGrbit.RangeUpperLimit))
+						{
+							do {
+								yield return _table;
+							} while (Api.TryMoveNext(_table.Session, _table));
+						}
+					}
+				}
+
+				public int GetIndexRecordCount(EntityIdAndAccessTimeDescIndexPartialKey1 key)
+			    {
+					if (!SeekPartial(key))
+					{
+						return 0;
+					}
+			        return GetIndexRecordCount();
+			    }
+
+				public class IndexFetchViews
+				{
+					private readonly AccessLogTable _table;
+
+					public IndexFetchViews(AccessLogTable table)
+					{
+						_table = table;
+					}
+
+					// ReSharper disable once InconsistentNaming
+					private FetchViews.AccessTimeAndId? __fv_AccessTimeAndId;
+					public FetchViews.AccessTimeAndId AccessTimeAndId
+					{
+						get
+						{
+							if (__fv_AccessTimeAndId == null)
+							{
+								__fv_AccessTimeAndId = new FetchViews.AccessTimeAndId(_table);
+							}
+							return __fv_AccessTimeAndId.Value;
+						}
+					}
+				}
+
+				private readonly IndexFetchViews _views;
+			    // ReSharper disable once ConvertToAutoProperty
+				public IndexFetchViews Views => _views;
+
+				public IEnumerable<ViewValues.AccessTimeAndId> EnumerateAsAccessTimeAndId()
+				{
+					if (Api.TryMoveFirst(_table.Session, _table))
+					{
+						do {
+							yield return Views.AccessTimeAndId.Fetch();
+						} while (Api.TryMoveNext(_table.Session, _table));
+					}
+				}
+
+				public IEnumerable<ViewValues.AccessTimeAndId> EnumerateAsAccessTimeAndId(EntityIdAndAccessTimeDescIndexKey key)
+				{
+					SetKey(key);
+					if (Api.TrySeek(_table.Session, _table, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange))
+					{
+						do {
+							yield return Views.AccessTimeAndId.Fetch();
+						} while (Api.TryMoveNext(_table.Session, _table));
+					}
+				}
+
+				public IEnumerable<ViewValues.AccessTimeAndId> EnumerateUniqueAsAccessTimeAndId()
+				{
+					if (Api.TryMoveFirst(_table.Session, _table))
+					{
+						do {
+							yield return Views.AccessTimeAndId.Fetch();
+						} while (Api.TryMove(_table.Session, _table, JET_Move.Next, MoveGrbit.MoveKeyNE));
+					}
+				}
+
+				public IEnumerable<ViewValues.AccessTimeAndId> EnumerateUniqueAsAccessTimeAndId(EntityIdAndAccessTimeDescIndexKey key)
+				{
+					SetKey(key);
+					if (Api.TrySeek(_table.Session, _table, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange))
+					{
+						do {
+							yield return Views.AccessTimeAndId.Fetch();
+						} while (Api.TryMove(_table.Session, _table, JET_Move.Next, MoveGrbit.MoveKeyNE));
+					}
+				}
+
+				public IEnumerable<ViewValues.AccessTimeAndId> EnumerateAsAccessTimeAndId(EntityIdAndAccessTimeDescIndexPartialKey1 key)
+				{
+					SetKey(key, true);
+					if (Api.TrySeek(_table.Session, _table, SeekGrbit.SeekGE))
+					{
+						SetKey(key, false);
+						if (Api.TrySetIndexRange(_table.Session, _table, SetIndexRangeGrbit.RangeUpperLimit))
+						{
+							do {
+								yield return Views.AccessTimeAndId.Fetch();
+							} while (Api.TryMoveNext(_table.Session, _table));
+						}
+					}
+				}
+								
+				
+			}
+
 			public struct AccessTimeDescIndex
 			{
 				private readonly AccessLogTable _table;
@@ -1369,6 +1615,21 @@ namespace Imageboard10.Core.ModelStorage.Posts
 						__ti_EntityIdAndAccessTimeIndex = new IndexDefinitions.EntityIdAndAccessTimeIndex(_table);
 					}
 					return __ti_EntityIdAndAccessTimeIndex.Value;
+				}
+			}
+
+		    // ReSharper disable once InconsistentNaming
+			private IndexDefinitions.EntityIdAndAccessTimeDescIndex? __ti_EntityIdAndAccessTimeDescIndex;
+
+			public IndexDefinitions.EntityIdAndAccessTimeDescIndex EntityIdAndAccessTimeDescIndex
+			{
+				get
+				{
+					if (__ti_EntityIdAndAccessTimeDescIndex == null)
+					{
+						__ti_EntityIdAndAccessTimeDescIndex = new IndexDefinitions.EntityIdAndAccessTimeDescIndex(_table);
+					}
+					return __ti_EntityIdAndAccessTimeDescIndex.Value;
 				}
 			}
 

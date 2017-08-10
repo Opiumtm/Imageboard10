@@ -10,6 +10,7 @@ using Imageboard10.Core.ModelInterface.Links;
 using Imageboard10.Core.ModelInterface.Posts;
 using Imageboard10.Core.ModelInterface.Posts.Store;
 using Imageboard10.Core.Models.Links.LinkTypes;
+using Imageboard10.Core.Models.Posts;
 using Imageboard10.Core.ModelStorage.UnitTests;
 using Imageboard10.Core.Utility;
 using Microsoft.Isam.Esent.Interop;
@@ -686,6 +687,75 @@ namespace Imageboard10.Core.ModelStorage.Posts
                     return null;
                 }
             });
+        }
+
+        private async ValueTask<List<PostStoreEntityId>> FilterByFlags(PostStoreEntityType type, PostStoreEntityId? parentId, IList<Guid> havingFlags, IList<Guid> notHavingFlags, IEsentSession session)
+        {
+            var bookmarks = await DoQueryByFlags(session, type, parentId, havingFlags);
+
+            if (bookmarks == null || bookmarks.Length == 0)
+            {
+                return new List<PostStoreEntityId>();
+            }
+
+            return await session.Run(() =>
+            {
+                var result = new List<PostStoreEntityId>();
+
+                var nhs = notHavingFlags != null ? new HashSet<Guid>(notHavingFlags) : new HashSet<Guid>();
+
+                using (var table = OpenPostsTable(session, OpenTableGrbit.ReadOnly))
+                {
+                    foreach (var bm in bookmarks)
+                    {
+                        if (table.TryGotoBookmark(bm))
+                        {
+                            if (nhs.Count > 0)
+                            {
+                                if (table.Columns.Flags.Values.All(v => v?.Value == null || !nhs.Contains(v?.Value ?? Guid.Empty)))
+                                {
+                                    result.Add(new PostStoreEntityId() { Id = table.Columns.Id });
+                                }
+                            }
+                            else
+                            {
+                                result.Add(new PostStoreEntityId() { Id = table.Columns.Id });
+                            }
+                        }
+                    }
+                }
+                return result;
+            });
+        }
+
+        private async Task CleanChildren(ICollection<PostStoreEntityId> parents)
+        {
+            var toDelete = await OpenSession(session =>
+            {
+                var r = new HashSet<PostStoreEntityId>(PostStoreEntityIdEqualityComparer.Instance);
+                using (var table = OpenPostsTable(session, OpenTableGrbit.Updatable))
+                {
+                    var index = table.Indexes.ParentIdIndex;
+                    index.SetAsCurrentIndex();
+                    foreach (var p in parents)
+                    {
+                        if (index.Find(index.CreateKey(p.Id)))
+                        {
+                            r.Add(new PostStoreEntityId() {Id = index.Views.RetrieveIdFromIndexView.Fetch().Id});
+                        }
+                    }
+                    table.Indexes.PrimaryIndex.SetAsCurrentIndex();
+                    foreach (var p in parents)
+                    {
+                        if (table.Indexes.PrimaryIndex.Find(table.Indexes.PrimaryIndex.CreateKey(p.Id)))
+                        {
+                            table.Update.UpdateAsChildrenLoadStageView(new PostsTable.ViewValues.ChildrenLoadStageView() {ChildrenLoadStage = ChildrenLoadStageId.NotStarted});
+                        }
+                    }
+                }
+                return r;
+            });
+            await OpenSessionAsync(async session => await DoDeleteEntitiesList(session, toDelete));
         }
 
         private async ValueTask<byte[][]> DoQueryByFlags(PostStoreEntityType type, PostStoreEntityId? parentId, IList<Guid> havingFlags)

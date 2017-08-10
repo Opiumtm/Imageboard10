@@ -49,6 +49,9 @@
       <Fields>
         <Field Name="EntityType" Sort="Asc"/>
       </Fields>
+      <Views>
+        <ViewName>RetrieveIdAndDateFromIndexView</ViewName>
+      </Views>
     </Index>
     <Index Name="ChildrenLoadStageIndex" Grbit="None">
       <Fields>
@@ -288,6 +291,10 @@
       <Field>SequenceNumber</Field>
       <Field>Subject</Field>
       <Field>Thumbnail</Field>
-    </View>    
+    </View>
+    <View Name="RetrieveIdAndDateFromIndexView" Role="IndexFetch">
+      <Field FetchFlags="FromPrimaryBookmark">Id</Field>
+      <Field FetchFlags="Default">LoadedTime</Field>
+    </View>
   </Views>
 </Table>

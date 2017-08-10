@@ -25,6 +25,15 @@
         <ViewName>AccessTimeAndId</ViewName>
       </Views>
     </Index>
+    <Index Name="EntityIdAndAccessTimeDescIndex" Grbit="None">
+      <Fields>
+        <Field Name="EntityId" Sort="Asc"/>
+        <Field Name="AccessTime" Sort="Desc"/>
+      </Fields>
+      <Views>
+        <ViewName>AccessTimeAndId</ViewName>
+      </Views>
+    </Index>
     <Index Name="AccessTimeDescIndex" Grbit="None">
       <Fields>
         <Field Name="AccessTime" Sort="Desc"/>

@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Windows.Foundation;
+using Windows.Storage;
 using Imageboard10.Core.Database;
 using Imageboard10.Core.ModelInterface.Links;
 using Imageboard10.Core.ModelInterface.Posts;
@@ -1254,9 +1255,86 @@ namespace Imageboard10.Core.ModelStorage.Posts
             return Do().AsAsyncAction();
         }
 
+        /// <summary>
+        /// Очистить старые данные.
+        /// </summary>
+        /// <param name="policy">Политика удаления старых данных.</param>
         public IAsyncAction ClearStaleData(PostStoreStaleDataClearPolicy policy)
         {
-            throw new NotImplementedException();
+            async Task Do()
+            {
+                CheckModuleReady();
+                if (policy == null) throw new ArgumentNullException(nameof(policy));
+                await WaitForTablesInitialize();
+
+                if (policy.MinCleanupPeriod != null)
+                {
+                    DateTimeOffset? lastCleanup = null;
+                    if (ApplicationData.Current.LocalSettings.Values.ContainsKey("PostModelStore_lastCleanup"))
+                    {
+                        lastCleanup = (DateTimeOffset)ApplicationData.Current.LocalSettings.Values["PostModelStore_lastCleanup"];
+                    }
+                    ApplicationData.Current.LocalSettings.Values["PostModelStore_lastCleanup"] = DateTimeOffset.Now;
+                    var cleanupSecs = (DateTimeOffset.Now - lastCleanup)?.TotalSeconds;
+                    if (!(cleanupSecs > policy.MinCleanupPeriod || lastCleanup == null))
+                    {
+                        return;
+                    }
+                }
+
+                try
+                {
+                    await OpenSessionAsync(async session =>
+                    {
+                        var toDelete = new HashSet<PostStoreEntityId>(PostStoreEntityIdEqualityComparer.Instance);
+                        await session.Run(() =>
+                        {
+                            using (var table = OpenPostsTable(session, OpenTableGrbit.ReadOnly))
+                            {
+                                var index = table.Indexes.TypeIndex;
+                                index.SetAsCurrentIndex();
+                                using (var accTable = OpenAccessLogTable(session, OpenTableGrbit.ReadOnly))
+                                {
+                                    var accIndex = accTable.Indexes.EntityIdAndAccessTimeDescIndex;
+                                    accIndex.SetAsCurrentIndex();
+                                    foreach (var et in new[] { PostStoreEntityType.Thread, PostStoreEntityType.Catalog, PostStoreEntityType.BoardPage })
+                                    {
+                                        foreach (var eid in index.EnumerateAsRetrieveIdAndDateFromIndexView(index.CreateKey((byte) et)))
+                                        {
+                                            DateTimeOffset? lastAccess = null;
+                                            DateTimeOffset? loadDate = FromUtcToOffset(eid.LoadedTime);
+                                            if (accIndex.Find(accIndex.CreateKey(eid.Id)))
+                                            {
+                                                lastAccess = FromUtcToOffset(accTable.Columns.AccessTime);
+                                            }
+                                            var ageSec = (DateTimeOffset.Now - loadDate)?.TotalSeconds;
+                                            var accessSec = (DateTimeOffset.Now - lastAccess)?.TotalSeconds;
+                                            if (ageSec > policy.MaxAgeSec || ageSec == null)
+                                            {
+                                                toDelete.Add(new PostStoreEntityId() {Id = eid.Id});
+                                            }
+                                            if (accessSec > policy.MaxAccessAgeSec)
+                                            {
+                                                toDelete.Add(new PostStoreEntityId() {Id = eid.Id});
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        });
+                        await CleanChildren(toDelete);
+                        return Nothing.Value;
+                    });
+                    CoreTaskHelper.RunUnawaitedTask(() => policy.TriggerCallback(null));
+                }
+                catch (Exception e)
+                {
+                    CoreTaskHelper.RunUnawaitedTask(() => policy.TriggerCallback(e));
+                    throw;
+                }
+            }
+
+            return Do().AsAsyncAction();
         }
 
         /// <summary>
@@ -1281,7 +1359,6 @@ namespace Imageboard10.Core.ModelStorage.Posts
         /// <returns>Лог доступа.</returns>
         public IAsyncOperation<IList<IBoardPostStoreAccessLogItem>> GetAccessLog(PostStoreAccessLogQuery query)
         {
-            /*
             async Task<IList<IBoardPostStoreAccessLogItem>> Do()
             {
                 CheckModuleReady();
@@ -1289,13 +1366,49 @@ namespace Imageboard10.Core.ModelStorage.Posts
                 await WaitForTablesInitialize();
                 return await OpenSessionAsync(async session =>
                 {
-                    var bookmarks = await DoQueryByFlags(session, query.EntityType, null, query.WithFlags);
-                    return null;
+                    var ids = (await FilterByFlags(query.EntityType, null, query.WithFlags, query.WithoutFlags, session)).Distinct(PostStoreEntityIdEqualityComparer.Instance).ToList();
+                    var posts = await LoadEntities(ids, new PostStoreLoadMode() {RetrieveCounterNumber = false, EntityLoadMode = PostStoreEntityLoadMode.EntityOnly});
+                    return await session.Run(() =>
+                    {
+                        var result = new List<IBoardPostStoreAccessLogItem>();
+                        using (var table = OpenAccessLogTable(session, OpenTableGrbit.ReadOnly))
+                        {
+                            var index = table.Indexes.EntityIdAndAccessTimeDescIndex;
+                            index.SetAsCurrentIndex();
+                            foreach (var post in posts.Where(post => post.StoreId != null))
+                            {
+                                int cnt = 0;
+                                // ReSharper disable once PossibleInvalidOperationException
+                                foreach (var al in index.EnumerateAsAccessTimeAndId(index.CreateKey(post.StoreId.Value.Id)))
+                                {
+                                    cnt++;
+                                    result.Add(new PostStoreAccessLogItem()
+                                    {
+                                        Entity = post,
+                                        LogEntryId = al.Id,
+                                        AccessTime = FromUtcToOffset(al.AccessTime)
+                                    });
+                                    if (query.OnlyLatest)
+                                    {
+                                        break;
+                                    }
+                                    if (cnt >= query.MaxLogSize)
+                                    {
+                                        break;
+                                    }
+                                    if (al.AccessTime >= query.From)
+                                    {
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                        return result;
+                    });
                 });
             }
 
-            return Do().AsAsyncOperation();*/
-            throw new NotImplementedException();
+            return Do().AsAsyncOperation();
         }
 
         /// <summary>
@@ -1317,44 +1430,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
                     throw new ArgumentOutOfRangeException(nameof(havingFlags), "Нужно указать как минимум 1 флаг для проверки");
                 }
                 await WaitForTablesInitialize();
-                return await OpenSessionAsync(async session =>
-                {
-                    var bookmarks = await DoQueryByFlags(session, type, parentId, havingFlags);
-
-                    if (bookmarks == null || bookmarks.Length == 0)
-                    {
-                        return new List<PostStoreEntityId>();
-                    }
-
-                    return await session.Run(() =>
-                    {
-                        var result = new List<PostStoreEntityId>();
-
-                        var nhs = notHavingFlags != null ? new HashSet<Guid>(notHavingFlags) : new HashSet<Guid>();
-
-                        using (var table = OpenPostsTable(session, OpenTableGrbit.ReadOnly))
-                        {
-                            foreach (var bm in bookmarks)
-                            {
-                                if (table.TryGotoBookmark(bm))
-                                {
-                                    if (nhs.Count > 0)
-                                    {
-                                        if (table.Columns.Flags.Values.All(v => v?.Value == null || !nhs.Contains(v?.Value ?? Guid.Empty)))
-                                        {
-                                            result.Add(new PostStoreEntityId() { Id = table.Columns.Id });
-                                        }
-                                    }
-                                    else
-                                    {
-                                        result.Add(new PostStoreEntityId() { Id = table.Columns.Id });
-                                    }
-                                }
-                            }
-                        }
-                        return result;
-                    });
-                });
+                return await OpenSessionAsync(async session => await FilterByFlags(type, parentId, havingFlags, notHavingFlags, session));
             }
 
             return Do().AsAsyncOperation();

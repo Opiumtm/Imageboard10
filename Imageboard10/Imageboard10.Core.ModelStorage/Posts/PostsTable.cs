@@ -1470,6 +1470,13 @@ namespace Imageboard10.Core.ModelStorage.Posts
 				public string Subject;
 				public byte[] Thumbnail;
 			}
+
+			// ReSharper disable once InconsistentNaming
+			public struct RetrieveIdAndDateFromIndexView
+			{
+				public int Id;
+				public DateTime? LoadedTime;
+			}
 		}
 
 		public static class FetchViews {
@@ -2190,6 +2197,38 @@ namespace Imageboard10.Core.ModelStorage.Posts
 					Api.RetrieveColumns(_table.Session, _table, _c);
 					r.Likes = ((Int32ColumnValue)_c[0]).Value;
 					r.Dislikes = ((Int32ColumnValue)_c[1]).Value;
+					return r;
+				}
+			}
+
+			// ReSharper disable once InconsistentNaming
+			public struct RetrieveIdAndDateFromIndexView
+			{
+				private readonly PostsTable _table;
+				private readonly ColumnValue[] _c;
+
+				public RetrieveIdAndDateFromIndexView(PostsTable table)
+				{
+					_table = table;
+
+					_c = new ColumnValue[2];
+					_c[0] = new Int32ColumnValue() {
+						Columnid = _table.ColumnDictionary[PostsTable.Column.Id],
+						RetrieveGrbit = RetrieveColumnGrbit.RetrieveFromPrimaryBookmark
+					};
+					_c[1] = new DateTimeColumnValue() {
+						Columnid = _table.ColumnDictionary[PostsTable.Column.LoadedTime],
+						RetrieveGrbit = RetrieveColumnGrbit.None
+					};
+				}
+
+				public ViewValues.RetrieveIdAndDateFromIndexView Fetch()
+				{
+					var r = new ViewValues.RetrieveIdAndDateFromIndexView();
+					Api.RetrieveColumns(_table.Session, _table, _c);
+				    // ReSharper disable once PossibleInvalidOperationException
+					r.Id = ((Int32ColumnValue)_c[0]).Value.Value;
+					r.LoadedTime = ((DateTimeColumnValue)_c[1]).Value;
 					return r;
 				}
 			}
@@ -3512,6 +3551,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
 				public TypeIndex(PostsTable table)
 				{
 					_table = table;
+					_views = new IndexFetchViews(_table);
 				}
 
 				public void SetAsCurrentIndex()
@@ -3584,6 +3624,75 @@ namespace Imageboard10.Core.ModelStorage.Posts
 					}
 			        return GetIndexRecordCount();
 			    }
+				public class IndexFetchViews
+				{
+					private readonly PostsTable _table;
+
+					public IndexFetchViews(PostsTable table)
+					{
+						_table = table;
+					}
+
+					// ReSharper disable once InconsistentNaming
+					private FetchViews.RetrieveIdAndDateFromIndexView? __fv_RetrieveIdAndDateFromIndexView;
+					public FetchViews.RetrieveIdAndDateFromIndexView RetrieveIdAndDateFromIndexView
+					{
+						get
+						{
+							if (__fv_RetrieveIdAndDateFromIndexView == null)
+							{
+								__fv_RetrieveIdAndDateFromIndexView = new FetchViews.RetrieveIdAndDateFromIndexView(_table);
+							}
+							return __fv_RetrieveIdAndDateFromIndexView.Value;
+						}
+					}
+				}
+
+				private readonly IndexFetchViews _views;
+			    // ReSharper disable once ConvertToAutoProperty
+				public IndexFetchViews Views => _views;
+
+				public IEnumerable<ViewValues.RetrieveIdAndDateFromIndexView> EnumerateAsRetrieveIdAndDateFromIndexView()
+				{
+					if (Api.TryMoveFirst(_table.Session, _table))
+					{
+						do {
+							yield return Views.RetrieveIdAndDateFromIndexView.Fetch();
+						} while (Api.TryMoveNext(_table.Session, _table));
+					}
+				}
+
+				public IEnumerable<ViewValues.RetrieveIdAndDateFromIndexView> EnumerateAsRetrieveIdAndDateFromIndexView(TypeIndexKey key)
+				{
+					SetKey(key);
+					if (Api.TrySeek(_table.Session, _table, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange))
+					{
+						do {
+							yield return Views.RetrieveIdAndDateFromIndexView.Fetch();
+						} while (Api.TryMoveNext(_table.Session, _table));
+					}
+				}
+
+				public IEnumerable<ViewValues.RetrieveIdAndDateFromIndexView> EnumerateUniqueAsRetrieveIdAndDateFromIndexView()
+				{
+					if (Api.TryMoveFirst(_table.Session, _table))
+					{
+						do {
+							yield return Views.RetrieveIdAndDateFromIndexView.Fetch();
+						} while (Api.TryMove(_table.Session, _table, JET_Move.Next, MoveGrbit.MoveKeyNE));
+					}
+				}
+
+				public IEnumerable<ViewValues.RetrieveIdAndDateFromIndexView> EnumerateUniqueAsRetrieveIdAndDateFromIndexView(TypeIndexKey key)
+				{
+					SetKey(key);
+					if (Api.TrySeek(_table.Session, _table, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange))
+					{
+						do {
+							yield return Views.RetrieveIdAndDateFromIndexView.Fetch();
+						} while (Api.TryMove(_table.Session, _table, JET_Move.Next, MoveGrbit.MoveKeyNE));
+					}
+				}
 				
 			}
 
