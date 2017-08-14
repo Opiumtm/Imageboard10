@@ -303,6 +303,20 @@ namespace Imageboard10UnitTests
             };
 
             await AssertQuotes(PostStoreEntityType.Post, post2Link, expectedQuotes2, "№2");
+
+            var testCollectionLink = await _store.GetEntityLink(collectionId);
+            Assert.IsNotNull(testCollectionLink, "testCollectionLink != null");
+            Assert.AreEqual(collection.Link.GetLinkHash(), testCollectionLink.GetLinkHash(), "_store.GetEntityLink link");
+
+            var postLinksToTest = new List<ILink>() {collection.Posts[0].Link, collection.Posts[1].Link};
+            var testIds = await _store.FindEntities(collectionId, postLinksToTest);
+            Assert.AreEqual(2, testIds.Count, "testIds.Count");
+
+            var testPostLinks = await _store.GetEntityLinks(testIds.Select(i => i.Id).ToArray());
+            Assert.IsNotNull(testPostLinks, "testPostLinks != null");
+            Assert.AreEqual(2, testPostLinks.Count, "testPostLinks.Count");
+
+            CollectionAssert.AreEquivalent(postLinksToTest.Select(ll => ll.GetLinkHash()).ToList(), testPostLinks.Select(ll => ll.Link.GetLinkHash()).ToList(), "_store.GetEntityLinks links");
         }
 
         private async Task AssertQuotes(PostStoreEntityType entityType, ILink opLink, ILink[] expectedQuotes, string msgPrefix)
@@ -654,6 +668,43 @@ namespace Imageboard10UnitTests
             var collectionId = await _store.SaveCollection(collection, BoardPostCollectionUpdateMode.Replace, null, null);
             var linkOnly = await _store.Load(collectionId, new PostStoreLoadMode() {EntityLoadMode = PostStoreEntityLoadMode.LinkOnly});
             Assert.IsNotNull(linkOnly, "linkOnly != null");
+
+            Assert.AreEqual(collection.Link.GetLinkHash(), linkOnly.Link?.GetLinkHash(), "linkOnly.Link");
+
+            var bareEntity = await _store.Load(collectionId, new PostStoreLoadMode() {EntityLoadMode = PostStoreEntityLoadMode.EntityOnly});
+
+            Assert.IsNotNull(bareEntity, "bareEntity != null");
+            Assert.AreEqual(collection.Link.GetLinkHash(), bareEntity.Link?.GetLinkHash(), "bareEntity.Link");
+            Assert.AreEqual(collection.Subject, bareEntity.Subject, "bareEntity.Subject");
+            Assert.IsNotNull(bareEntity.StoreId, "bareEntity.StoreId != null");
+            Assert.AreEqual(collectionId.Id, bareEntity.StoreId.Value.Id, "bareEntity.StoreId");
+            Assert.IsNull(bareEntity.StoreParentId, "bareEntity.StoreParentId == null");
+            Assert.AreEqual(collection.ParentLink.GetLinkHash(), bareEntity.ParentLink?.GetLinkHash(), "bareEntity.ParentLink");
+            Assert.IsNotNull(bareEntity.Thumbnail, "bareEntity.Thumbnail != null");
+            Assert.AreEqual(collection.Thumbnail.Size, bareEntity.Thumbnail.Size, "bareEntity.Thumbnail.Size");
+            Assert.AreEqual(collection.Thumbnail.MediaLink.GetLinkHash(), bareEntity.Thumbnail.MediaLink?.GetLinkHash(), "collection.Thumbnail.MediaLink");
+
+            var light = await _store.Load(collectionId, new PostStoreLoadMode() {EntityLoadMode = PostStoreEntityLoadMode.Light});
+            Assert.IsNotNull(light, "light != null");
+            Assert.AreEqual(collection.Link.GetLinkHash(), light.Link?.GetLinkHash(), "light.Link");
+            Assert.AreEqual(collection.Subject, light.Subject, "light.Subject");
+            Assert.IsNotNull(light.StoreId, "light.StoreId != null");
+            Assert.AreEqual(collectionId.Id, light.StoreId.Value.Id, "light.StoreId");
+            Assert.IsNull(light.StoreParentId, "light.StoreParentId == null");
+            Assert.AreEqual(collection.ParentLink.GetLinkHash(), light.ParentLink?.GetLinkHash(), "light.ParentLink");
+            Assert.IsNotNull(light.Thumbnail, "light.Thumbnail != null");
+            Assert.AreEqual(collection.Thumbnail.Size, light.Thumbnail.Size, "light.Thumbnail.Size");
+            Assert.AreEqual(collection.Thumbnail.MediaLink.GetLinkHash(), light.Thumbnail.MediaLink?.GetLinkHash(), "light.Thumbnail.MediaLink");
+
+            var lightCollection = light as IBoardPostCollection;
+            Assert.IsNotNull(lightCollection, "light is IBoardPostCollection");
+            Assert.AreEqual(0, lightCollection.Posts.Count, "Posts not loaded in light mode");
+            Assert.IsNotNull(lightCollection.Info, "lightCollection.Info != null");            
+            Assert.IsNotNull(lightCollection.Info.Items, "lightCollection.Info.Items != null");
+            AssertCollectionInfo<IBoardPostCollectionInfoBoard>(lightCollection.Info, info =>
+            {
+                Assert.AreEqual("mobi", info.Board, "lightCollection.Info.Board = mobi");
+            });
         }
 
         private struct LoadedPost
