@@ -1322,7 +1322,8 @@ namespace Imageboard10.Core.ModelStorage.Posts
                                 }
                             }
                         });
-                        await CleanChildren(toDelete);
+                        //await CleanChildren(toDelete);
+                        await DoDeleteEntitiesList(session, toDelete);
                         return Nothing.Value;
                     });
                     CoreTaskHelper.RunUnawaitedTask(() => policy.TriggerCallback(null));
