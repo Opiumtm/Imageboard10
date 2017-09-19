@@ -70,7 +70,7 @@ namespace Imageboard10.Core.ModelInterface.Posts
         /// <summary>
         /// Размер баннера.
         /// </summary>
-        SizeInt32? BannerSize { get; }
+        SizeOfInt32? BannerSize { get; }
 
         /// <summary>
         /// Ссылка на изображение.

@@ -96,7 +96,7 @@ namespace Imageboard10UnitTests
                 },
                 FileSize = 1024,
                 MediaType = PostMediaTypes.WebmVideo,
-                Size = new SizeInt32() { Height = 150, Width = 250 }
+                Size = new SizeOfInt32() { Height = 150, Width = 250 }
             }, (original, deserialized) =>
             {
                 Assert.IsNotNull(deserialized.FileSize, "Размер медиа == null");
@@ -127,7 +127,7 @@ namespace Imageboard10UnitTests
                 },
                 FileSize = 1024,
                 MediaType = PostMediaTypes.WebmVideo,
-                Size = new SizeInt32() { Height = 150, Width = 250 },
+                Size = new SizeOfInt32() { Height = 150, Width = 250 },
                 Thumbnail = new PostMediaWithSize()
                 {
                     MediaLink = new BoardMediaLink()
@@ -138,7 +138,7 @@ namespace Imageboard10UnitTests
                     },
                     FileSize = 1024,
                     MediaType = PostMediaTypes.Image,
-                    Size = new SizeInt32() { Height = 350, Width = 450 },
+                    Size = new SizeOfInt32() { Height = 350, Width = 450 },
                 },
                 DisplayName = "display name",
                 FullName = "full name",
@@ -162,7 +162,7 @@ namespace Imageboard10UnitTests
                 },
                 FileSize = 1024,
                 MediaType = PostMediaTypes.WebmVideo,
-                Size = new SizeInt32() { Height = 150, Width = 250 },
+                Size = new SizeOfInt32() { Height = 150, Width = 250 },
                 Thumbnail = null,
                 DisplayName = "display name 2",
                 FullName = "full name 2",
@@ -198,7 +198,7 @@ namespace Imageboard10UnitTests
                 },
                 FileSize = 1024,
                 MediaType = PostMediaTypes.WebmVideo,
-                Size = new SizeInt32() { Height = 150, Width = 250 }
+                Size = new SizeOfInt32() { Height = 150, Width = 250 }
             }, (original, deserialized) =>
             {
                 AssertMediaWithSize(original, deserialized);
@@ -214,7 +214,7 @@ namespace Imageboard10UnitTests
                 },
                 FileSize = 1024,
                 MediaType = PostMediaTypes.WebmVideo,
-                Size = new SizeInt32() { Height = 150, Width = 250 },
+                Size = new SizeOfInt32() { Height = 150, Width = 250 },
                 Thumbnail = new FakeExternalPostMedia()
                 {
                     MediaLink = new BoardMediaLink()
@@ -225,7 +225,7 @@ namespace Imageboard10UnitTests
                     },
                     FileSize = 1024,
                     MediaType = PostMediaTypes.Image,
-                    Size = new SizeInt32() { Height = 350, Width = 450 },
+                    Size = new SizeOfInt32() { Height = 350, Width = 450 },
                 },
                 DisplayName = "display name",
                 FullName = "full name",

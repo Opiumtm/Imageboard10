@@ -4,6 +4,7 @@ using System.Linq;
 using System.Runtime.Serialization;
 using Windows.Graphics;
 using Imageboard10.Core;
+using Imageboard10.Core.ModelInterface;
 using Imageboard10.Core.ModelInterface.Boards;
 using Imageboard10.Core.ModelInterface.Links;
 using Imageboard10.Core.ModelInterface.Posts;
@@ -128,7 +129,7 @@ namespace Imageboard10.Makaba.Models.Posts
         /// Размер баннера.
         /// </summary>
         [IgnoreDataMember]
-        public SizeInt32? BannerSize { get; set; }
+        public SizeOfInt32? BannerSize { get; set; }
 
         /// <summary>
         /// Ссылка на изображение.
@@ -273,7 +274,7 @@ namespace Imageboard10.Makaba.Models.Posts
             BoardInfo = moduleProvider.ValidateAfterDeserialize<PostDocument, IPostDocument, PostDocumentExternalContract>(Contracts.BoardInfo);
             if (Contracts.HasBannerSize)
             {
-                BannerSize = new SizeInt32() { Width = Contracts.BannerWidth, Height = Contracts.BannerHeight };
+                BannerSize = new SizeOfInt32() { Width = Contracts.BannerWidth, Height = Contracts.BannerHeight };
             }
             else
             {

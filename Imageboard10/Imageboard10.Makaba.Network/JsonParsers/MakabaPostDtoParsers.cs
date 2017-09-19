@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using Windows.Graphics;
 using Windows.UI;
 using Imageboard10.Core;
+using Imageboard10.Core.ModelInterface;
 using Imageboard10.Core.ModelInterface.Boards;
 using Imageboard10.Core.ModelInterface.Links;
 using Imageboard10.Core.ModelInterface.Posts;
@@ -549,7 +550,7 @@ namespace Imageboard10.Makaba.Network.JsonParsers
                     new EngineMediaLink() { Engine = MakabaConstants.MakabaEngineId, Uri = entity2.BoardBannerImage } : null,
                 BannerBoardLink = !string.IsNullOrWhiteSpace(entity2.BoardBannerLink) ?
                     new BoardLink() { Engine = MakabaConstants.MakabaEngineId, Board = entity2.BoardBannerLink} : null,
-                BannerSize = new SizeInt32() {  Width = 300, Height = 100 },
+                BannerSize = new SizeOfInt32() {  Width = 300, Height = 100 },
                 BoardInfo = entity2.BoardInfo != null ? _htmlParser.ParseHtml(entity2.BoardInfo, baseLink) : null,
                 BoardInfoOuter = entity2.BoardInfoOuter,
                 BoardName = entity2.BoardName,

@@ -377,7 +377,7 @@ namespace Imageboard10UnitTests
             Assert.AreEqual(3, result.MediaFiles.Count, "MediaFiles.Count = 3");
             var pm = result.MediaFiles[0] as PostMediaWithThumbnail;
             Assert.IsNotNull(pm, "MediaFiles[0] is PostMediaWithThumbnail");
-            Assert.AreEqual(new SizeInt32() { Width = 640, Height = 480}, pm.Size, "MediaFiles[0].Size = 640x480");
+            Assert.AreEqual(new SizeOfInt32() { Width = 640, Height = 480}, pm.Size, "MediaFiles[0].Size = 640x480");
             Assert.AreEqual("sad.jpg", pm.DisplayName, "MediaFiles[0].DisplayName");
             Assert.AreEqual("sad.jpg", pm.FullName, "MediaFiles[0].FullName");
             Assert.AreEqual("63a7d4ad258c81dbd2f22ef5de1907c3", pm.Hash, "MediaFiles[0].Hash");
@@ -392,7 +392,7 @@ namespace Imageboard10UnitTests
             Assert.AreEqual("/src/22855542/14961650483170.jpg", pmuri.Uri, "MediaFiles[0].MediaLink.Board");
             var tm = pm.Thumbnail as PostMediaWithSize;
             Assert.IsNotNull(tm, "MediaFiles[0].Thumbnail is PostMediaWithSize");
-            Assert.AreEqual(new SizeInt32() { Width = 250, Height = 187 }, tm.Size, "MediaFiles[0].Thumbnail.Size");
+            Assert.AreEqual(new SizeOfInt32() { Width = 250, Height = 187 }, tm.Size, "MediaFiles[0].Thumbnail.Size");
             var tmuri = tm.MediaLink as BoardMediaLink;
             Assert.IsNotNull(tmuri, "MediaFiles[0].Thumbnail.MediaLink is BoardMediaLink");
             Assert.AreEqual(MakabaConstants.MakabaEngineId, tmuri.Engine, "MediaFiles[0].Thumbnail.MediaLink.Engine");
@@ -607,7 +607,7 @@ namespace Imageboard10UnitTests
 
             AssertCollectionInfo<IBoardPostCollectionInfoBoardBanner>(result.Info, info =>
             {
-                Assert.AreEqual(new SizeInt32() {Width = 300, Height = 100}, info.BannerSize, "info,BoardBanner->BannerSize");
+                Assert.AreEqual(new SizeOfInt32() {Width = 300, Height = 100}, info.BannerSize, "info,BoardBanner->BannerSize");
                 Assert.AreEqual((new EngineMediaLink() {Engine = MakabaConstants.MakabaEngineId, Uri = "/ololo/fet_1.jpg"}).GetLinkHash(), info.BannerImageLink?.GetLinkHash());
                 Assert.AreEqual((new BoardLink() {Engine = MakabaConstants.MakabaEngineId, Board = "fet"}).GetLinkHash(), info.BannerBoardLink?.GetLinkHash());
             });
@@ -1366,7 +1366,7 @@ namespace Imageboard10UnitTests
 
             AssertCollectionInfo<IBoardPostCollectionInfoBoardBanner>(deserialized, info =>
             {
-                Assert.AreEqual(new SizeInt32() { Width = 300, Height = 100 }, info.BannerSize, "info,BoardBanner->BannerSize");
+                Assert.AreEqual(new SizeOfInt32() { Width = 300, Height = 100 }, info.BannerSize, "info,BoardBanner->BannerSize");
                 Assert.AreEqual((new EngineMediaLink() { Engine = MakabaConstants.MakabaEngineId, Uri = "/ololo/fet_1.jpg" }).GetLinkHash(), info.BannerImageLink?.GetLinkHash());
                 Assert.AreEqual((new BoardLink() { Engine = MakabaConstants.MakabaEngineId, Board = "fet" }).GetLinkHash(), info.BannerBoardLink?.GetLinkHash());
             });

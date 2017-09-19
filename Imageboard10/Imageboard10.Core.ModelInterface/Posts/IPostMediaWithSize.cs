@@ -10,6 +10,6 @@ namespace Imageboard10.Core.ModelInterface.Posts
         /// <summary>
         /// Размер.
         /// </summary>
-        SizeInt32 Size { get; }
+        SizeOfInt32 Size { get; }
     }
 }

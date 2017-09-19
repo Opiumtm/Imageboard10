@@ -1,5 +1,6 @@
 using System.Runtime.Serialization;
 using Windows.Graphics;
+using Imageboard10.Core.ModelInterface;
 using Imageboard10.Core.ModelInterface.Posts;
 
 namespace Imageboard10.Core.Models.Posts.PostMedia
@@ -14,9 +15,9 @@ namespace Imageboard10.Core.Models.Posts.PostMedia
         /// Размер.
         /// </summary>
         [IgnoreDataMember]
-        public SizeInt32 Size
+        public SizeOfInt32 Size
         {
-            get => new SizeInt32() {Height = Height, Width = Width};
+            get => new SizeOfInt32() {Height = Height, Width = Width};
             set
             {
                 Height = value.Height;

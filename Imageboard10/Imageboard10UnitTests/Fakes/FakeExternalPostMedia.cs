@@ -1,5 +1,6 @@
 using System;
 using Windows.Graphics;
+using Imageboard10.Core.ModelInterface;
 using Imageboard10.Core.ModelInterface.Links;
 using Imageboard10.Core.ModelInterface.Posts;
 using Imageboard10.Core.Models.Links;
@@ -25,7 +26,7 @@ namespace Imageboard10UnitTests
         public Type GetTypeForSerializer() => typeof(FakeExternalPostMedia);
 
         [JsonIgnore]
-        public SizeInt32 Size { get; set; }
+        public SizeOfInt32 Size { get; set; }
 
         [JsonProperty("Width")]
         public int Width { get; set; }
@@ -42,7 +43,7 @@ namespace Imageboard10UnitTests
 
         public FakeExternalPostMedia FillValuesAfterDeserialize(IModuleProvider modules)
         {
-            Size = new SizeInt32()
+            Size = new SizeOfInt32()
             {
                 Height = Height,
                 Width = Width
