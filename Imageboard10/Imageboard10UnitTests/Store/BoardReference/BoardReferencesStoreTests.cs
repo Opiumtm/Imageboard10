@@ -283,8 +283,9 @@ namespace Imageboard10UnitTests
             var result = parser.Parse(boards);
             await _store.UpdateReferences(result, true);
 
-            async Task<Nothing> Query()
+            async Task<Nothing> Query(int cid, int qid)
             {
+                Logger.LogMessage($"Query {cid}:{qid} started");
                 var links = result.Take(40).Select(r => r.BoardLink);
                 foreach (var l in links)
                 {
@@ -292,38 +293,55 @@ namespace Imageboard10UnitTests
                     Assert.IsNotNull(o, "Не получена информация о доске");
                     Assert.IsTrue(BoardLinkEqualityComparer.Instance.Equals(l, o.BoardLink), "Ссылка не соответствует исходной");
                 }
+                Logger.LogMessage($"Query {cid}:{qid} finished");
                 return Nothing.Value;
             }
 
-            for (var i = 0; i < 4; i++)
+            for (var i = 0; i < 5; i++)
             {
+                Logger.LogMessage($"Cycle {i} started");
                 await _collection.Suspend();
+                Logger.LogMessage("DB suspended");
                 await _collection.Resume();
+                Logger.LogMessage("DB resumed");
+                var cid = i;
                 var toWait = new Task[]
                 {
-                    CoreTaskHelper.RunAsyncFuncOnNewThread(Query),
-                    CoreTaskHelper.RunAsyncFuncOnNewThread(Query),
-                    CoreTaskHelper.RunAsyncFuncOnNewThread(Query),
-                    CoreTaskHelper.RunAsyncFuncOnNewThread(Query),
-                    CoreTaskHelper.RunAsyncFuncOnNewThread(Query),
-                    CoreTaskHelper.RunAsyncFuncOnNewThread(Query),
-                    CoreTaskHelper.RunAsyncFuncOnNewThread(Query),
-                    CoreTaskHelper.RunAsyncFuncOnNewThread(Query),
-                    CoreTaskHelper.RunAsyncFuncOnNewThread(Query),
-                    CoreTaskHelper.RunAsyncFuncOnNewThread(Query),
-                    CoreTaskHelper.RunAsyncFuncOnNewThread(Query),
-                    CoreTaskHelper.RunAsyncFuncOnNewThread(Query),
-                    CoreTaskHelper.RunAsyncFuncOnNewThread(Query),
-                    CoreTaskHelper.RunAsyncFuncOnNewThread(Query),
-                    CoreTaskHelper.RunAsyncFuncOnNewThread(Query),
-                    CoreTaskHelper.RunAsyncFuncOnNewThread(Query),
-                    CoreTaskHelper.RunAsyncFuncOnNewThread(Query),
-                    CoreTaskHelper.RunAsyncFuncOnNewThread(Query),
-                    CoreTaskHelper.RunAsyncFuncOnNewThread(Query),
-                    CoreTaskHelper.RunAsyncFuncOnNewThread(Query),
+                    CoreTaskHelper.RunAsyncFuncOnNewThread(() => Query(cid, 1)),
+                    CoreTaskHelper.RunAsyncFuncOnNewThread(() => Query(cid, 2)),
+                    CoreTaskHelper.RunAsyncFuncOnNewThread(() => Query(cid, 3)),
+                    CoreTaskHelper.RunAsyncFuncOnNewThread(() => Query(cid, 4)),
+                    CoreTaskHelper.RunAsyncFuncOnNewThread(() => Query(cid, 5)),
+                    CoreTaskHelper.RunAsyncFuncOnNewThread(() => Query(cid, 6)),
+                    CoreTaskHelper.RunAsyncFuncOnNewThread(() => Query(cid, 7)),
+                    CoreTaskHelper.RunAsyncFuncOnNewThread(() => Query(cid, 8)),
+                    CoreTaskHelper.RunAsyncFuncOnNewThread(() => Query(cid, 9)),
+                    CoreTaskHelper.RunAsyncFuncOnNewThread(() => Query(cid, 10)),
+                    CoreTaskHelper.RunAsyncFuncOnNewThread(() => Query(cid, 11)),
+                    CoreTaskHelper.RunAsyncFuncOnNewThread(() => Query(cid, 12)),
+                    CoreTaskHelper.RunAsyncFuncOnNewThread(() => Query(cid, 13)),
+                    CoreTaskHelper.RunAsyncFuncOnNewThread(() => Query(cid, 14)),
+                    CoreTaskHelper.RunAsyncFuncOnNewThread(() => Query(cid, 15)),
+                    CoreTaskHelper.RunAsyncFuncOnNewThread(() => Query(cid, 16)),
+                    CoreTaskHelper.RunAsyncFuncOnNewThread(() => Query(cid, 17)),
+                    CoreTaskHelper.RunAsyncFuncOnNewThread(() => Query(cid, 18)),
+                    CoreTaskHelper.RunAsyncFuncOnNewThread(() => Query(cid, 19)),
+                    CoreTaskHelper.RunAsyncFuncOnNewThread(() => Query(cid, 20)),
+                    CoreTaskHelper.RunAsyncFuncOnNewThread(() => Query(cid, 21)),
+                    CoreTaskHelper.RunAsyncFuncOnNewThread(() => Query(cid, 22)),
+                    CoreTaskHelper.RunAsyncFuncOnNewThread(() => Query(cid, 23)),
+                    CoreTaskHelper.RunAsyncFuncOnNewThread(() => Query(cid, 24)),
+                    CoreTaskHelper.RunAsyncFuncOnNewThread(() => Query(cid, 25)),
+                    CoreTaskHelper.RunAsyncFuncOnNewThread(() => Query(cid, 26)),
+                    CoreTaskHelper.RunAsyncFuncOnNewThread(() => Query(cid, 27)),
+                    CoreTaskHelper.RunAsyncFuncOnNewThread(() => Query(cid, 28)),
+                    CoreTaskHelper.RunAsyncFuncOnNewThread(() => Query(cid, 29)),
+                    CoreTaskHelper.RunAsyncFuncOnNewThread(() => Query(cid, 30)),
                 };
 
+                Logger.LogMessage($"Waiting for all queries (cycle {i})");
                 await Task.WhenAll(toWait);
+                Logger.LogMessage($"Waited for all queries (cycle {i})");
             }
         }
 

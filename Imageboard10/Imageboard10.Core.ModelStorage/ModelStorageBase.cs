@@ -162,10 +162,10 @@ namespace Imageboard10.Core.ModelStorage
                 return default(T);
             }
             CheckModuleReady();
-            var readonlySession = await EsentProvider.GetSecondarySession();
-            using (readonlySession.UseSession())
+            var readonlySession = await EsentProvider.GetSecondarySessionAndUse();
+            using (readonlySession.usage)
             {
-                return await logic(readonlySession);
+                return await logic(readonlySession.session);
             }
         }
 
@@ -182,14 +182,14 @@ namespace Imageboard10.Core.ModelStorage
                 return default(T);
             }
             CheckModuleReady();
-            var readonlySession = await EsentProvider.GetSecondarySession();
-            using (readonlySession.UseSession())
+            var readonlySession = await EsentProvider.GetSecondarySessionAndUse();
+            using (readonlySession.usage)
             {
                 T result = default(T);
-                await readonlySession.Run(() =>
+                await readonlySession.session.Run(() =>
                 {
                     // ReSharper disable once AccessToDisposedClosure
-                    result = logic(readonlySession);
+                    result = logic(readonlySession.session);
                 });
                 return result;
             }

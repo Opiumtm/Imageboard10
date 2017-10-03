@@ -288,8 +288,9 @@ namespace Imageboard10.Core.Database
                     List<EsentSession> toDispose = new List<EsentSession>();
                     lock (Waiters.UsingLock)
                     {
+                        var allSessions = _readonlySessions.Count;
                         var freeSessions = _readonlySessions.Where(s => s.UsingsCount == 0).ToArray();
-                        if (freeSessions.Length > ReserveSessionsCount)
+                        if (allSessions > MaxReserveSessionsCount)
                         {
                             toDispose.AddRange(freeSessions.Skip(ReserveSessionsCount));
                         }
@@ -346,6 +347,7 @@ namespace Imageboard10.Core.Database
             }
 
             private const int ReserveSessionsCount = 4;
+            private const int MaxReserveSessionsCount = 7;
         }
 
         private MainSessionObj _mainSession => Interlocked.CompareExchange(ref _cachedSession, null, null) ?? throw new InvalidOperationException("Нет активной сессии ESENT");
