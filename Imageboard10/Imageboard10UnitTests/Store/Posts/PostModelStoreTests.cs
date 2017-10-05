@@ -717,6 +717,60 @@ namespace Imageboard10UnitTests
 
             var f2m3r = await _store.QueryByFlags(PostStoreEntityType.Post, collectionId, new List<Guid>() { testFlag2 }, new List<Guid>() { testFlag3 });
             AssertFound(f2m3r, "Есть флаг 2, нет 3", test2FlagPosts[0], test2FlagPosts[1]);
+
+            var f1rt = await _store.QueryByFlags(PostStoreEntityType.Post, null, new List<Guid>() { testFlag1 }, null);
+            AssertFound(f1rt, "Есть флаг 1 (только по типу)", test1FlagPosts);
+        }
+
+        private class LikesInfo : IBoardPostLikesStoreInfo
+        {
+            public PostStoreEntityId Id { get; set; }
+
+            public IBoardPostLikes Likes { get; set; }
+        }
+
+        [TestMethod]
+        public async Task UpdatePostLikes()
+        {
+            var collection = await ReadThread("mobi_thread_2.json", null, 1);
+            var collectionId = await _store.SaveCollection(collection, BoardPostCollectionUpdateMode.Replace, null, null);
+
+            async Task<PostStoreEntityId> GetPostId(ILink link)
+            {
+                Assert.IsNotNull(link, "link != null");
+                var id = await _store.FindEntity(PostStoreEntityType.Post, link);
+                Assert.IsNotNull(id, $"Поиск ID поста {link.GetLinkHash()}");
+                return id.Value;
+            }
+
+            var postId = await GetPostId(collection.Posts[0].Link);
+
+            var likes = await _store.LoadLikes(new List<PostStoreEntityId>() { postId });
+            Assert.AreEqual(0, likes.Count, "Лайков не найдено");
+            var p = (await _store.Load(postId, new PostStoreLoadMode() {EntityLoadMode = PostStoreEntityLoadMode.Light})) as IBoardPostLight;
+            Assert.IsNotNull(p, "p != null");
+            Assert.IsNull(p.Likes, "p.Likes == null");
+
+            await _store.UpdateLikes(new List<IBoardPostLikesStoreInfo>()
+            {
+                new LikesInfo() {Id = postId, Likes = new BoardPostLikes() {Likes = 3, Dislikes = 4}}
+            });
+
+            likes = await _store.LoadLikes(new List<PostStoreEntityId>() { postId });
+            Assert.AreEqual(1, likes.Count, "Лайки найдены");
+
+            Assert.IsNotNull(likes[0], "likes[0] != null");
+            Assert.IsNotNull(likes[0].Likes, "likes[0].Likes != null");
+            Assert.AreEqual(postId.Id, likes[0].StoreId.Id, "PostId соответствует");
+            Assert.AreEqual(3, likes[0].Likes.Likes, "Likes == 3");
+            Assert.AreEqual(4, likes[0].Likes.Dislikes, "Dislikes == 4");
+
+            p = (await _store.Load(postId, new PostStoreLoadMode() { EntityLoadMode = PostStoreEntityLoadMode.Light })) as IBoardPostLight;
+
+            Assert.IsNotNull(p, "p != null");
+            Assert.IsNotNull(p.Likes, "p.Likes != null");
+            Assert.AreEqual(3, p.Likes.Likes, "Likes == 3");
+            Assert.AreEqual(4, p.Likes.Dislikes, "Dislikes == 4");
         }
     }
 }

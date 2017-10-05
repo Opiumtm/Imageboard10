@@ -855,7 +855,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
                                 {
                                     if (GotoEntityId(table, l.Id))
                                     {
-                                        table.Update.LikesUpdateView.Set(new PostsTable.ViewValues.LikesUpdateView()
+                                        table.Update.UpdateAsLikesUpdateView(new PostsTable.ViewValues.LikesUpdateView()
                                         {
                                             Likes = l.Likes?.Likes,
                                             Dislikes = l.Likes?.Dislikes

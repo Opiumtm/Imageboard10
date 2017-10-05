@@ -101,10 +101,14 @@ namespace Imageboard10UnitTests
             asserts?.Invoke(info);
         }
 
-        protected async Task<IBoardPostCollection> ReadThread(string resourceFile, ThreadLink link = null)
+        protected async Task<IBoardPostCollection> ReadThread(string resourceFile, ThreadLink link = null, int? firstPosts = null)
         {
             var jsonStr = await TestResources.ReadTestTextFile(resourceFile);
             var dto = JsonConvert.DeserializeObject<BoardEntity2>(jsonStr);
+            if (firstPosts != null)
+            {
+                dto.Threads[0].Posts = dto.Threads[0].Posts.Take(firstPosts.Value).ToArray();
+            }
             Assert.IsNotNull(dto, "dto != null");
             var parser = _provider.FindNetworkDtoParser<ThreadData, IBoardPostCollectionEtag>();
             Assert.IsNotNull(parser, "parser != null");
