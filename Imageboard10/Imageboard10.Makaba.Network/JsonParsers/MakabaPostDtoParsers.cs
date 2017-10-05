@@ -230,29 +230,38 @@ namespace Imageboard10.Makaba.Network.JsonParsers
                     Dislikes = data.Dislikes ?? 0
                 };
             }
-            var result = new Core.Models.Posts.BoardPost()
+            Core.Models.Posts.BoardPost result;
+            if (source.EntityType == PostStoreEntityType.CatalogPost)
             {
-                Link = thisLink,
-                Comment = postDocument,
-                ParentLink = link,
-                Subject = WebUtility.HtmlDecode(data.Subject ?? string.Empty),
-                BoardSpecificDate = data.Date,
-                Date = DatesHelper.FromUnixTime(data.Timestamp.TryParseWithDefault()),
-                Flags = flags.ToList(),
-                Quotes = new List<ILink>(),
-                Hash = data.Md5,
-                Email = data.Email,
-                MediaFiles = new List<IPostMedia>(),
-                Counter = source.Counter,
-                Poster = posterInfo,
-                Icon = iconAndFlag.Icon,
-                Country = iconAndFlag.Country,
-                Tags = tags,
-                UniqueId = Guid.NewGuid().ToString(),
-                Likes = likes,
-                LoadedTime = source.LoadedTime,
-                OnServerCounter = source.Post.CountNumber,
-            };
+                result = new CatalogBoardPost()
+                {
+                    OnPageSequence = source.Counter
+                };
+            }
+            else
+            {
+                result = new Core.Models.Posts.BoardPost();
+            }
+            result.Link = thisLink;
+            result.Comment = postDocument;
+            result.ParentLink = link;
+            result.Subject = WebUtility.HtmlDecode(data.Subject ?? string.Empty);
+            result.BoardSpecificDate = data.Date;
+            result.Date = DatesHelper.FromUnixTime(data.Timestamp.TryParseWithDefault());
+            result.Flags = flags.ToList();
+            result.Quotes = new List<ILink>();
+            result.Hash = data.Md5;
+            result.Email = data.Email;
+            result.MediaFiles = new List<IPostMedia>();
+            result.Counter = source.Counter;
+            result.Poster = posterInfo;
+            result.Icon = iconAndFlag.Icon;
+            result.Country = iconAndFlag.Country;
+            result.Tags = tags;
+            result.UniqueId = Guid.NewGuid().ToString();
+            result.Likes = likes;
+            result.LoadedTime = source.LoadedTime;
+            result.OnServerCounter = source.Post.CountNumber;
             if (data.Files != null)
             {
                 foreach (var f in data.Files)
@@ -665,7 +674,7 @@ namespace Imageboard10.Makaba.Network.JsonParsers
                 ParentLink = source.Link?.GetBoardLink(),
                 Posts = posts.WithCounter(1).Select(p => _postsParser.Parse(new BoardPost2WithParentLink()
                 {
-                    Counter = p.Key,
+                    Counter = p.Key,                    
                     ParentLink = new ThreadLink() { Board = source.Link.Board, Engine = source.Link.Engine, OpPostNum = p.Value.Number.TryParseWithDefault() },
                     Post = p.Value,
                     EntityType = PostStoreEntityType.CatalogPost,

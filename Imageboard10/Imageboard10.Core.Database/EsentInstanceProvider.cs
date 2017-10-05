@@ -346,8 +346,8 @@ namespace Imageboard10.Core.Database
                 return (newSession, d2);
             }
 
-            private const int ReserveSessionsCount = 4;
-            private const int MaxReserveSessionsCount = 7;
+            private const int ReserveSessionsCount = 5;
+            private const int MaxReserveSessionsCount = 8;
         }
 
         private MainSessionObj _mainSession => Interlocked.CompareExchange(ref _cachedSession, null, null) ?? throw new InvalidOperationException("Нет активной сессии ESENT");

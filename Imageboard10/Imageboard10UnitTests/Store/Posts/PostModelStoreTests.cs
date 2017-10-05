@@ -799,9 +799,36 @@ namespace Imageboard10UnitTests
             Assert.AreEqual(param.Etag, loaded.Etag, "Etag");
             Assert.AreEqual(param.Link.GetLinkHash(), loaded.Link?.GetLinkHash(), "Link");
             Assert.AreEqual(param.Link.GetRootLink().GetLinkHash(), loaded.ParentLink?.GetLinkHash(), "ParentLink");
-            Assert.AreEqual(dto.Threads.Length, loaded.Threads.Count, "Threads.Count");
+            Assert.AreEqual(collection.Threads.Count, loaded.Threads.Count, "Threads.Count");
+
+            for (var i = 0; i < collection.Threads.Count; i++)
+            {
+                Assert.AreEqual(collection.Threads[i].Link.GetLinkHash(), loaded.Threads[i].Link.GetLinkHash(), $"Ссылка на тред {i+1}");
+            }
 
             MakabaDtoParseTests.AssertMlpIndexJson(loaded, _provider);
+
+            var children = await _store.GetChildren(collectionId, 0, null);
+            
+            Assert.AreEqual(collection.Threads.Count, children.Count, "children.Count");
+
+            for (var i = 0; i < collection.Threads.Count; i++)
+            {
+                var link = await _store.GetEntityLink(children[i]);
+                Assert.IsNotNull(link, $"link != null ({i+1})");
+                Assert.AreEqual(collection.Threads[i].Link.GetLinkHash(), link.GetLinkHash(), $"Ссылка на тред {i + 1}, children");
+            }
+
+            var children2 = await _store.GetChildren(collectionId, 4, 8);
+            Assert.AreEqual(8, children2.Count, "children2.Count");
+
+            for (var j = 0; j < 8; j++)
+            {
+                var i = j + 4;
+                var link = await _store.GetEntityLink(children2[j]);
+                Assert.IsNotNull(link, $"link != null ({j + 1}), children2");
+                Assert.AreEqual(collection.Threads[i].Link.GetLinkHash(), link.GetLinkHash(), $"Ссылка на тред {j + 1}, children2");
+            }
         }
     }
 }

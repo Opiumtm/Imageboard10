@@ -375,6 +375,8 @@ namespace Imageboard10.Core.ModelStorage.Posts
 			Api.JetCreateIndex(sid, tableid, "QuotedPostsIndex", CreateIndexGrbit.IndexIgnoreAnyNull, idxDef8, idxDef8.Length, 100);
 			var idxDef9 = "+DirectParentId\0+SequenceNumber\0\0";
 			Api.JetCreateIndex(sid, tableid, "InThreadPostLinkIndex", CreateIndexGrbit.IndexIgnoreAnyNull, idxDef9, idxDef9.Length, 100);
+			var idxDef10 = "+DirectParentId\0+ThreadPreviewSequence\0\0";
+			Api.JetCreateIndex(sid, tableid, "PreviewSequenceIndex", CreateIndexGrbit.None, idxDef10, idxDef10.Length, 100);
 		}
 
 		public struct Multivalue<T> where T : ColumnValue, new()
@@ -5485,6 +5487,268 @@ namespace Imageboard10.Core.ModelStorage.Posts
 								
 				
 			}
+
+			public struct PreviewSequenceIndex
+			{
+				private readonly PostsTable _table;
+
+				public PreviewSequenceIndex(PostsTable table)
+				{
+					_table = table;
+					_views = new IndexFetchViews(_table);
+				}
+
+				public void SetAsCurrentIndex()
+				{
+					Api.JetSetCurrentIndex(_table.Session, _table, "PreviewSequenceIndex");
+				}
+
+				public struct PreviewSequenceIndexKey
+				{
+					public int? DirectParentId;
+					public int? ThreadPreviewSequence;
+				}
+
+			    // ReSharper disable InconsistentNaming
+				public PreviewSequenceIndexKey CreateKey(
+						int? DirectParentId
+						,int? ThreadPreviewSequence
+				)
+			    // ReSharper enable InconsistentNaming
+				{
+					return new PreviewSequenceIndexKey() {
+						DirectParentId = DirectParentId,
+						ThreadPreviewSequence = ThreadPreviewSequence,
+					
+					};
+				}
+
+				public void SetKey(PreviewSequenceIndexKey key)
+				{
+					if (key.DirectParentId == null)
+					{
+						Api.MakeKey(_table.Session, _table, null, MakeKeyGrbit.NewKey);
+					} else
+					{
+						Api.MakeKey(_table.Session, _table, key.DirectParentId.Value, MakeKeyGrbit.NewKey);
+					}
+					if (key.ThreadPreviewSequence == null)
+					{
+						Api.MakeKey(_table.Session, _table, null, MakeKeyGrbit.None);
+					} else
+					{
+						Api.MakeKey(_table.Session, _table, key.ThreadPreviewSequence.Value, MakeKeyGrbit.None);
+					}
+				}
+
+				public bool Find(PreviewSequenceIndexKey key)
+				{
+					SetKey(key);
+					return Api.TrySeek(_table.Session, _table, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange);
+				}
+
+				public IEnumerable<object> Enumerate(PreviewSequenceIndexKey key)
+				{
+					SetKey(key);
+					if (Api.TrySeek(_table.Session, _table, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange))
+					{
+						do {
+							yield return _table;
+						} while (Api.TryMoveNext(_table.Session, _table));
+					}
+				}
+
+				public IEnumerable<object> EnumerateUnique(PreviewSequenceIndexKey key)
+				{
+					SetKey(key);
+					if (Api.TrySeek(_table.Session, _table, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange))
+					{
+						do {
+							yield return _table;
+						} while (Api.TryMove(_table.Session, _table, JET_Move.Next, MoveGrbit.MoveKeyNE));
+					}
+				}
+
+			    public int GetIndexRecordCount()
+			    {
+			        int r;
+			        Api.JetIndexRecordCount(_table.Session, _table, out r, int.MaxValue);
+			        return r;
+			    }
+
+			    public int GetIndexRecordCount(PreviewSequenceIndexKey key)
+			    {
+			        if (!Find(key))
+					{
+						return 0;
+					}
+			        return GetIndexRecordCount();
+			    }
+
+				public struct PreviewSequenceIndexPartialKey1
+				{
+					public int? DirectParentId;
+				}
+
+			    // ReSharper disable InconsistentNaming
+				public PreviewSequenceIndexPartialKey1 CreateKey(
+						int? DirectParentId
+				)
+			    // ReSharper enable InconsistentNaming
+				{
+					return new PreviewSequenceIndexPartialKey1() {
+						DirectParentId = DirectParentId,
+					
+					};
+				}
+
+				public void SetKey(PreviewSequenceIndexPartialKey1 key, bool startRange)
+				{
+					var rangeFlag = startRange ? MakeKeyGrbit.FullColumnStartLimit : MakeKeyGrbit.FullColumnEndLimit;
+					if (key.DirectParentId == null)
+					{
+						Api.MakeKey(_table.Session, _table, null, MakeKeyGrbit.NewKey | rangeFlag);
+					} else
+					{
+						Api.MakeKey(_table.Session, _table, key.DirectParentId.Value, MakeKeyGrbit.NewKey | rangeFlag);
+					}
+				}
+
+				public bool Find(PreviewSequenceIndexPartialKey1 key)
+				{
+					SetKey(key, true);
+					return Api.TrySeek(_table.Session, _table, SeekGrbit.SeekGE);
+				}
+
+				public bool SetPartialUpperRange(PreviewSequenceIndexPartialKey1 key)
+				{
+					SetKey(key, false);
+					return Api.TrySetIndexRange(_table.Session, _table, SetIndexRangeGrbit.RangeUpperLimit);
+				}
+
+				public bool SeekPartial(PreviewSequenceIndexPartialKey1 key)
+				{
+					if (Find(key))
+					{
+						if (SetPartialUpperRange(key))
+						{
+							return true;
+						}
+					}
+					return false;
+				}
+
+				public IEnumerable<object> Enumerate(PreviewSequenceIndexPartialKey1 key)
+				{
+					SetKey(key, true);
+					if (Api.TrySeek(_table.Session, _table, SeekGrbit.SeekGE))
+					{
+						SetKey(key, false);
+						if (Api.TrySetIndexRange(_table.Session, _table, SetIndexRangeGrbit.RangeUpperLimit))
+						{
+							do {
+								yield return _table;
+							} while (Api.TryMoveNext(_table.Session, _table));
+						}
+					}
+				}
+
+				public int GetIndexRecordCount(PreviewSequenceIndexPartialKey1 key)
+			    {
+					if (!SeekPartial(key))
+					{
+						return 0;
+					}
+			        return GetIndexRecordCount();
+			    }
+
+				public class IndexFetchViews
+				{
+					private readonly PostsTable _table;
+
+					public IndexFetchViews(PostsTable table)
+					{
+						_table = table;
+					}
+
+					// ReSharper disable once InconsistentNaming
+					private FetchViews.RetrieveIdFromIndexView? __fv_RetrieveIdFromIndexView;
+					public FetchViews.RetrieveIdFromIndexView RetrieveIdFromIndexView
+					{
+						get
+						{
+							if (__fv_RetrieveIdFromIndexView == null)
+							{
+								__fv_RetrieveIdFromIndexView = new FetchViews.RetrieveIdFromIndexView(_table);
+							}
+							return __fv_RetrieveIdFromIndexView.Value;
+						}
+					}
+				}
+
+				private readonly IndexFetchViews _views;
+			    // ReSharper disable once ConvertToAutoProperty
+				public IndexFetchViews Views => _views;
+
+				public IEnumerable<ViewValues.RetrieveIdFromIndexView> EnumerateAsRetrieveIdFromIndexView()
+				{
+					if (Api.TryMoveFirst(_table.Session, _table))
+					{
+						do {
+							yield return Views.RetrieveIdFromIndexView.Fetch();
+						} while (Api.TryMoveNext(_table.Session, _table));
+					}
+				}
+
+				public IEnumerable<ViewValues.RetrieveIdFromIndexView> EnumerateAsRetrieveIdFromIndexView(PreviewSequenceIndexKey key)
+				{
+					SetKey(key);
+					if (Api.TrySeek(_table.Session, _table, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange))
+					{
+						do {
+							yield return Views.RetrieveIdFromIndexView.Fetch();
+						} while (Api.TryMoveNext(_table.Session, _table));
+					}
+				}
+
+				public IEnumerable<ViewValues.RetrieveIdFromIndexView> EnumerateUniqueAsRetrieveIdFromIndexView()
+				{
+					if (Api.TryMoveFirst(_table.Session, _table))
+					{
+						do {
+							yield return Views.RetrieveIdFromIndexView.Fetch();
+						} while (Api.TryMove(_table.Session, _table, JET_Move.Next, MoveGrbit.MoveKeyNE));
+					}
+				}
+
+				public IEnumerable<ViewValues.RetrieveIdFromIndexView> EnumerateUniqueAsRetrieveIdFromIndexView(PreviewSequenceIndexKey key)
+				{
+					SetKey(key);
+					if (Api.TrySeek(_table.Session, _table, SeekGrbit.SeekEQ | SeekGrbit.SetIndexRange))
+					{
+						do {
+							yield return Views.RetrieveIdFromIndexView.Fetch();
+						} while (Api.TryMove(_table.Session, _table, JET_Move.Next, MoveGrbit.MoveKeyNE));
+					}
+				}
+
+				public IEnumerable<ViewValues.RetrieveIdFromIndexView> EnumerateAsRetrieveIdFromIndexView(PreviewSequenceIndexPartialKey1 key)
+				{
+					SetKey(key, true);
+					if (Api.TrySeek(_table.Session, _table, SeekGrbit.SeekGE))
+					{
+						SetKey(key, false);
+						if (Api.TrySetIndexRange(_table.Session, _table, SetIndexRangeGrbit.RangeUpperLimit))
+						{
+							do {
+								yield return Views.RetrieveIdFromIndexView.Fetch();
+							} while (Api.TryMoveNext(_table.Session, _table));
+						}
+					}
+				}
+								
+				
+			}
 		}
 
 		public class TableIndexes
@@ -5628,6 +5892,21 @@ namespace Imageboard10.Core.ModelStorage.Posts
 						__ti_InThreadPostLinkIndex = new IndexDefinitions.InThreadPostLinkIndex(_table);
 					}
 					return __ti_InThreadPostLinkIndex.Value;
+				}
+			}
+
+		    // ReSharper disable once InconsistentNaming
+			private IndexDefinitions.PreviewSequenceIndex? __ti_PreviewSequenceIndex;
+
+			public IndexDefinitions.PreviewSequenceIndex PreviewSequenceIndex
+			{
+				get
+				{
+					if (__ti_PreviewSequenceIndex == null)
+					{
+						__ti_PreviewSequenceIndex = new IndexDefinitions.PreviewSequenceIndex(_table);
+					}
+					return __ti_PreviewSequenceIndex.Value;
 				}
 			}
 		}

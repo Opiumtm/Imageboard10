@@ -111,6 +111,15 @@
         <ViewName>SequenceNumberView</ViewName>
       </Views>
     </Index>
+    <Index Name="PreviewSequenceIndex" Grbit="None">
+      <Fields>
+        <Field Name="DirectParentId" Sort="Asc"/>
+        <Field Name="ThreadPreviewSequence" Sort="Asc"/>
+      </Fields>
+      <Views>
+        <ViewName>RetrieveIdFromIndexView</ViewName>
+      </Views>
+    </Index>
   </Indexes>
   <Views>
     <View Name="ChildrenLoadStageView" Role="Update">

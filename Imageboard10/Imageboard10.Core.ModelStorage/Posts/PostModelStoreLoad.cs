@@ -663,7 +663,24 @@ namespace Imageboard10.Core.ModelStorage.Posts
 
                     if (collection?.Posts != null)
                     {
-                        var toAdd = loaded.OfType<IBoardPost>().Deduplicate(p => p.Link, BoardLinkEqualityComparer.Instance).OrderBy(p => p.Link, BoardLinkComparer.Instance);
+                        IEnumerable<IBoardPost> toAdd;
+                        if (entity.EntityType == PostStoreEntityType.Catalog)
+                        {
+                            int GetCatalogSequence(IBoardPost p)
+                            {
+                                if (p is IBoardPostEntityWithSequence s)
+                                {
+                                    return s.OnPageSequence;
+                                }
+                                return int.MaxValue;
+                            }
+
+                            toAdd = loaded.OfType<IBoardPost>().Deduplicate(p => p.Link, BoardLinkEqualityComparer.Instance).OrderBy(GetCatalogSequence);
+                        }
+                        else
+                        {
+                            toAdd = loaded.OfType<IBoardPost>().Deduplicate(p => p.Link, BoardLinkEqualityComparer.Instance).OrderBy(p => p.Link, BoardLinkComparer.Instance);
+                        }
                         foreach (var item in toAdd)
                         {
                             collection.Posts.Add(item);

@@ -216,14 +216,40 @@ namespace Imageboard10.Core.ModelStorage.Posts
                     using (var table = OpenPostsTable(session, OpenTableGrbit.ReadOnly))
                     {
                         var result = new List<PostStoreEntityId>();
-                        var index = table.Indexes.InThreadPostLinkIndex;
-                        index.SetAsCurrentIndex();
-                        if (index.SeekPartial(index.CreateKey(collectionId.Id)))
+                        table.Indexes.PrimaryIndex.SetAsCurrentIndex();
+                        bool sortById = true;
+                        if (table.Indexes.PrimaryIndex.Find(table.Indexes.PrimaryIndex.CreateKey(collectionId.Id)))
                         {
-                            foreach (var _ in table.EnumerateToEnd(skip, count))
+                            var entType = (PostStoreEntityType) table.Columns.EntityType;
+                            if (entType == PostStoreEntityType.Catalog || entType == PostStoreEntityType.BoardPage)
                             {
-                                var id = index.Views.RetrieveIdFromIndexView.Fetch();
-                                result.Add(new PostStoreEntityId() { Id = id.Id });
+                                sortById = false;
+                            }
+                        }
+                        if (sortById)
+                        {
+                            var index = table.Indexes.InThreadPostLinkIndex;
+                            index.SetAsCurrentIndex();
+                            if (index.SeekPartial(index.CreateKey(collectionId.Id)))
+                            {
+                                foreach (var _ in table.EnumerateToEnd(skip, count))
+                                {
+                                    var id = index.Views.RetrieveIdFromIndexView.Fetch();
+                                    result.Add(new PostStoreEntityId() { Id = id.Id });
+                                }
+                            }
+                        }
+                        else
+                        {
+                            var index = table.Indexes.PreviewSequenceIndex;
+                            index.SetAsCurrentIndex();
+                            if (index.SeekPartial(index.CreateKey(collectionId.Id)))
+                            {
+                                foreach (var _ in table.EnumerateToEnd(skip, count))
+                                {
+                                    var id = index.Views.RetrieveIdFromIndexView.Fetch();
+                                    result.Add(new PostStoreEntityId() { Id = id.Id });
+                                }
                             }
                         }
                         return result;
