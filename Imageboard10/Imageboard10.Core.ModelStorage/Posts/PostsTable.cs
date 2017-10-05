@@ -78,6 +78,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
 			NumberOfReadPosts,
 			LastPostLinkOnServer,
 			OnServerSequenceCounter,
+			ThreadPreviewSequence,
 		}
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -143,6 +144,8 @@ namespace Imageboard10.Core.ModelStorage.Posts
 					return Api.GetTableColumnid(Session, Table, "LastPostLinkOnServer");
 				case Column.OnServerSequenceCounter:
 					return Api.GetTableColumnid(Session, Table, "OnServerSequenceCounter");
+				case Column.ThreadPreviewSequence:
+					return Api.GetTableColumnid(Session, Table, "ThreadPreviewSequence");
 				default:
 					throw new ArgumentOutOfRangeException();
 			}
@@ -186,6 +189,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
 						{ Column.NumberOfReadPosts, Api.GetTableColumnid(Session, Table, "NumberOfReadPosts") },
 						{ Column.LastPostLinkOnServer, Api.GetTableColumnid(Session, Table, "LastPostLinkOnServer") },
 						{ Column.OnServerSequenceCounter, Api.GetTableColumnid(Session, Table, "OnServerSequenceCounter") },
+						{ Column.ThreadPreviewSequence, Api.GetTableColumnid(Session, Table, "ThreadPreviewSequence") },
 					};
 				}
 				return _columnDic;
@@ -344,6 +348,11 @@ namespace Imageboard10.Core.ModelStorage.Posts
 				grbit = ColumndefGrbit.ColumnTagged,
             }, null, 0, out tempcolid);			
             Api.JetAddColumn(sid, tableid, "OnServerSequenceCounter", new JET_COLUMNDEF()
+            {
+				coltyp = JET_coltyp.Long,
+				grbit = ColumndefGrbit.ColumnTagged,
+            }, null, 0, out tempcolid);			
+            Api.JetAddColumn(sid, tableid, "ThreadPreviewSequence", new JET_COLUMNDEF()
             {
 				coltyp = JET_coltyp.Long,
 				grbit = ColumndefGrbit.ColumnTagged,
@@ -904,6 +913,23 @@ namespace Imageboard10.Core.ModelStorage.Posts
 				}
 			}
 
+			public int? ThreadPreviewSequence
+			{
+			    // ReSharper disable once PossibleInvalidOperationException
+                [MethodImpl(MethodImplOptions.AggressiveInlining)]
+				get => Api.RetrieveColumnAsInt32(_table.Session, _table, _table.ColumnDictionary[PostsTable.Column.ThreadPreviewSequence]);
+                [MethodImpl(MethodImplOptions.AggressiveInlining)]
+				set {
+					if (value != null)
+					{
+						Api.SetColumn(_table.Session, _table, _table.ColumnDictionary[PostsTable.Column.ThreadPreviewSequence], value.Value);
+					} else
+					{
+						Api.SetColumn(_table.Session, _table, _table.ColumnDictionary[PostsTable.Column.ThreadPreviewSequence], null);
+					}
+				}
+			}
+
 		}
 
 		public DefaultView Columns { get; }
@@ -1335,6 +1361,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
 				public byte[] OtherDataBinary;
 				public byte ChildrenLoadStage;
 				public byte[] PreviewCounts;
+				public int? ThreadPreviewSequence;
 				public static implicit operator ViewValues.LinkInfoView(ViewValues.ThreadPreviewLoadInfoView src)
 				{
 					return new ViewValues.LinkInfoView()
@@ -1439,6 +1466,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
 				public string PosterName;
 				public int? OnServerSequenceCounter;
 				public byte[] OtherDataBinary;
+				public int? ThreadPreviewSequence;
 			}
 
 			// ReSharper disable once InconsistentNaming
@@ -2009,7 +2037,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
 				{
 					_table = table;
 
-					_c = new ColumnValue[12];
+					_c = new ColumnValue[13];
 					_c[0] = new Int32ColumnValue() {
 						Columnid = _table.ColumnDictionary[PostsTable.Column.Id],
 						RetrieveGrbit = RetrieveColumnGrbit.None
@@ -2058,6 +2086,10 @@ namespace Imageboard10.Core.ModelStorage.Posts
 						Columnid = _table.ColumnDictionary[PostsTable.Column.PreviewCounts],
 						RetrieveGrbit = RetrieveColumnGrbit.None
 					};
+					_c[12] = new Int32ColumnValue() {
+						Columnid = _table.ColumnDictionary[PostsTable.Column.ThreadPreviewSequence],
+						RetrieveGrbit = RetrieveColumnGrbit.None
+					};
 				}
 
 				public ViewValues.ThreadPreviewLoadInfoView Fetch()
@@ -2080,6 +2112,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
 				    // ReSharper disable once PossibleInvalidOperationException
 					r.ChildrenLoadStage = ((ByteColumnValue)_c[10]).Value.Value;
 					r.PreviewCounts = ((BytesColumnValue)_c[11]).Value;
+					r.ThreadPreviewSequence = ((Int32ColumnValue)_c[12]).Value;
 					return r;
 				}
 			}
@@ -2561,7 +2594,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
 				{
 					_table = table;
 
-					_c = new ColumnValue[11];
+					_c = new ColumnValue[12];
 					_c[0] = new StringColumnValue() {
 						Columnid = _table.ColumnDictionary[PostsTable.Column.Subject],
 						SetGrbit = SetColumnGrbit.None
@@ -2606,6 +2639,10 @@ namespace Imageboard10.Core.ModelStorage.Posts
 						Columnid = _table.ColumnDictionary[PostsTable.Column.OtherDataBinary],
 						SetGrbit = SetColumnGrbit.None
 					};
+					_c[11] = new Int32ColumnValue() {
+						Columnid = _table.ColumnDictionary[PostsTable.Column.ThreadPreviewSequence],
+						SetGrbit = SetColumnGrbit.None
+					};
 				}
 
 				public void Set(ViewValues.PostDataUpdateView value, bool isInsert = false)
@@ -2621,6 +2658,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
 					((StringColumnValue)_c[8]).Value = value.PosterName;
 					((Int32ColumnValue)_c[9]).Value = value.OnServerSequenceCounter;
 					((BytesColumnValue)_c[10]).Value = value.OtherDataBinary;
+					((Int32ColumnValue)_c[11]).Value = value.ThreadPreviewSequence;
 					Api.SetColumns(_table.Session, _table, _c);
 					_table.Columns.SetFlagsValueArr(value.Flags, isInsert);
 					_table.Columns.SetThreadTagsValueArr(value.ThreadTags, isInsert);
@@ -2640,6 +2678,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
 					((StringColumnValue)_c[8]).Value = value.PosterName;
 					((Int32ColumnValue)_c[9]).Value = value.OnServerSequenceCounter;
 					((BytesColumnValue)_c[10]).Value = value.OtherDataBinary;
+					((Int32ColumnValue)_c[11]).Value = value.ThreadPreviewSequence;
 					Api.SetColumns(_table.Session, _table, _c);
 					_table.Columns.SetFlagsValueArr(value.Flags, isInsert);
 					_table.Columns.SetThreadTagsValueArr(value.ThreadTags, isInsert);

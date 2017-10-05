@@ -1,3 +1,4 @@
+using System;
 using Imageboard10.Core.ModelInterface.Posts;
 
 namespace Imageboard10.Core.Models.Posts
@@ -26,5 +27,10 @@ namespace Imageboard10.Core.Models.Posts
         /// Количество ответов.
         /// </summary>
         public int? ReplyCount { get; set; }
+
+        /// <summary>
+        /// Порядок на странице.
+        /// </summary>
+        public int OnPageSequence { get; set; }
     }
 }

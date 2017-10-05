@@ -1,3 +1,4 @@
+using System;
 using Imageboard10.Core.ModelInterface.Posts;
 
 namespace Imageboard10.Core.ModelStorage.Posts
@@ -14,5 +15,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
         public int? Omit { get; set; }
 
         public int? ReplyCount { get; set; }
+
+        public int OnPageSequence { get; set; }
     }
 }

@@ -126,6 +126,15 @@ namespace Imageboard10.Core.ModelStorage.Posts
                         OtherDataBinary = preSerialized.OtherData
                     };
 
+                    if (post is IBoardPostEntityWithSequence opc)
+                    {
+                        setData.ThreadPreviewSequence = opc.OnPageSequence;
+                    }
+                    else
+                    {
+                        setData.ThreadPreviewSequence = null;
+                    }
+
                     var keepFlags = new List<Guid>();
                     if (exists)
                     {
@@ -392,6 +401,10 @@ namespace Imageboard10.Core.ModelStorage.Posts
                         columns.Subject = collection2.Subject;
                         columns.Thumbnail = ObjectSerializationService.SerializeToBytes(collection2.Thumbnail);
                         var collection3 = collection2 as IBoardPostCollection;
+                        if (collection2 is IBoardPostEntityWithSequence opc)
+                        {
+                            columns.ThreadPreviewSequence = opc.OnPageSequence;
+                        }
                         if ((collection2.EntityType == PostStoreEntityType.Thread || collection2.EntityType == PostStoreEntityType.ThreadPreview) && collection3 != null)
                         {
                             var lastPost = collection3.Posts?.OrderByDescending(ExtractPostNumber).FirstOrDefault();
@@ -427,14 +440,20 @@ namespace Imageboard10.Core.ModelStorage.Posts
                                 }
                                 else
                                 {
-                                    columns.ThreadTags.Clear();
+                                    if (exists)
+                                    {
+                                        columns.ThreadTags.Clear();
+                                    }
                                 }
                             }
                             else
                             {
                                 columns.Date = null;
                                 columns.BoardSpecificDate = null;
-                                columns.ThreadTags.Clear();
+                                if (exists)
+                                {
+                                    columns.ThreadTags.Clear();
+                                }
                             }
                         }
                         var keepFlags = new List<Guid>();
@@ -650,13 +669,13 @@ namespace Imageboard10.Core.ModelStorage.Posts
                 }
             }
 
-            async Task<PostStoreEntityId> SaveCatalogOrThread(CancellationToken token, IProgress<OperationProgress> progress, PostStoreEntityId? directParent, bool reportProgress, ConcurrentBag<PostStoreEntityId> addedEntities)
+            async Task<PostStoreEntityId> SaveCatalogOrThread(IBoardPostEntity entity, CancellationToken token, IProgress<OperationProgress> progress, PostStoreEntityId? directParent, bool reportProgress, ConcurrentBag<PostStoreEntityId> addedEntities)
             {
                 token.ThrowIfCancellationRequested();
-                var collection2 = collection as IBoardPostCollection;
+                var collection2 = entity as IBoardPostCollection;
                 if (collection2 == null)
                 {
-                    throw new ArgumentException("Неравильный тип объекта для треда или каталога", nameof(collection));
+                    throw new ArgumentException("Неравильный тип объекта для треда или каталога", nameof(entity));
                 }
 
                 bool exists = false;
@@ -672,7 +691,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
                         {
                             if (collection2.EntityType == PostStoreEntityType.ThreadPreview)
                             {
-                                if (!(collection is IThreadPreviewPostCollection))
+                                if (!(entity is IThreadPreviewPostCollection))
                                 {
                                     throw new ArgumentException("Неправильный тип объекта превью треда", nameof(directParent));
                                 }
@@ -794,7 +813,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
                 for (var i = 0; i < toAdd.Count; i++)
                 {
                     token.ThrowIfCancellationRequested();
-                    await SaveCatalogOrThread(token, progress, collectionId, false, addedEntities);
+                    await SaveCatalogOrThread(toAdd[i], token, progress, collectionId, false, addedEntities);
 
                     double p = i + 1;
                     progress?.Report(new OperationProgress()
@@ -918,7 +937,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
 
                     if (collection.EntityType == PostStoreEntityType.Catalog || collection.EntityType == PostStoreEntityType.Thread)
                     {
-                        addedEntity = await SaveCatalogOrThread(token, progress, null, true, addedEntities);
+                        addedEntity = await SaveCatalogOrThread(collection, token, progress, null, true, addedEntities);
                     }
                     else if (collection.EntityType == PostStoreEntityType.BoardPage)
                     {

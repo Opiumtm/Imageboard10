@@ -1,9 +1,11 @@
-﻿namespace Imageboard10.Core.ModelInterface.Posts
+﻿using System;
+
+namespace Imageboard10.Core.ModelInterface.Posts
 {
     /// <summary>
     /// Превью постов.
     /// </summary>
-    public interface IThreadPreviewPostCollection : IBoardPostCollection
+    public interface IThreadPreviewPostCollection : IBoardPostCollection, IBoardPostEntityWithSequence
     {
         /// <summary>
         /// Количество изображений.

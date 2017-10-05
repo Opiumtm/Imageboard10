@@ -29,7 +29,8 @@
     <Column Name="NumberOfPostsOnServer" Type="SignedInt32" Grbit="Tagged" />
     <Column Name="NumberOfReadPosts" Type="SignedInt32" Grbit="Tagged" />    
     <Column Name="LastPostLinkOnServer" Type="SignedInt32" Grbit="Tagged" />    
-    <Column Name="OnServerSequenceCounter" Type="SignedInt32" Grbit="Tagged" />    
+    <Column Name="OnServerSequenceCounter" Type="SignedInt32" Grbit="Tagged" />
+    <Column Name="ThreadPreviewSequence" Type="SignedInt32" Grbit="Tagged" />
   </Columns>
   <Indexes>
     <Index Name="PrimaryIndex" Grbit="Primary Unique">
@@ -234,6 +235,7 @@
       <Field>OtherDataBinary</Field>
       <Field>ChildrenLoadStage</Field>
       <Field>PreviewCounts</Field>
+      <Field>ThreadPreviewSequence</Field>
       <AssignableTo>
         <ViewName>LinkInfoView</ViewName>
         <ViewName>BasicLoadInfoView</ViewName>
@@ -276,7 +278,8 @@
       <Field>LoadedTime</Field>      
       <Field>PosterName</Field>      
       <Field>OnServerSequenceCounter</Field>      
-      <Field>OtherDataBinary</Field>      
+      <Field>OtherDataBinary</Field>
+      <Field>ThreadPreviewSequence</Field>
     </View>
     <View Name="PostCollectionUpdateInfoView" Role="Update">
       <Field>LastServerUpdate</Field>

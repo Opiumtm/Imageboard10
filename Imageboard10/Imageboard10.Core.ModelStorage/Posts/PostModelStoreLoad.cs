@@ -260,11 +260,12 @@ namespace Imageboard10.Core.ModelStorage.Posts
             data.Omit = counts.omit;
             data.OmitImages = counts.omitImages;
             data.ReplyCount = counts.replyCount;
+            data.OnPageSequence = v.ThreadPreviewSequence ?? int.MaxValue;
         }
 
         private void SetThreadPreviewData(PostsTable table, PostModelStoreThreadPreview data, ref BasicEntityInfo bi)
         {
-            SetPostCollectionData(table.Views.ThreadPreviewLoadInfoView.Fetch(), data, ref bi);
+            SetThreadPreviewData(table.Views.ThreadPreviewLoadInfoView.Fetch(), data, ref bi);
         }
 
         private IBoardPostEntity LoadThreadPreview(PostsTable table)
@@ -285,7 +286,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
 
         private void SetThreadCollectionData(PostsTable table, PostModelStoreThreadCollection data, ref BasicEntityInfo bi)
         {
-            SetBareEntityData(table.Views.PostCollectionLoadInfoView.Fetch(), data, ref bi);
+            SetThreadCollectionData(table.Views.PostCollectionLoadInfoView.Fetch(), data, ref bi);
         }
 
         private IBoardPostEntity LoadThreadCollection(PostsTable table)
@@ -639,7 +640,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
 
             var collection = entity as IBoardPostCollection;
             var threadCollection = entity as IBoardPageThreadCollection;
-            if ((entity.EntityType == PostStoreEntityType.Thread || entity.EntityType == PostStoreEntityType.ThreadPreview || entity.EntityType == PostStoreEntityType.Catalog) 
+            if ((entity.EntityType == PostStoreEntityType.Thread || entity.EntityType == PostStoreEntityType.ThreadPreview || entity.EntityType == PostStoreEntityType.Catalog || entity.EntityType == PostStoreEntityType.BoardPage) 
                 && entity is IPostModelStoreChildrenLoadStageInfo loadStage && (collection?.Posts != null || threadCollection?.Threads != null) 
                 && entity.StoreId != null)
             {
@@ -670,7 +671,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
                     }
                     if (threadCollection?.Threads != null)
                     {
-                        var toAdd = loaded.OfType<IThreadPreviewPostCollection>().Deduplicate(p => p.Link, BoardLinkEqualityComparer.Instance).OrderBy(p => p.Link, BoardLinkComparer.Instance);
+                        var toAdd = loaded.OfType<IThreadPreviewPostCollection>().Deduplicate(p => p.Link, BoardLinkEqualityComparer.Instance).OrderBy(p => p.OnPageSequence);
                         foreach (var item in toAdd)
                         {
                             threadCollection.Threads.Add(item);

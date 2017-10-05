@@ -772,5 +772,36 @@ namespace Imageboard10UnitTests
             Assert.AreEqual(3, p.Likes.Likes, "Likes == 3");
             Assert.AreEqual(4, p.Likes.Dislikes, "Dislikes == 4");
         }
+
+        [TestMethod]
+        public async Task SaveBoardIndex()
+        {
+            var jsonStr = await TestResources.ReadTestTextFile("mlp_index.json");
+            var dto = JsonConvert.DeserializeObject<BoardEntity2>(jsonStr);
+            Assert.IsNotNull(dto, "dto != null");
+            var parser = _provider.FindNetworkDtoParser<BoardPageData, IBoardPageThreadCollection>();
+            Assert.IsNotNull(parser, "parser != null");
+            var param = new BoardPageData()
+            {
+                Link = new BoardPageLink() { Board = "mlp", Engine = MakabaConstants.MakabaEngineId, Page = 0 },
+                Etag = "##etag##",
+                LoadedTime = DateTimeOffset.Now,
+                Entity = dto
+            };
+            var collection = parser.Parse(param);
+            Assert.IsNotNull(collection, "result != null");
+
+            var collectionId = await _store.SaveCollection(collection, BoardPostCollectionUpdateMode.Replace, null);
+
+            var loaded = await _store.Load(collectionId, new PostStoreLoadMode() {EntityLoadMode = PostStoreEntityLoadMode.Full, RetrieveCounterNumber = false}) as IBoardPageThreadCollection;
+            Assert.IsNotNull(loaded, "loaded != null");
+
+            Assert.AreEqual(param.Etag, loaded.Etag, "Etag");
+            Assert.AreEqual(param.Link.GetLinkHash(), loaded.Link?.GetLinkHash(), "Link");
+            Assert.AreEqual(param.Link.GetRootLink().GetLinkHash(), loaded.ParentLink?.GetLinkHash(), "ParentLink");
+            Assert.AreEqual(dto.Threads.Length, loaded.Threads.Count, "Threads.Count");
+
+            MakabaDtoParseTests.AssertMlpIndexJson(loaded, _provider);
+        }
     }
 }

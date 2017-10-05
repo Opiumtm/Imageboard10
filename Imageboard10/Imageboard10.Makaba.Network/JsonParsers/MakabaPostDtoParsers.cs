@@ -600,17 +600,18 @@ namespace Imageboard10.Makaba.Network.JsonParsers
                 ParentLink = source.Link.GetRootLink(),
                 Info = GetEntityModel(source.Entity, source.Link),
                 Etag = source.Etag,
-                Threads = source.Entity.Threads.Select(t => _threadPreviewParser.Parse(new ThreadPreviewData()
+                Threads = source.Entity.Threads.WithCounter().Select(t => _threadPreviewParser.Parse(new ThreadPreviewData()
                 {
                     Link = new ThreadLink()
                     {
                         Engine = source.Link.Engine,
                         Board = source.Link.Board,
-                        OpPostNum = t.ThreadNumber.TryParseWithDefault()
+                        OpPostNum = t.Value.ThreadNumber.TryParseWithDefault()
                     },
-                    Thread = t,
+                    Thread = t.Value,
                     Etag = source.Etag,
-                    LoadedTime = source.LoadedTime
+                    LoadedTime = source.LoadedTime,
+                    OnPageSequence = t.Key
                 })).ToList()
             };
         }
@@ -641,7 +642,8 @@ namespace Imageboard10.Makaba.Network.JsonParsers
                 ImageCount = source.Thread.ImagesCount.TryParseWithDefault() + source.Thread.Posts.Sum(p => (p.Files ?? new BoardPostFile2[0]).Length),
                 Omit = source.Thread.PostsCount.TryParseWithDefault(),
                 OmitImages = source.Thread.ImagesCount.TryParseWithDefault(),
-                ReplyCount = Math.Max(source.Thread.PostsCount.TryParseWithDefault() + source.Thread.Posts.Count(), 0)
+                ReplyCount = Math.Max(source.Thread.PostsCount.TryParseWithDefault() + source.Thread.Posts.Count(), 0),
+                OnPageSequence = source.OnPageSequence
             };
             return result;
         }

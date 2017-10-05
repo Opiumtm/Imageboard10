@@ -152,6 +152,7 @@
     <Compile Include="Posts\IBoardPostCollectionUpdateInfo.cs" />
     <Compile Include="Posts\IBoardPostCountryFlag.cs" />
     <Compile Include="Posts\IBoardPostEntity.cs" />
+    <Compile Include="Posts\IBoardPostEntityWithSequence.cs" />
     <Compile Include="Posts\IBoardPostIcon.cs" />
     <Compile Include="Posts\IBoardPostLight.cs" />
     <Compile Include="Posts\IBoardPostOnServerCounter.cs" />
