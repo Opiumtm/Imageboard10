@@ -23,4 +23,19 @@ namespace Imageboard10.Core.ModelStorage.Posts
 
         public IPostMediaWithSize Thumbnail { get; set; }
     }
+
+    internal class PostModelStoreBareEntityWithSequence : PostModelStoreBareEntity, IBoardPostEntityWithSequence2
+    {
+        public int OnPageSequence { get; private set; }
+
+        public void SetOnPageSequence(int seq)
+        {
+            OnPageSequence = seq;
+        }
+    }
+
+    internal interface IBoardPostEntityWithSequence2 : IBoardPostEntityWithSequence
+    {
+        void SetOnPageSequence(int seq);
+    }
 }

@@ -33,6 +33,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
             public int sequenceId;
             public int? parentSequenceId;
             public string boardId;
+            public int? onPageSequence;
         }
 
         private struct LoadPostDataContext : IDisposable
@@ -166,11 +167,24 @@ namespace Imageboard10.Core.ModelStorage.Posts
             data.Subject = v.Subject;
             data.StoreId = bi.entityId;
             data.StoreParentId = bi.parentEntityId;
+            if (data is IBoardPostEntityWithSequence2 s)
+            {
+                s.SetOnPageSequence(v.ThreadPreviewSequence ?? int.MaxValue);
+            }
         }
 
-        private IBoardPostEntity LoadBareEntity(PostsTable table)
+        private bool IsOriginalPageSequence(PostStoreEntityType? entityType)
         {
-            var r = new PostModelStoreBareEntity();
+            if (entityType == PostStoreEntityType.ThreadPreview || entityType == PostStoreEntityType.CatalogPost)
+            {
+                return true;
+            }
+            return false;
+        }
+
+        private IBoardPostEntity LoadBareEntity(PostsTable table, PostStoreEntityType? entityType)
+        {
+            PostModelStoreBareEntity r = IsOriginalPageSequence(entityType) ? new PostModelStoreBareEntityWithSequence() : new PostModelStoreBareEntity();
             BasicEntityInfo bi = default(BasicEntityInfo);
             SetBareEntityData(table, r, ref bi);
             return r;
@@ -198,10 +212,10 @@ namespace Imageboard10.Core.ModelStorage.Posts
             data.LDislikes = v.Dislikes;
         }
 
-        private IBoardPostEntity LoadPostLight(IEsentSession session, PostsTable table, bool getPostCount)
+        private IBoardPostEntity LoadPostLight(IEsentSession session, PostsTable table, bool getPostCount, PostStoreEntityType? entityType)
         {
             BasicEntityInfo bi = default(BasicEntityInfo);
-            var r = new PostModelStorePostLight();
+            PostModelStorePostLight r = IsOriginalPageSequence(entityType) ? new PostModelStorePostLightWithSequence() : new PostModelStorePostLight();
             SetPostLightData(session, table, getPostCount, r, ref bi);
             return r;
         }
@@ -223,10 +237,10 @@ namespace Imageboard10.Core.ModelStorage.Posts
             SetPostData(session, ref loadContext, loadContext.table.Views.PostFullLoadView.Fetch(), getPostCount, data, ref bi);
         }
 
-        private IBoardPostEntity LoadPost(IEsentSession session, ref LoadPostDataContext loadContext, bool getPostCount)
+        private IBoardPostEntity LoadPost(IEsentSession session, ref LoadPostDataContext loadContext, bool getPostCount, PostStoreEntityType? entityType)
         {
             BasicEntityInfo bi = default(BasicEntityInfo);
-            var r = new PostModelStorePost();
+            PostModelStorePost r = IsOriginalPageSequence(entityType) ? new PostModelStorePostWithSequence() : new PostModelStorePost();
             SetPostData(session, ref loadContext, getPostCount, r, ref bi);
             return r;
         }
@@ -465,7 +479,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
 
         private IBoardPostStoreAccessInfo LoadAccessInfo(IEsentSession session, PostsTable table)
         {
-            var bareEntity = LoadBareEntity(table);
+            var bareEntity = LoadBareEntity(table, null);
             DateTime? lastAccessUtc = null;
             Guid? lastAcessEntry = null;
             if (bareEntity.StoreId != null)
@@ -492,31 +506,31 @@ namespace Imageboard10.Core.ModelStorage.Posts
             };
         }
 
-        private IBoardPostEntity LoadPost(IEsentSession session, ref LoadPostDataContext loadContext, PostStoreLoadMode loadMode)
+        private IBoardPostEntity LoadPost(IEsentSession session, ref LoadPostDataContext loadContext, PostStoreLoadMode loadMode, PostStoreEntityType entityType)
         {
             switch (loadMode.EntityLoadMode)
             {
                 case PostStoreEntityLoadMode.LinkOnly:
                     return LoadLinkOnly(loadContext.table);
                 case PostStoreEntityLoadMode.EntityOnly:
-                    return LoadBareEntity(loadContext.table);
+                    return LoadBareEntity(loadContext.table, entityType);
                 case PostStoreEntityLoadMode.Light:
-                    return LoadPostLight(session, loadContext.table, loadMode.RetrieveCounterNumber);
+                    return LoadPostLight(session, loadContext.table, loadMode.RetrieveCounterNumber, entityType);
                 case PostStoreEntityLoadMode.Full:
-                    return LoadPost(session, ref loadContext, loadMode.RetrieveCounterNumber);
+                    return LoadPost(session, ref loadContext, loadMode.RetrieveCounterNumber, entityType);
                 default:
                     return null;
             }
         }
 
-        private IBoardPostEntity LoadPostCollection(IEsentSession session, ref LoadPostDataContext loadContext, PostStoreLoadMode loadMode)
+        private IBoardPostEntity LoadPostCollection(IEsentSession session, ref LoadPostDataContext loadContext, PostStoreLoadMode loadMode, PostStoreEntityType entityType)
         {
             switch (loadMode.EntityLoadMode)
             {
                 case PostStoreEntityLoadMode.LinkOnly:
                     return LoadLinkOnly(loadContext.table);
                 case PostStoreEntityLoadMode.EntityOnly:
-                    return LoadBareEntity(loadContext.table);
+                    return LoadBareEntity(loadContext.table, entityType);
                 case PostStoreEntityLoadMode.Light:
                 case PostStoreEntityLoadMode.Full:
                     return LoadPostCollection(loadContext.table);
@@ -525,14 +539,14 @@ namespace Imageboard10.Core.ModelStorage.Posts
             }
         }
 
-        private IBoardPostEntity LoadThreadPreview(IEsentSession session, ref LoadPostDataContext loadContext, PostStoreLoadMode loadMode)
+        private IBoardPostEntity LoadThreadPreview(IEsentSession session, ref LoadPostDataContext loadContext, PostStoreLoadMode loadMode, PostStoreEntityType entityType)
         {
             switch (loadMode.EntityLoadMode)
             {
                 case PostStoreEntityLoadMode.LinkOnly:
                     return LoadLinkOnly(loadContext.table);
                 case PostStoreEntityLoadMode.EntityOnly:
-                    return LoadBareEntity(loadContext.table);
+                    return LoadBareEntity(loadContext.table, entityType);
                 case PostStoreEntityLoadMode.Light:
                 case PostStoreEntityLoadMode.Full:
                     return LoadThreadPreview(loadContext.table);
@@ -541,14 +555,14 @@ namespace Imageboard10.Core.ModelStorage.Posts
             }
         }
 
-        private IBoardPostEntity LoadThreadCollection(IEsentSession session, ref LoadPostDataContext loadContext, PostStoreLoadMode loadMode)
+        private IBoardPostEntity LoadThreadCollection(IEsentSession session, ref LoadPostDataContext loadContext, PostStoreLoadMode loadMode, PostStoreEntityType entityType)
         {
             switch (loadMode.EntityLoadMode)
             {
                 case PostStoreEntityLoadMode.LinkOnly:
                     return LoadLinkOnly(loadContext.table);
                 case PostStoreEntityLoadMode.EntityOnly:
-                    return LoadBareEntity(loadContext.table);
+                    return LoadBareEntity(loadContext.table, entityType);
                 case PostStoreEntityLoadMode.Light:
                 case PostStoreEntityLoadMode.Full:
                     return LoadThreadCollection(loadContext.table);
@@ -573,14 +587,14 @@ namespace Imageboard10.Core.ModelStorage.Posts
                 case PostStoreEntityType.Post:
                 case PostStoreEntityType.ThreadPreviewPost:
                 case PostStoreEntityType.CatalogPost:
-                    return LoadPost(session, ref loadContext, loadMode);
+                    return LoadPost(session, ref loadContext, loadMode, entityType);
                 case PostStoreEntityType.Thread:
                 case PostStoreEntityType.Catalog:
-                    return LoadPostCollection(session, ref loadContext, loadMode);
+                    return LoadPostCollection(session, ref loadContext, loadMode, entityType);
                 case PostStoreEntityType.ThreadPreview:
-                    return LoadThreadPreview(session, ref loadContext, loadMode);
+                    return LoadThreadPreview(session, ref loadContext, loadMode, entityType);
                 case PostStoreEntityType.BoardPage:
-                    return LoadThreadCollection(session, ref loadContext, loadMode);
+                    return LoadThreadCollection(session, ref loadContext, loadMode, entityType);
                 default:
                     return null;
             }

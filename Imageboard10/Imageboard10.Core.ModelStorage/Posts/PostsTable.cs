@@ -1142,6 +1142,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
 				public int? DirectParentId;
 				public string Subject;
 				public byte[] Thumbnail;
+				public int? ThreadPreviewSequence;
 				public static implicit operator ViewValues.LinkInfoView(ViewValues.BareEntityLoadInfoView src)
 				{
 					return new ViewValues.LinkInfoView()
@@ -1182,6 +1183,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
 				public StringColumnValue[] ThreadTags;
 				public int? Likes;
 				public int? Dislikes;
+				public int? ThreadPreviewSequence;
 				public static implicit operator ViewValues.LinkInfoView(ViewValues.PostLightLoadView src)
 				{
 					return new ViewValues.LinkInfoView()
@@ -1215,6 +1217,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
 						DirectParentId = src.DirectParentId,
 						Subject = src.Subject,
 						Thumbnail = src.Thumbnail,
+						ThreadPreviewSequence = src.ThreadPreviewSequence,
 					};
 				}
 			}
@@ -1240,6 +1243,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
 				public byte[] OtherDataBinary;
 				public byte[] Document;
 				public DateTime? LoadedTime;
+				public int? ThreadPreviewSequence;
 				public static implicit operator ViewValues.LinkInfoView(ViewValues.PostFullLoadView src)
 				{
 					return new ViewValues.LinkInfoView()
@@ -1273,6 +1277,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
 						DirectParentId = src.DirectParentId,
 						Subject = src.Subject,
 						Thumbnail = src.Thumbnail,
+						ThreadPreviewSequence = src.ThreadPreviewSequence,
 					};
 				}
 				public static implicit operator ViewValues.PostLightLoadView(ViewValues.PostFullLoadView src)
@@ -1293,6 +1298,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
 						ThreadTags = src.ThreadTags,
 						Likes = src.Likes,
 						Dislikes = src.Dislikes,
+						ThreadPreviewSequence = src.ThreadPreviewSequence,
 					};
 				}
 			}
@@ -1311,6 +1317,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
 				public string Etag;
 				public byte[] OtherDataBinary;
 				public byte ChildrenLoadStage;
+				public int? ThreadPreviewSequence;
 				public static implicit operator ViewValues.LinkInfoView(ViewValues.PostCollectionLoadInfoView src)
 				{
 					return new ViewValues.LinkInfoView()
@@ -1344,6 +1351,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
 						DirectParentId = src.DirectParentId,
 						Subject = src.Subject,
 						Thumbnail = src.Thumbnail,
+						ThreadPreviewSequence = src.ThreadPreviewSequence,
 					};
 				}
 			}
@@ -1397,6 +1405,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
 						DirectParentId = src.DirectParentId,
 						Subject = src.Subject,
 						Thumbnail = src.Thumbnail,
+						ThreadPreviewSequence = src.ThreadPreviewSequence,
 					};
 				}
 				public static implicit operator ViewValues.PostCollectionLoadInfoView(ViewValues.ThreadPreviewLoadInfoView src)
@@ -1414,6 +1423,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
 						Etag = src.Etag,
 						OtherDataBinary = src.OtherDataBinary,
 						ChildrenLoadStage = src.ChildrenLoadStage,
+						ThreadPreviewSequence = src.ThreadPreviewSequence,
 					};
 				}
 			}
@@ -1703,7 +1713,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
 				{
 					_table = table;
 
-					_c = new ColumnValue[8];
+					_c = new ColumnValue[9];
 					_c[0] = new Int32ColumnValue() {
 						Columnid = _table.ColumnDictionary[PostsTable.Column.Id],
 						RetrieveGrbit = RetrieveColumnGrbit.None
@@ -1736,6 +1746,10 @@ namespace Imageboard10.Core.ModelStorage.Posts
 						Columnid = _table.ColumnDictionary[PostsTable.Column.Thumbnail],
 						RetrieveGrbit = RetrieveColumnGrbit.None
 					};
+					_c[8] = new Int32ColumnValue() {
+						Columnid = _table.ColumnDictionary[PostsTable.Column.ThreadPreviewSequence],
+						RetrieveGrbit = RetrieveColumnGrbit.None
+					};
 				}
 
 				public ViewValues.BareEntityLoadInfoView Fetch()
@@ -1753,6 +1767,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
 					r.DirectParentId = ((Int32ColumnValue)_c[5]).Value;
 					r.Subject = ((StringColumnValue)_c[6]).Value;
 					r.Thumbnail = ((BytesColumnValue)_c[7]).Value;
+					r.ThreadPreviewSequence = ((Int32ColumnValue)_c[8]).Value;
 					return r;
 				}
 			}
@@ -1767,7 +1782,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
 				{
 					_table = table;
 
-					_c = new ColumnValue[12];
+					_c = new ColumnValue[13];
 					_c[0] = new Int32ColumnValue() {
 						Columnid = _table.ColumnDictionary[PostsTable.Column.Id],
 						RetrieveGrbit = RetrieveColumnGrbit.None
@@ -1816,6 +1831,10 @@ namespace Imageboard10.Core.ModelStorage.Posts
 						Columnid = _table.ColumnDictionary[PostsTable.Column.Dislikes],
 						RetrieveGrbit = RetrieveColumnGrbit.None
 					};
+					_c[12] = new Int32ColumnValue() {
+						Columnid = _table.ColumnDictionary[PostsTable.Column.ThreadPreviewSequence],
+						RetrieveGrbit = RetrieveColumnGrbit.None
+					};
 				}
 
 				public ViewValues.PostLightLoadView Fetch()
@@ -1837,6 +1856,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
 					r.Date = ((DateTimeColumnValue)_c[9]).Value;
 					r.Likes = ((Int32ColumnValue)_c[10]).Value;
 					r.Dislikes = ((Int32ColumnValue)_c[11]).Value;
+					r.ThreadPreviewSequence = ((Int32ColumnValue)_c[12]).Value;
 					r.Flags = _table.Columns.Flags.Values;
 					r.ThreadTags = _table.Columns.ThreadTags.Values;
 					return r;
@@ -1853,7 +1873,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
 				{
 					_table = table;
 
-					_c = new ColumnValue[16];
+					_c = new ColumnValue[17];
 					_c[0] = new Int32ColumnValue() {
 						Columnid = _table.ColumnDictionary[PostsTable.Column.Id],
 						RetrieveGrbit = RetrieveColumnGrbit.None
@@ -1918,6 +1938,10 @@ namespace Imageboard10.Core.ModelStorage.Posts
 						Columnid = _table.ColumnDictionary[PostsTable.Column.LoadedTime],
 						RetrieveGrbit = RetrieveColumnGrbit.None
 					};
+					_c[16] = new Int32ColumnValue() {
+						Columnid = _table.ColumnDictionary[PostsTable.Column.ThreadPreviewSequence],
+						RetrieveGrbit = RetrieveColumnGrbit.None
+					};
 				}
 
 				public ViewValues.PostFullLoadView Fetch()
@@ -1943,6 +1967,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
 					r.OtherDataBinary = ((BytesColumnValue)_c[13]).Value;
 					r.Document = ((BytesColumnValue)_c[14]).Value;
 					r.LoadedTime = ((DateTimeColumnValue)_c[15]).Value;
+					r.ThreadPreviewSequence = ((Int32ColumnValue)_c[16]).Value;
 					r.Flags = _table.Columns.Flags.Values;
 					r.ThreadTags = _table.Columns.ThreadTags.Values;
 					return r;
@@ -1959,7 +1984,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
 				{
 					_table = table;
 
-					_c = new ColumnValue[11];
+					_c = new ColumnValue[12];
 					_c[0] = new Int32ColumnValue() {
 						Columnid = _table.ColumnDictionary[PostsTable.Column.Id],
 						RetrieveGrbit = RetrieveColumnGrbit.None
@@ -2004,6 +2029,10 @@ namespace Imageboard10.Core.ModelStorage.Posts
 						Columnid = _table.ColumnDictionary[PostsTable.Column.ChildrenLoadStage],
 						RetrieveGrbit = RetrieveColumnGrbit.None
 					};
+					_c[11] = new Int32ColumnValue() {
+						Columnid = _table.ColumnDictionary[PostsTable.Column.ThreadPreviewSequence],
+						RetrieveGrbit = RetrieveColumnGrbit.None
+					};
 				}
 
 				public ViewValues.PostCollectionLoadInfoView Fetch()
@@ -2025,6 +2054,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
 					r.OtherDataBinary = ((BytesColumnValue)_c[9]).Value;
 				    // ReSharper disable once PossibleInvalidOperationException
 					r.ChildrenLoadStage = ((ByteColumnValue)_c[10]).Value.Value;
+					r.ThreadPreviewSequence = ((Int32ColumnValue)_c[11]).Value;
 					return r;
 				}
 			}

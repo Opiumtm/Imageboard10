@@ -161,6 +161,7 @@
       <Field>DirectParentId</Field>
       <Field>Subject</Field>
       <Field>Thumbnail</Field>
+      <Field>ThreadPreviewSequence</Field>
       <AssignableTo>
         <ViewName>LinkInfoView</ViewName>
         <ViewName>BasicLoadInfoView</ViewName>
@@ -181,6 +182,7 @@
       <Field>ThreadTags</Field>
       <Field>Likes</Field>
       <Field>Dislikes</Field>
+      <Field>ThreadPreviewSequence</Field>
       <AssignableTo>
         <ViewName>LinkInfoView</ViewName>
         <ViewName>BasicLoadInfoView</ViewName>
@@ -206,6 +208,7 @@
       <Field>OtherDataBinary</Field>
       <Field>Document</Field>
       <Field>LoadedTime</Field>
+      <Field>ThreadPreviewSequence</Field>
       <AssignableTo>
         <ViewName>LinkInfoView</ViewName>
         <ViewName>BasicLoadInfoView</ViewName>
@@ -225,6 +228,7 @@
       <Field>Etag</Field>
       <Field>OtherDataBinary</Field>
       <Field>ChildrenLoadStage</Field>
+      <Field>ThreadPreviewSequence</Field>
       <AssignableTo>
         <ViewName>LinkInfoView</ViewName>
         <ViewName>BasicLoadInfoView</ViewName>

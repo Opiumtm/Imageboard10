@@ -36,4 +36,14 @@ namespace Imageboard10.Core.ModelStorage.Posts
 
         IList<string> IBoardPostTags.Tags => TagsSet;
     }
+
+    internal class PostModelStorePostLightWithSequence : PostModelStorePostLight, IBoardPostEntityWithSequence2
+    {
+        public int OnPageSequence { get; private set; }
+
+        public void SetOnPageSequence(int seq)
+        {
+            OnPageSequence = seq;
+        }
+    }
 }

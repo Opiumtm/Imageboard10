@@ -54,4 +54,14 @@ namespace Imageboard10.Core.ModelStorage.Posts
             public ILink ImageLink { get; set; }
         }
     }
+
+    internal class PostModelStorePostWithSequence : PostModelStorePost, IBoardPostEntityWithSequence2
+    {
+        public int OnPageSequence { get; private set; }
+
+        public void SetOnPageSequence(int seq)
+        {
+            OnPageSequence = seq;
+        }
+    }
 }
