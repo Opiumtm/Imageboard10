@@ -72,16 +72,23 @@
         <ViewName>ParentsAndIdViewForIndex</ViewName>
       </Views>
     </Index>
-    <Index Name="FlagsIndex" Grbit="None">
+    <Index Name="TypeFlagsIndex" Grbit="None">
       <Fields>
+        <Field Name="EntityType" Sort="Asc"/>
         <Field Name="Flags" Sort="Asc"/>
       </Fields>
+      <Views>
+        <ViewName>RetrieveIdFromIndexView</ViewName>
+      </Views>
     </Index>
     <Index Name="DirectParentFlagsIndex" Grbit="IgnoreAnyNull">
       <Fields>
         <Field Name="DirectParentId" Sort="Asc"/>
         <Field Name="Flags" Sort="Asc"/>
       </Fields>
+      <Views>
+        <ViewName>RetrieveIdFromIndexView</ViewName>
+      </Views>
     </Index>
     <Index Name="QuotedPostsIndex" Grbit="IgnoreAnyNull">
       <Fields>

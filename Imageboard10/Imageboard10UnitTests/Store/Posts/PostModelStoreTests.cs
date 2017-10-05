@@ -632,53 +632,91 @@ namespace Imageboard10UnitTests
         }
 
         [TestMethod]
-        public async Task SaveThreadToStoreBenhcmark()
+        public async Task FindPostsByFlags()
         {
-            const int iterations = 10;
             var collection = await ReadThread("mobi_thread_2.json");
-            (collection.Info.Items.FirstOrDefault(f => f.GetInfoInterfaceTypes().Any(i => i == typeof(IBoardPostCollectionInfoFlags))) as IBoardPostCollectionInfoFlags).Flags.Add(UnitTestStoreFlags.AlwaysInsert);
-            foreach (var p in collection.Posts)
-            {
-                p.Flags.Add(UnitTestStoreFlags.AlwaysInsert);
-            }
-            var st = new Stopwatch();
-            st.Start();            
-            for (var i = 0; i < iterations; i++)
-            {
-                await _store.SaveCollection(collection, BoardPostCollectionUpdateMode.Replace, null);
-            }
-            st.Stop();
-            var count = collection.Posts.Count;
-            Logger.LogMessage("Время загрузки треда в базу: {0:F2} сек. всего, {1:F2} мс на итерацию, {2} постов, {3:F2} мс/пост", st.Elapsed.TotalSeconds, st.Elapsed.TotalMilliseconds / iterations, collection.Posts.Count, st.Elapsed.TotalMilliseconds / iterations / collection.Posts.Count);
-            var postsSize = await _store.GetTotalSize(PostStoreEntityType.Post);
-            var threadsSize = await _store.GetTotalSize(PostStoreEntityType.Thread);
-            var totalSize = await _store.GetTotalSize(null);
-            Assert.AreEqual(count*iterations, postsSize, "Количество постов");
-            Assert.AreEqual(1*iterations, threadsSize, "Количество тредов");
-            Assert.AreEqual((count + 1)*iterations, totalSize, "Общее количество сущностей");
-        }
+            var collectionId = await _store.SaveCollection(collection, BoardPostCollectionUpdateMode.Replace, null, null);
 
-        [TestMethod]
-        public async Task SaveThreadToStoreMergeBenhcmark()
-        {
-            const int iterations = 10;
-            var collection = await ReadThread("mobi_thread_2.json");
-            await _store.SaveCollection(collection, BoardPostCollectionUpdateMode.Replace, null);
-            var st = new Stopwatch();
-            st.Start();
-            for (var i = 0; i < iterations; i++)
+            var testFlag1 = new Guid("{6BC3BB49-B97F-40B4-B42D-164C7A286DAD}");
+            var testFlag2 = new Guid("{72F3536D-9C0D-47A0-8959-5108DBFE1172}");
+            var testFlag3 = new Guid("{AE85ECD1-1DF1-416E-B75D-5FD7314DEC34}");
+
+            async Task<PostStoreEntityId> GetPostId(ILink link)
             {
-                await _store.SaveCollection(collection, BoardPostCollectionUpdateMode.Merge, null);
+                Assert.IsNotNull(link, "link != null");
+                var id = await _store.FindEntity(PostStoreEntityType.Post, link);
+                Assert.IsNotNull(id, $"Поиск ID поста {link.GetLinkHash()}");
+                return id.Value;
             }
-            st.Stop();
-            var count = collection.Posts.Count;
-            Logger.LogMessage("Время загрузки треда в базу: {0:F2} сек. всего, {1:F2} мс на итерацию, {2} постов, {3:F2} мс/пост", st.Elapsed.TotalSeconds, st.Elapsed.TotalMilliseconds / iterations, collection.Posts.Count, st.Elapsed.TotalMilliseconds / iterations / collection.Posts.Count);
-            var postsSize = await _store.GetTotalSize(PostStoreEntityType.Post);
-            var threadsSize = await _store.GetTotalSize(PostStoreEntityType.Thread);
-            var totalSize = await _store.GetTotalSize(null);
-            Assert.AreEqual(count, postsSize, "Количество постов");
-            Assert.AreEqual(1, threadsSize, "Количество тредов");
-            Assert.AreEqual(count + 1, totalSize, "Общее количество сущностей");
+
+            var test1FlagPosts = new PostStoreEntityId[]
+            {
+                await GetPostId(collection.Posts[0].Link),
+                await GetPostId(collection.Posts[2].Link),
+                await GetPostId(collection.Posts[10].Link),
+                await GetPostId(collection.Posts[50].Link),
+            };
+
+            var test2FlagPosts = new PostStoreEntityId[]
+            {
+                await GetPostId(collection.Posts[1].Link),
+                await GetPostId(collection.Posts[3].Link),
+                await GetPostId(collection.Posts[15].Link),
+                await GetPostId(collection.Posts[40].Link),
+            };
+
+            var test3FlagPosts = new PostStoreEntityId[]
+            {
+                await GetPostId(collection.Posts[0].Link),
+                await GetPostId(collection.Posts[2].Link),
+                await GetPostId(collection.Posts[15].Link),
+                await GetPostId(collection.Posts[40].Link),
+            };
+
+            var fp = new List<FlagUpdateAction>();
+            fp.AddRange(test1FlagPosts.Select(id => new FlagUpdateAction() { Flag = testFlag1, Action = FlagUpdateOperation.Add, Id = id }));
+            fp.AddRange(test2FlagPosts.Select(id => new FlagUpdateAction() { Flag = testFlag2, Action = FlagUpdateOperation.Add, Id = id }));
+            fp.AddRange(test3FlagPosts.Select(id => new FlagUpdateAction() { Flag = testFlag3, Action = FlagUpdateOperation.Add, Id = id }));
+
+            await _store.UpdateFlags(fp);
+
+            void AssertFound(IList<PostStoreEntityId> result, string msg, params PostStoreEntityId[] required)
+            {
+                CollectionAssert.AreEquivalent(required, result.ToArray(), msg);
+            }
+
+            var f1r = await _store.QueryByFlags(PostStoreEntityType.Post, collectionId, new List<Guid>() {testFlag1}, null);
+            AssertFound(f1r, "Есть флаг 1", test1FlagPosts);
+
+            var f2r = await _store.QueryByFlags(PostStoreEntityType.Post, collectionId, new List<Guid>() {testFlag2}, null);
+            AssertFound(f2r, "Есть флаг 2", test2FlagPosts);
+
+            var f3r = await _store.QueryByFlags(PostStoreEntityType.Post, collectionId, new List<Guid>() {testFlag3}, null);
+            AssertFound(f3r, "Есть флаг 3", test3FlagPosts);
+
+            var f12r = await _store.QueryByFlags(PostStoreEntityType.Post, collectionId, new List<Guid>() {testFlag1, testFlag2}, null);
+            Assert.AreEqual(0, f12r.Count, "Флаги 1 и 2 не пересекаются");
+
+            var f13r = await _store.QueryByFlags(PostStoreEntityType.Post, collectionId, new List<Guid>() { testFlag1, testFlag3 }, null);
+            AssertFound(f13r, "Есть флаги 1 и 3", test3FlagPosts[0], test3FlagPosts[1]);
+
+            var f23r = await _store.QueryByFlags(PostStoreEntityType.Post, collectionId, new List<Guid>() { testFlag2, testFlag3 }, null);
+            AssertFound(f23r, "Есть флаги 2 и 3", test3FlagPosts[2], test3FlagPosts[3]);
+
+            var f123r = await _store.QueryByFlags(PostStoreEntityType.Post, collectionId, new List<Guid>() { testFlag1, testFlag2, testFlag3 }, null);
+            Assert.AreEqual(0, f123r.Count, "Флаги 1, 2, 3 не пересекаются");
+
+            var f1m2r = await _store.QueryByFlags(PostStoreEntityType.Post, collectionId, new List<Guid>() { testFlag1 }, new List<Guid>() { testFlag2 });
+            AssertFound(f1m2r, "Есть флаг 1, нет 2", test1FlagPosts);
+
+            var f2m1r = await _store.QueryByFlags(PostStoreEntityType.Post, collectionId, new List<Guid>() { testFlag2 }, new List<Guid>() { testFlag1 });
+            AssertFound(f2m1r, "Есть флаг 2, нет 1", test2FlagPosts);
+
+            var f1m3r = await _store.QueryByFlags(PostStoreEntityType.Post, collectionId, new List<Guid>() { testFlag1 }, new List<Guid>() { testFlag3 });
+            AssertFound(f1m3r, "Есть флаг 1, нет 3", test1FlagPosts[2], test1FlagPosts[3]);
+
+            var f2m3r = await _store.QueryByFlags(PostStoreEntityType.Post, collectionId, new List<Guid>() { testFlag2 }, new List<Guid>() { testFlag3 });
+            AssertFound(f2m3r, "Есть флаг 2, нет 3", test2FlagPosts[0], test2FlagPosts[1]);
         }
     }
 }
