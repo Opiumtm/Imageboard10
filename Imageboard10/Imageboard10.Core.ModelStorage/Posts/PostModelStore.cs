@@ -13,6 +13,7 @@ using Imageboard10.Core.ModelInterface.Posts.Store;
 using Imageboard10.Core.Models.Links;
 using Imageboard10.Core.Models.Links.LinkTypes;
 using Imageboard10.Core.Models.Posts;
+using Imageboard10.Core.ModelStorage.UnitTests;
 using Imageboard10.Core.Modules;
 using Imageboard10.Core.Tasks;
 using Imageboard10.Core.Utility;
@@ -24,7 +25,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
     /// <summary>
     /// Хранилище постов.
     /// </summary>
-    public partial class PostModelStore : ModelStorageBase<IBoardPostStore>, IBoardPostStore, IStaticModuleQueryFilter
+    public partial class PostModelStore : ModelStorageBase<IBoardPostStore>, IBoardPostStore, IStaticModuleQueryFilter, IPostModelStoreForTests
     {
         /// <summary>
         /// Конструктор.
@@ -1234,7 +1235,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
                 });
                 return await OpenSessionAsync(async session =>
                 {
-                    return await DoDeleteEntitiesList(session, allEntities.Select(e => e.id));
+                    return await DoDeleteEntitiesList(session, allEntities.Select(e => e.id).Concat(ids).Distinct(PostStoreEntityIdEqualityComparer.Instance));
                 });
             }
 
@@ -1256,23 +1257,25 @@ namespace Imageboard10.Core.ModelStorage.Posts
                 {
                     await OpenSessionAsync(async session =>
                     {
+                        var toDelete = new List<PostStoreEntityId>();
                         await session.RunInTransaction(() =>
                         {
                             int counter = 200;
-                            using (var table = OpenPostsTable(session, OpenTableGrbit.Updatable))
+                            using (var table = OpenPostsTable(session, OpenTableGrbit.ReadOnly))
                             {
                                 if (table.TryMoveFirst())
                                 {
                                     do
                                     {
                                         counter--;
-                                        table.DeleteCurrentRow();
+                                        toDelete.Add(new PostStoreEntityId() { Id = table.Columns.Id });
                                     } while (counter > 0 && table.TryMoveNext());
                                 }
                                 else foundAny = false;
                             }
                             return true;
                         }, 1);
+                        await DoDeleteEntitiesList(session, toDelete);
                         return Nothing.Value;
                     });
                 } while (foundAny);
@@ -1656,6 +1659,37 @@ namespace Imageboard10.Core.ModelStorage.Posts
                 }
             }
             return false;
+        }
+
+        /// <summary>
+        /// Получить размеры таблиц (в количествах записей).
+        /// </summary>
+        /// <returns>Размеры таблиц.</returns>
+        async Task<(string name, int count)[]> IPostModelStoreForTests.GetTableSizes()
+        {
+            CheckModuleReady();
+            await WaitForTablesInitialize();
+
+            return await OpenSessionAsync(async session =>
+            {
+                return await session.Run(() =>
+                {
+                    var r = new List<(string name, int count)>();
+                    using (var table = OpenPostsTable(session, OpenTableGrbit.ReadOnly))
+                    {
+                        r.Add(("Posts", table.Indexes.PrimaryIndex.GetIndexRecordCount()));
+                    }
+                    using (var table = OpenMediaFilesTable(session, OpenTableGrbit.ReadOnly))
+                    {
+                        r.Add(("Media", table.Indexes.PrimaryIndex.GetIndexRecordCount()));
+                    }
+                    using (var table = OpenAccessLogTable(session, OpenTableGrbit.ReadOnly))
+                    {
+                        r.Add(("AccessLog", table.Indexes.PrimaryIndex.GetIndexRecordCount()));
+                    }
+                    return r.ToArray();
+                });
+            });
         }
     }
 }

@@ -830,5 +830,124 @@ namespace Imageboard10UnitTests
                 Assert.AreEqual(collection.Threads[i].Link.GetLinkHash(), link.GetLinkHash(), $"Ссылка на тред {j + 1}, children2");
             }
         }
+
+        [TestMethod]
+        public async Task CleanPostsTable()
+        {
+            var collection = await ReadThread("mobi_thread_2.json");
+            var collectionId = await _store.SaveCollection(collection, BoardPostCollectionUpdateMode.Replace, null, null);
+
+            var jsonStr = await TestResources.ReadTestTextFile("mlp_index.json");
+            var dto = JsonConvert.DeserializeObject<BoardEntity2>(jsonStr);
+            Assert.IsNotNull(dto, "dto != null");
+            var parser = _provider.FindNetworkDtoParser<BoardPageData, IBoardPageThreadCollection>();
+            Assert.IsNotNull(parser, "parser != null");
+            var param = new BoardPageData()
+            {
+                Link = new BoardPageLink() { Board = "mlp", Engine = MakabaConstants.MakabaEngineId, Page = 0 },
+                Etag = "##etag##",
+                LoadedTime = DateTimeOffset.Now,
+                Entity = dto
+            };
+            var collection2 = parser.Parse(param);
+            var collectionId2 = await _store.SaveCollection(collection2, BoardPostCollectionUpdateMode.Replace, null);
+
+            await _store.Touch(collectionId, null);
+            await _store.Touch(collectionId2, null);
+
+            var test = _store as IPostModelStoreForTests;
+            Assert.IsNotNull(test, "test != null");
+
+            Logger.LogMessage("Начальные размеры:");
+            foreach (var k in await test.GetTableSizes())
+            {
+                Logger.LogMessage($"{k.name}: {k.count} записей");
+            }
+
+            await _store.ClearAllData();
+
+            foreach (var k in await test.GetTableSizes())
+            {
+                Assert.AreEqual(0, k.count, $"{k.name} содержит более 0 записей");
+            }
+        }
+
+        [TestMethod]
+        public async Task DeletePostEntitiyTests()
+        {
+            var collection = await ReadThread("mobi_thread_2.json");
+            var collectionId = await _store.SaveCollection(collection, BoardPostCollectionUpdateMode.Replace, null, null);
+
+            var jsonStr = await TestResources.ReadTestTextFile("mlp_index.json");
+            var dto = JsonConvert.DeserializeObject<BoardEntity2>(jsonStr);
+            Assert.IsNotNull(dto, "dto != null");
+            var parser = _provider.FindNetworkDtoParser<BoardPageData, IBoardPageThreadCollection>();
+            Assert.IsNotNull(parser, "parser != null");
+            var param = new BoardPageData()
+            {
+                Link = new BoardPageLink() { Board = "mlp", Engine = MakabaConstants.MakabaEngineId, Page = 0 },
+                Etag = "##etag##",
+                LoadedTime = DateTimeOffset.Now,
+                Entity = dto
+            };
+            var collection2 = parser.Parse(param);
+            var collectionId2 = await _store.SaveCollection(collection2, BoardPostCollectionUpdateMode.Replace, null);
+
+            await _store.Touch(collectionId, null);
+            await _store.Touch(collectionId2, null);
+
+            var test = _store as IPostModelStoreForTests;
+            Assert.IsNotNull(test, "test != null");
+
+            var initialSizes = (await test.GetTableSizes()).ToDictionary(s => s.name, s => s.count);
+
+            int thPreview = 1;
+            int thPreviewMedia = 0;
+            foreach (var m in collection2.Threads[1].Posts)
+            {
+                thPreview++;
+                thPreviewMedia += m.MediaFiles.Count;
+            }
+
+            Logger.LogMessage($"К удалению записей для превью треда: {thPreview} сущностей, {thPreviewMedia} медиа");
+
+            var thPreviewId = await _store.FindEntity(PostStoreEntityType.ThreadPreview, collection2.Threads[1].Link);
+            Assert.IsNotNull(thPreviewId, "thPreviewId != null");
+
+            await _store.Delete(new List<PostStoreEntityId>() {thPreviewId.Value});
+
+            var thPreviewId2 = await _store.FindEntity(PostStoreEntityType.ThreadPreview, collection2.Threads[1].Link);
+            Assert.IsNull(thPreviewId2, "Родительская сущность не удалена");
+
+            var thPreviewSizes = (await test.GetTableSizes()).ToDictionary(s => s.name, s => s.count);
+            
+            Assert.AreEqual(initialSizes["Posts"] - thPreview, thPreviewSizes["Posts"], "Количество постов после удаления превью треда");
+            Assert.AreEqual(initialSizes["Media"] - thPreviewMedia, thPreviewSizes["Media"], "Количество медиа после удаления превью треда");
+
+            int th = 1;
+            int thMedia = 0;
+            foreach (var m in collection.Posts)
+            {
+                th++;
+                thMedia += m.MediaFiles.Count;
+            }
+
+            Logger.LogMessage($"К удалению записей для треда: {th} сущностей, {thMedia} медиа");
+
+            await _store.Delete(new List<PostStoreEntityId>() {collectionId});
+
+            var thSizes = (await test.GetTableSizes()).ToDictionary(s => s.name, s => s.count);
+
+            Assert.AreEqual(thPreviewSizes["Posts"] - th, thSizes["Posts"], "Количество постов после удаления треда");
+            Assert.AreEqual(thPreviewSizes["Media"] - thMedia, thSizes["Media"], "Количество медиа после удаления треда");
+            Assert.AreEqual(1, thSizes["AccessLog"], "Лог доступа после удаления треда");
+
+            await _store.Delete(new List<PostStoreEntityId>() { collectionId2 });
+
+            foreach (var k in await test.GetTableSizes())
+            {
+                Assert.AreEqual(0, k.count, $"{k.name} содержит более 0 записей");
+            }
+        }
     }
 }
