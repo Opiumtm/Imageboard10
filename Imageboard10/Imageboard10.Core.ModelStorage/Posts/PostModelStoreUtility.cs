@@ -215,6 +215,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
             yield return PostCollectionFlags.IsClosed;
             yield return PostCollectionFlags.IsIndex;
             yield return UnitTestStoreFlags.ShouldFail;
+            yield return UnitTestStoreFlags.ShouldFailWithoutCleanup;
         }
 
         /// <summary>

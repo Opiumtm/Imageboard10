@@ -153,6 +153,10 @@ namespace Imageboard10.Core.ModelStorage.Posts
                         {
                             throw new UnitTestStoreException();
                         }
+                        if (f == UnitTestStoreFlags.ShouldFailWithoutCleanup)
+                        {
+                            throw new UnitTestStoreExceptionWithoutCleanup();
+                        }
                         toSet.Add(f);
                     }
                     setData.Flags = toSet.Select(id => new GuidColumnValue() { Value = id, SetGrbit = SetColumnGrbit.UniqueMultiValues}).ToArray();
@@ -474,6 +478,10 @@ namespace Imageboard10.Core.ModelStorage.Posts
                             if (f == UnitTestStoreFlags.ShouldFail)
                             {
                                 throw new UnitTestStoreException();
+                            }
+                            if (f == UnitTestStoreFlags.ShouldFailWithoutCleanup)
+                            {
+                                throw new UnitTestStoreExceptionWithoutCleanup();
                             }
                             toSetFlags.Add(f);
                         }
@@ -931,9 +939,9 @@ namespace Imageboard10.Core.ModelStorage.Posts
 
                 try
                 {
-                    progress.Report(new OperationProgress() { Progress = null, Message = progressMessage, OperationId = progressId });
+                    progress.Report(new OperationProgress() {Progress = null, Message = progressMessage, OperationId = progressId});
 
-                    PostStoreEntityId addedEntity = new PostStoreEntityId() { Id = -1 };
+                    PostStoreEntityId addedEntity = new PostStoreEntityId() {Id = -1};
 
                     if (collection.EntityType == PostStoreEntityType.Catalog || collection.EntityType == PostStoreEntityType.Thread)
                     {
@@ -954,6 +962,11 @@ namespace Imageboard10.Core.ModelStorage.Posts
                     }
 
                     return addedEntity;
+                }
+                catch (UnitTestStoreExceptionWithoutCleanup)
+                {
+                    // Не очищать данные.
+                    throw;
                 }
                 catch
                 {

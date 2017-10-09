@@ -177,6 +177,7 @@
     <Compile Include="UnitTests\IPostModelStoreForTests.cs" />
     <Compile Include="UnitTests\TableVersionStatusForTests.cs" />
     <Compile Include="UnitTests\UnitTestStoreException.cs" />
+    <Compile Include="UnitTests\UnitTestStoreExceptionWithoutCleanup.cs" />
     <Compile Include="UnitTests\UnitTestStoreFlags.cs" />
     <EmbeddedResource Include="Properties\Imageboard10.Core.ModelStorage.rd.xml" />
   </ItemGroup>

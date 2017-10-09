@@ -949,5 +949,40 @@ namespace Imageboard10UnitTests
                 Assert.AreEqual(0, k.count, $"{k.name} содержит более 0 записей");
             }
         }
+
+        [TestMethod]
+        public async Task PostsUploadCleanupOnFailTest()
+        {
+            var collection = await ReadThread("mobi_thread_2.json");
+            collection.Posts[100].Flags.Add(UnitTestStoreFlags.ShouldFail);
+
+            var tcs = new TaskCompletionSource<Nothing>();
+
+            void BackgroundFinished(Exception exception)
+            {
+                if (exception == null)
+                {
+                    tcs.TrySetResult(Nothing.Value);
+                }
+                else
+                {
+                    tcs.TrySetException(exception);
+                }
+            }
+
+            await Assert.ThrowsExceptionAsync<AggregateException>(async () =>
+            {
+                await _store.SaveCollection(collection, BoardPostCollectionUpdateMode.Replace, null, BackgroundFinished);
+            });
+
+            await tcs.Task;
+
+            var test = _store as IPostModelStoreForTests;
+
+            foreach (var k in await test.GetTableSizes())
+            {
+                Assert.AreEqual(0, k.count, $"{k.name} содержит более 0 записей");
+            }
+        }
     }
 }
