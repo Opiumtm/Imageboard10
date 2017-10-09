@@ -984,5 +984,40 @@ namespace Imageboard10UnitTests
                 Assert.AreEqual(0, k.count, $"{k.name} содержит более 0 записей");
             }
         }
+
+        [TestMethod]
+        public async Task PostsUploadCleanupDirtyCrash()
+        {
+            var collection = await ReadThread("mobi_thread_2.json");
+            collection.Posts[100].Flags.Add(UnitTestStoreFlags.ShouldFailWithoutCleanup);
+
+            await Assert.ThrowsExceptionAsync<AggregateException>(async () =>
+            {
+                await _store.SaveCollection(collection, BoardPostCollectionUpdateMode.Replace, null, null);
+            });
+
+            var test = _store as IPostModelStoreForTests;
+
+            Logger.LogMessage("Записей в базе после падения загрузки");
+            bool isAnyRecord = false;
+            foreach (var k in await test.GetTableSizes())
+            {
+                if (k.count > 0)
+                {
+                    isAnyRecord = true;
+                }
+                Logger.LogMessage($"{k.name}: {k.count} записей");
+            }
+
+            Assert.IsTrue(isAnyRecord, "Должны остаться записи в базе после грязного падения загрузки");
+
+            await _store.ClearUnfinishedData();
+
+            foreach (var k in await test.GetTableSizes())
+            {
+                Assert.AreEqual(0, k.count, $"{k.name} содержит более 0 записей");
+            }
+        }
+
     }
 }

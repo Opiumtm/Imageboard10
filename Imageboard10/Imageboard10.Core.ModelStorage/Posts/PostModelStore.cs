@@ -1590,7 +1590,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
                     {
                         foreach (var id in FindAllParents(parTable))
                         {
-                            if (GotoEntityId(idTable, id))
+                            if (!GotoEntityId(idTable, id))
                             {
                                 orphanParents.Add(id.Id);
                             }
@@ -1600,6 +1600,7 @@ namespace Imageboard10.Core.ModelStorage.Posts
                 using (var incTable = OpenPostsTable(session, OpenTableGrbit.ReadOnly))
                 {
                     var index = incTable.Indexes.ChildrenLoadStageIndex;
+                    index.SetAsCurrentIndex();
                     foreach (var id in index.EnumerateAsRetrieveIdFromIndexView(index.CreateKey(ChildrenLoadStageId.Started)))
                     {
                         orphanParents.Add(id.Id);
